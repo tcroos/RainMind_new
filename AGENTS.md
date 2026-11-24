@@ -123,6 +123,10 @@ src/app/styles/global-canvas-*.css    # controls / overrides / responsive 三个
 - [14:00] OWNER-SHELL 提交 `8addc04`：桌面侧栏的选中/悬停底色同样被 antd reset 压掉（实测 computed `background-color` 为 `rgba(0,0,0,0)`，当前页只有文字变深、几乎看不出选中），已在 `@layer` 外补覆盖，且只挑 `aside nav` 与底部账号入口，顶部 logo 链接不受影响
 - [14:00] 环境说明（别误判为自己弄坏）：`npx vitest run` 全量 617 passed / 8 文件失败，失败原因只有两类 —— `DATABASE_URL is required when VOZEB_PRO_DATABASE_PROVIDER=postgres`（`vitest run` 不加载 `.env.local`）与 `src/app/site-brand-assets.test.ts` 读仓库外的 `../docs/public/logo.svg`（拍平目录后不存在）。与 SHELL 改动无交集；所有读取 `global-surfaces.css` 的测试单独跑 43/43 通过
 - [14:31] OWNER-SHELL **占用 admin 骨架**：`src/app/admin/layout.tsx`（新建）、`src/lib/server/admin-page-access.ts`（新建）、`src/app/admin/{page,billing/page,setup/page}.tsx` 的**外壳部分**（auth/hydrator/main 包装）。原因是 §1 里 `/admin/*` 既没写归属、也没人认领，而三个路由各抄一遍 auth + 15 字段 hydrator，必须收进 layout 才能改一处生效。**仅限外壳**：各页的业务内容、`components/admin/**` 一律不动，仍归原负责人。若有人正在改这三个 page 文件，请在此提出，我让路
+- [14:41] OWNER-SHELL 提交 `11f59c1`：admin 外壳落地。`src/app/admin/layout.tsx` 承担鉴权 / 用户注入 / `admin-console-page` 滚动容器；`requireAdminUser()` 用 React `cache` 包一层，布局与页面共用同一实例，每请求只解析一次会话。三页只留内容与分区判定。**顶栏刻意未统一**（控制台是侧栏 + 内嵌 header，另两页是独立 header），硬并会改现有视觉 —— 要做需单独协商
+- [14:41] 行为变化（有意，需知悉）：未登录访问 `/admin/billing`、`/admin/setup` 原先回跳 `/login?next=/admin/billing|/admin/setup`，收进布局后统一为 `?next=/admin` —— 布局拿不到 pathname，除非让 `src/proxy.ts` 注入路径头，而那是 CSP/安全相关代码，未擅自改。要恢复深链回跳，正解是在 proxy 里加 `x-pathname`
+- [14:41] OWNER-SHELL 提交 `dfdbb7d`：`/admin/billing` 骨架灰阶 stone → zinc（23 处），与 `global-admin-theme.css` 的 zinc 令牌及另两页对齐。纯视觉，结构与尺寸未动；若不满意暖灰/冷灰取向，改 layout + 另两页一起切即可
+- [14:41] 仍未处理（需产品/功能裁决，SHELL 不擅自动）：① `/admin/billing` 全站无任何入口，只能手输 URL，却自带 2237 行实现，与 `/admin` 里 orders/products/promotions/coupons/payments/wallet/cdk 七个 section 功能重叠 —— 是并入 section 还是补入口，待定；② `src/app/admin/marketing/`、`src/app/admin/works/` 只有 components 没有 page，无对应路由
 
 ## 9. 升级方案：物理隔离（撞车频繁时启用）
 
@@ -147,3 +151,4 @@ git worktree add ../vozeb-wt-canvas -b feat/canvas-local feat/3034-frontend-loca
 - 2026-11-24 13:18 OWNER-SHELL 就位并在 §8 留一行；分区与规则未改
 - 2026-11-24 13:37 OWNER-SHELL 追加 §8 三条（裁决确认 + 两笔 SHELL 提交）；另在 §8 更正自己 13:22 对抽屉病因的判断，分区与规则未改
 - 2026-11-24 14:00 OWNER-SHELL 追加 §8 五条（三笔提交 + 导航文件位置变更提醒 + vitest 失败原因说明）；分区与规则未改
+- 2026-11-24 14:41 OWNER-SHELL 追加 §8 五条（admin 骨架占用与落地、登录回跳行为变化、灰阶对齐、两项待裁决）；分区表中 `/admin/*` 的归属仍待正式写入 §1
