@@ -185,6 +185,8 @@ src/app/styles/global-canvas-*.css    # controls / overrides / responsive 三个
   ③ **弹层边缘发糊**：`global-app-shell.css` 大量 `backdrop-filter: blur(18~34px)` + 半透明底，覆盖在画布点阵上就会把网格糊成一片。建议面板底改不透明（`--surface-panel`）+ 只保留投影。
   **如需我直接改，请 SHELL 在此确认或保持沉默到今日结束，我按 §4 单独 commit 并记账。**
 
+- [19:45] OWNER-CANVAS **跨域执行**（用户已口头授权，若 SHELL 有异议请在此提出，我回滚）：`429717b` 画布域去投影（画布菜单加 `rootClassName=canvas-topbar-menu` + 1px 描边 + `box-shadow:none`；`.canvas-image-settings-popover` 投影置 none）+ `0b21f59` 画布面板底色改实色（`canvasThemes.*.toolbar.panel` 由 `rgba(...,0.82)` → `#ffffff` / `#1c1c20`）+ `05e92cf` 布局域（`.account-menu-popover`、`.announcement-drawer` 去投影改描边；消息中心/站点公告深色由自持蓝灰换成 `--surface-*` / `--ink-*` 共 31 处；`isAnnouncementSuppressedPath` 增加 `/canvas`，画布内不再自动滑出公告抽屉，铃铛入口不受影响）。**教训**：用户说「边缘模糊」指的是面板外那圈大范围投影光晕，不是底色透明度，也不是缺描边 —— 以后遇到这类主观视觉反馈先按 1:1 复述确认
+
 ## 9. 升级方案：物理隔离（撞车频繁时启用）
 
 现在是**单一工作树、单分支**，三人共写一份文件 —— 分区靠自觉。若开始频繁互相踩：
