@@ -166,6 +166,8 @@ src/app/styles/global-canvas-*.css    # controls / overrides / responsive 三个
 
 - [16:58] OWNER-CANVAS 提交 `fd214a8`：修「切深浅色时新建卡闪白」——根因是新建卡是**唯一**带 `transition-colors` 的卡，`background-color` 被插值，200ms 内从 `#eceef0` 渐变到 `#1d1d20`；项目卡封面没有 transition 所以从不闪。已改为只过渡 `border-color/color`。同时把新建卡底色从 `--surface-soft` 改成 `--surface-inset`，与空白封面同令牌（此前两卡并排有色差）。标题 15→20/22px、多选按钮 24→32px、卡片标题 13→14px
 
+- [18:10] OWNER-CANVAS 提交 `ad942b1` + `8acb27d`：画布列表间距放开（页边距/标题到网格/行距 均 →32，卡片标题到日期 7→15px）、多选入口图标改为自绘两行点划。**踩坑记一笔**：日期原来是 `<p>`，antd 无层级 reset 的 `p{margin:0}` 压过 `@layer utilities`，`mt-*` 三次调整实测都是同一个 7px；改 `div` 才生效 —— 与 SHELL 13:37 发现的「无层级规则压 utilities」是同一种病，canvas 域内后续避免在 p/h 系列标签上挂 margin 工具类
+
 ## 9. 升级方案：物理隔离（撞车频繁时启用）
 
 现在是**单一工作树、单分支**，三人共写一份文件 —— 分区靠自觉。若开始频繁互相踩：
