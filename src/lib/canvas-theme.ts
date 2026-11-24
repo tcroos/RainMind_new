@@ -51,7 +51,7 @@ export const canvasThemes = {
             flow: "#64b4ff",
         },
         toolbar: {
-            panel: "rgba(255,255,255,0.82)",
+            panel: "#ffffff",
             border: "#d9e7ee",
             item: "#475569",
             itemHover: "#eef6fb",
@@ -107,7 +107,7 @@ export const canvasThemes = {
             flow: "#64b4ff",
         },
         toolbar: {
-            panel: "rgba(28,28,32,0.82)",
+            panel: "#1c1c20",
             border: "#3b3b40",
             item: "#e5e5e7",
             itemHover: "#2b2b2f",
