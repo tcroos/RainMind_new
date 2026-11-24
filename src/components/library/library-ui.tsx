@@ -67,18 +67,24 @@ export function LibraryEmptyState({ icon, title, description, action, className 
 
 /**
  * 「我的素材 / 我的提示词」完全为空时的引导区。
- * 两个 tab 各用自己的示范图（imageSrc 由调用方给），但图片尺寸、标题间距和按钮位置完全一致。
- * 外层用 min-height 把整组内容放到剩余视口的中部，避免贴着工具栏、下方留一大片空白。
+ * 每个 tab 传自己的两张图：images[0] 是露边的底层，images[1] 是端正的前层，形成叠图效果。
+ * 图片尺寸、标题间距和按钮位置两个 tab 完全一致；外层 min-height 把整组放到剩余视口更靠下的位置。
  */
-export function LibraryShowcaseEmptyState({ title, description, action, imageSrc }: { title: string; description: string; action: ReactNode; imageSrc: string }) {
+export function LibraryShowcaseEmptyState({ title, description, action, images }: { title: string; description: string; action: ReactNode; images: readonly [string, string] }) {
     return (
         <div
             className="flex flex-col items-center justify-center px-4 pb-14 pt-10 text-center sm:pt-12"
-            style={{ minHeight: "min(600px, calc(100dvh - 200px))" }}
+            style={{ minHeight: "min(760px, calc(100dvh - 140px))" }}
         >
-            <div className="w-full max-w-[380px] overflow-hidden rounded-2xl bg-[var(--surface-inset)] shadow-[0_16px_36px_-28px_rgba(17,17,19,0.38)]">
-                {/* eslint-disable-next-line @next/next/no-img-element -- 本地静态示范图，无需经过图片服务 */}
-                <img src={imageSrc} alt="素材库示范" className="block aspect-[2/1] w-full object-cover" />
+            <div className="relative mx-3 mb-4 mt-1 w-full max-w-[380px]">
+                <div className="absolute inset-0 -translate-y-2 translate-x-3 -rotate-[4deg] overflow-hidden rounded-2xl bg-[var(--surface-inset)] shadow-[0_18px_36px_-26px_rgba(17,17,19,0.45)]">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- 本地静态示范图，无需经过图片服务 */}
+                    <img src={images[0]} alt="" className="block aspect-[2/1] w-full object-cover" />
+                </div>
+                <div className="relative aspect-[2/1] overflow-hidden rounded-2xl bg-[var(--surface-inset)] shadow-[0_16px_36px_-28px_rgba(17,17,19,0.38)]">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- 本地静态示范图，无需经过图片服务 */}
+                    <img src={images[1]} alt="素材库示范" className="block h-full w-full object-cover" />
+                </div>
             </div>
             {/* 标题用包裹层承载上边距：Tailwind 的 h1..h6 { margin:0 } 重置排在工具类之后，
                 直接写 mt-* 会被它盖掉（实测计算值 0px）。 */}

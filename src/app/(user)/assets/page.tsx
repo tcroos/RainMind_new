@@ -322,7 +322,7 @@ export default function AssetsPage() {
                                     <LibraryEmptyState icon={<RotateCcw className="size-5" />} title="素材加载失败" description={error} action={<Button onClick={reload}>重新加载</Button>} />
                                 ) : !assets.length ? (
                                     <LibraryShowcaseEmptyState
-                                        imageSrc="/library/asset-empty-banner.webp"
+                                        images={["/library/asset-empty-banner-back.webp", "/library/asset-empty-banner.webp"]}
                                         title="还没有素材"
                                         description="把常用的图片、文本与视频存进来，创作时一键复用。"
                                         action={

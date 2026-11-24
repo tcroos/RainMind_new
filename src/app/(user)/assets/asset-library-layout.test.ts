@@ -27,8 +27,9 @@ describe("asset library shell", () => {
 
         expect(ui).toContain("max-w-[380px]");
         expect(ui).toContain("aspect-[2/1]");
-        expect(ui).toContain("imageSrc");
-        expect(ui).toContain('minHeight: "min(600px, calc(100dvh - 200px))"');
+        expect(ui).toContain("images: readonly [string, string]");
+        expect(ui).toContain("-rotate-[4deg]");
+        expect(ui).toContain('minHeight: "min(760px, calc(100dvh - 140px))"');
         expect(ui).toContain("justify-center");
         // 「示例：……」那行说明与冗长描述已经删掉
         expect(ui).not.toContain("示例：把常用的字体");
@@ -38,10 +39,12 @@ describe("asset library shell", () => {
         const page = await read("src/app/(user)/assets/page.tsx");
         const prompts = await read("src/components/my-prompts/my-prompts-page.tsx");
 
-        expect(page).toContain('imageSrc="/library/asset-empty-banner.webp"');
-        expect(prompts).toContain('imageSrc="/library/prompt-empty-banner.webp"');
+        expect(page).toContain('["/library/asset-empty-banner-back.webp", "/library/asset-empty-banner.webp"]');
+        expect(prompts).toContain('["/library/prompt-empty-banner-back.webp", "/library/prompt-empty-banner.webp"]');
         await access("public/library/asset-empty-banner.webp");
+        await access("public/library/asset-empty-banner-back.webp");
         await access("public/library/prompt-empty-banner.webp");
+        await access("public/library/prompt-empty-banner-back.webp");
     });
 
     it("exposes three tabs in the agreed order and defaults to the public library", async () => {
