@@ -104,6 +104,7 @@ src/app/styles/global-canvas-*.css    # controls / overrides / responsive 三个
 - [12:53] OWNER-ME 持有 7 个文件未提交（头像渐变），OWNER-CANVAS 不触碰
 - [12:56] OWNER-ME 提交 `3846a2d` — `public/profile-cover.*`、`scripts/generate-profile-cover.mjs`：封面底色改中性石墨，只动自己域
 - [12:56] OWNER-ME 补记历史改动：`108a33f` 里一并改了共享层 `components/layout/{app-sidebar,mobile-nav-drawer,user-status-actions}.tsx` 的头像渐变类名（纯 class 替换、无行为/接口变更），当时契约尚未建立；此后共享层改动会单独提交并在此记账
+- [13:22] OWNER-ME 改共享层 `components/layout/{app-sidebar,mobile-nav-drawer,user-status-actions}.tsx`：头像 fallback 渐变 浅赤陶 → 石墨，纯 class、无行为变更，单独提交 `3af4b92`；配套 me 域改动在 `b5fced8`
 - [12:58] 分区定稿：OWNER-PAGES → OWNER-CANVAS（画布域）
 - [13:00] 契约升级为三方版：新增 OWNER-SHELL（全站骨架 + 页面合并），`components/layout`、`components/ui`、`globals.css` 从「共享层」改为 OWNER-SHELL 独占
 - [13:00] 历史说明：`108a33f`（头像配色）曾修改 `components/layout/` 三个文件，属两方制时期的改动，**不回滚**；此后 layout 归 OWNER-SHELL
