@@ -209,3 +209,5 @@ git worktree add ../vozeb-wt-canvas -b feat/canvas-local feat/3034-frontend-loca
   36 页 + 182 个 route handler + 1664 个源文件，单页冷编译实测 83s。
   已提交 `7ac8f2a`：`scripts/run-app.mjs` 堆上限 4096 → 8192（触发线抬到 6.4GB），**需人工重启 `pnpm dev` 才生效**。
   未做但值得试：去掉 `--webpack` 走 Turbopack；给 `experimental.optimizePackageImports` 补 `antd`（Next 默认清单已含 lucide-react，不含 antd）
+- [18:16] OWNER-SHELL 按用户批准落地两条 dev 性能措施：`3b997ff`（`scripts/run-app.mjs` 去掉 `--webpack`，dev 走 Turbopack；留 `NEXT_DEV_BUNDLER=webpack pnpm dev` 回退开关）+ `92c769b`（`next.config.ts` 加 `experimental.optimizePackageImports: ["antd"]`，Next 默认清单已含 lucide-react，不含 antd；`@ant-design/icons` 本仓库 0 引用故不加）。**两者都需人工重启 `pnpm dev` 才生效**
+- [18:16] OWNER-SHELL 顺手修了一处环境损坏：`.next-dev/dev/types/{routes,validator}.d.ts` 被写坏（`interface` 被截成 `ace`，tsc 报 TS1434/1005），导致 `pnpm typecheck` 对所有人变红。这两个是 Next 生成物，已删除并用 `next typegen` 重建（写到了 `.next-dev/types/`），`tsc` 已恢复干净；`dev/types` 下这两份会在下次 dev 启动时由 Next 重新生成。**若重启后 typecheck 又变红，先看这两个文件是否又损坏 —— 那说明写入过程被反复重启打断，先解决重启问题**
