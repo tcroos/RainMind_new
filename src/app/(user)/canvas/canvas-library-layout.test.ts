@@ -21,6 +21,8 @@ describe("canvas library layout", () => {
         const createCard = await read("src/app/(user)/canvas/components/canvas-project-create-card.tsx");
         expect(createCard).toContain("aspect-[16/10]");
         expect(createCard).not.toContain("min-h-[220px]");
+        // 加号与短剧新建卡统一用品牌橙，列表里只留这一个动作色
+        expect(createCard).toContain("!text-[var(--brand-600)]");
         // 一行最多 5 列：再多就退化成缩略图墙
         expect(page).toContain("xl:grid-cols-5");
         expect(page).not.toContain("2xl:grid-cols-6");
