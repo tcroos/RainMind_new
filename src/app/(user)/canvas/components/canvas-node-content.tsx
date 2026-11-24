@@ -15,6 +15,7 @@ import { CanvasNodeTaskId, CanvasNodeTaskStateOverlay } from "./canvas-node-task
 import { canvasNodeSafeFailureMessage, deriveCanvasNodeTaskState } from "../[id]/canvas-node-task-state";
 import { CanvasNodeType, type CanvasNodeData } from "../types";
 import type { CanvasResourceReference } from "../utils/canvas-resource-references";
+import { canvasResizeHitSize } from "../utils/canvas-node-resize";
 
 export type ResizeCorner = "top-left" | "top-right" | "bottom-left" | "bottom-right";
 export type NodeContentRendererProps = {
@@ -728,25 +729,50 @@ export function BatchFrame({
         </div>
     );
 }
-export function ResizeHandle({ corner, onMouseDown }: { corner: ResizeCorner; onMouseDown: (event: React.MouseEvent, corner: ResizeCorner) => void }) {
-    const positionClass = {
-        "top-left": "-left-[22px] -top-[22px] cursor-nwse-resize",
-        "top-right": "-right-[22px] -top-[22px] cursor-nesw-resize",
-        "bottom-left": "-bottom-[22px] -left-[22px] cursor-nesw-resize",
-        "bottom-right": "-bottom-[22px] -right-[22px] cursor-nwse-resize",
+export function ResizeHandle({
+    corner,
+    onMouseDown,
+    scale = 1,
+    enabled = true,
+}: {
+    corner: ResizeCorner;
+    onMouseDown: (event: React.MouseEvent, corner: ResizeCorner) => void;
+    scale?: number;
+    enabled?: boolean;
+}) {
+    const cursorClass = {
+        "top-left": "cursor-nwse-resize",
+        "top-right": "cursor-nesw-resize",
+        "bottom-left": "cursor-nesw-resize",
+        "bottom-right": "cursor-nwse-resize",
     }[corner];
+
+    /* 命中区按屏幕像素恒定（默认 24px），不再用常驻的 44px 大方块：
+     * 角外只伸出 12px，且节点未 hover/选中时完全不接管指针。 */
+    const hit = canvasResizeHitSize(scale);
+    const offset = hit / 2;
+    const style: React.CSSProperties = {
+        width: hit,
+        height: hit,
+        touchAction: "none",
+        ...(corner.includes("left") ? { left: -offset } : { right: -offset }),
+        ...(corner.includes("top") ? { top: -offset } : { bottom: -offset }),
+    };
 
     return (
         <div
             data-canvas-resize-corner={corner}
             aria-label="调整节点大小"
-            className={`absolute z-50 size-11 select-none ${positionClass}`}
-            style={{ touchAction: "none" }}
+            className={`absolute z-50 select-none ${cursorClass} ${enabled ? "" : "pointer-events-none"}`}
+            style={style}
             onPointerDown={(event) => {
+                if (!enabled) return;
                 event.stopPropagation();
                 event.currentTarget.setPointerCapture?.(event.pointerId);
             }}
-            onMouseDown={(event) => onMouseDown(event, corner)}
+            onMouseDown={(event) => {
+                if (enabled) onMouseDown(event, corner);
+            }}
         />
     );
 }

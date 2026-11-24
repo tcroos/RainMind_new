@@ -12,6 +12,7 @@ import { CanvasResourceMentionTextarea } from "./canvas-resource-mention-textare
 import { CanvasNodeType, isCanvasImageNodeType, type CanvasNodeData, type Position } from "../types";
 import type { CanvasResourceReference } from "../utils/canvas-resource-references";
 import { isCanvasVideoControlPoint } from "../utils/canvas-surface-geometry";
+import { shouldStartCanvasNodeResize } from "../utils/canvas-node-resize";
 
 type ResizeCorner = "top-left" | "top-right" | "bottom-left" | "bottom-right";
 const selectionBlue = "#ffffff";
@@ -153,6 +154,8 @@ export const CanvasNode = React.memo(function CanvasNode({
     const isBatchRoot = data.type === CanvasNodeType.Image && Boolean(data.metadata?.isBatchRoot) && batchCount > 1;
     const isBatchChild = data.type === CanvasNodeType.Image && Boolean(data.metadata?.batchRootId);
     const isActive = isConnectionTarget || isSelected || isFocusRelated;
+    /* 缩放手柄只在鼠标已经落在这个节点上、或节点被选中时才接管指针 */
+    const resizeEnabled = hovered || isSelected;
     const imageBorderColor = isActive ? selectionBlue : isRelated && !isBatchChild ? theme.node.muted : theme.node.stroke;
     /* 状态描边从 border 迁移到 box-shadow：保留 border-2 占位不动盒模型，
      * 锚点/连线坐标因此零偏移，菲涅尔描边由伪元素单独绘制。 */
@@ -163,6 +166,7 @@ export const CanvasNode = React.memo(function CanvasNode({
     const clickStartRef = useRef<{ x: number; y: number } | null>(null);
     const resizeRef = useRef({
         isResizing: false,
+        started: false,
         corner: "bottom-right" as ResizeCorner,
         startX: 0,
         startY: 0,
@@ -217,6 +221,15 @@ export const CanvasNode = React.memo(function CanvasNode({
         (event: MouseEvent) => {
             if (!resizeRef.current.isResizing) return;
 
+            /* 按下后要先真正拖动一小段才算缩放；单击、手抖、以及点在角上的普通操作不会改尺寸。
+             * 跨过阈值时把起点挪到当前位置，尺寸从 0 开始平滑变化，不出现突然一跳。 */
+            if (!resizeRef.current.started) {
+                if (!shouldStartCanvasNodeResize(event.clientX - resizeRef.current.startX, event.clientY - resizeRef.current.startY)) return;
+                resizeRef.current.started = true;
+                resizeRef.current.startX = event.clientX;
+                resizeRef.current.startY = event.clientY;
+            }
+
             const dx = (event.clientX - resizeRef.current.startX) / scale;
             const dy = (event.clientY - resizeRef.current.startY) / scale;
             const minWidth = 220;
@@ -260,9 +273,13 @@ export const CanvasNode = React.memo(function CanvasNode({
 
     const handleResizeUp = useCallback(() => {
         if (!resizeRef.current.isResizing) return;
+        const started = resizeRef.current.started;
         resizeRef.current.isResizing = false;
+        resizeRef.current.started = false;
         window.removeEventListener("mousemove", handleResizeMove);
         window.removeEventListener("mouseup", handleResizeUp);
+        /* 从未跨过阈值就不提交，避免单击也写一次持久化 */
+        if (!started) return;
         onResizeEnd?.(data.id, resizeRef.current.currentWidth, resizeRef.current.currentHeight, resizeRef.current.currentPosition);
     }, [data.id, handleResizeMove, onResizeEnd]);
 
@@ -271,6 +288,7 @@ export const CanvasNode = React.memo(function CanvasNode({
         event.preventDefault();
         resizeRef.current = {
             isResizing: true,
+            started: false,
             corner,
             startX: event.clientX,
             startY: event.clientY,
@@ -481,10 +499,10 @@ export const CanvasNode = React.memo(function CanvasNode({
                  * 它用 theme.canvas.background 做底，在渐变画布上会变成一条黑带，
                  * 而空态 UI 本就居中、底部没有需要提对比的文字。 */}
 
-                <ResizeHandle corner="top-left" onMouseDown={handleResizeMouseDown} />
-                <ResizeHandle corner="top-right" onMouseDown={handleResizeMouseDown} />
-                <ResizeHandle corner="bottom-left" onMouseDown={handleResizeMouseDown} />
-                <ResizeHandle corner="bottom-right" onMouseDown={handleResizeMouseDown} />
+                <ResizeHandle corner="top-left" onMouseDown={handleResizeMouseDown} scale={scale} enabled={resizeEnabled} />
+                <ResizeHandle corner="top-right" onMouseDown={handleResizeMouseDown} scale={scale} enabled={resizeEnabled} />
+                <ResizeHandle corner="bottom-left" onMouseDown={handleResizeMouseDown} scale={scale} enabled={resizeEnabled} />
+                <ResizeHandle corner="bottom-right" onMouseDown={handleResizeMouseDown} scale={scale} enabled={resizeEnabled} />
             </div>
 
             <ConnectionHandleDot
