@@ -176,6 +176,8 @@ src/app/styles/global-canvas-*.css    # controls / overrides / responsive 三个
 
 - [19:12] OWNER-CANVAS 提交 `1cb4afc`：小地图重绘改为命令式 `drawMap(viewport)`（按任意视口重算包围盒/比例尺并重画点阵+节点），**滚轮缩放不再收起小地图**、改为和平移一样浮出，橙色视口框随缩放变大小（实测 30% → 95×59、40% → 67×42）。首帧用 `useLayoutEffect` 避免闪位。注意：用户已收回「除拖动外一律收起」的说法，缩放属于需要小地图的操作；真正会收起的只剩节点拖拽/框选/点空白/按键/点画布外
 
+- [19:26] OWNER-CANVAS 提交 `cc7644c`：节点提示词面板把积分拆到左侧独立一列（币形图标 + 数字，写法对齐侧栏），生成键改为 36px 圆形上箭头（对齐创作页发送键）：空提示词灰底灰箭头且禁用、有词转品牌橙渐变、生成中换方块。注意底部行的 `[&_button]:!h-12` 已改成 `[&_button:not(.canvas-send-circle)]`，以后在该行加圆键要带上 `canvas-send-circle` 类，否则展开态会被拉成椭圆
+
 ## 9. 升级方案：物理隔离（撞车频繁时启用）
 
 现在是**单一工作树、单分支**，三人共写一份文件 —— 分区靠自觉。若开始频繁互相踩：
@@ -225,3 +227,4 @@ git worktree add ../vozeb-wt-canvas -b feat/canvas-local feat/3034-frontend-loca
 - [19:00] OWNER-SHELL **冻结并开始改造：素材 + 提示词合并为二级菜单**（用户指定方案，参照 Lovart「我的素材」二级面板 + tab 切换）。涉及：`(user)/assets/page.tsx`、`(user)/my-prompts/page.tsx`（改重定向）、`components/my-prompts/my-prompts-page.tsx`（加 embedded）、`components/layout/workspace-nav-list.tsx`、`constant/navigation-tools.ts`。目标结构：侧栏只留「素材」一个入口，悬停/点击出二级面板切换「素材 / 提示词」；页面内用同一套外框（标题 + tab + 单一滚动容器），**不允许**再出现「各自 h1 + 各自滚动 + 各自 max-width」拼在一起的硬塞。OWNER-PAGES 如正在改这些文件请立即提出
 - [19:10] OWNER-SHELL 提交 `63c88b6`（侧栏二级菜单）+ `63d04d4`（页面合并），**解除 19:00 的冻结**。「素材」一个入口：桌面悬停展开 240px 二级面板（素材 / 提示词，带勾选），收起态面板贴图标右侧展开，移动抽屉平铺两个子项（不渲染父项，避免「素材/素材/提示词」重复）。`/assets` 统一外框（标题 + tab + 单一滚动容器 + 单一 max-width），`/my-prompts` 重定向到 `/assets?tab=prompts`
 - [19:10] 给后续改这两页的人：`MyPromptsPage` 已经是**纯面板**（没有 h1、没有 `<main>`、没有 overflow），外框由 `(user)/assets/page.tsx` 提供。别再给它加滚动或标题，会立刻退回「页内两条滚动条 + 两个标题」；新加 tab 请复用 `LibraryTab` 那套下划线样式，保持全站切换控件一致
+- [19:20] OWNER-SHELL 接用户指令做两处改造：① 侧栏「词库」并入「素材」二级面板（第三项「公共词库」指向 /prompts，第二项更名「我的提示词」），`constant/navigation-tools.ts` + 其测试；② **借用 OWNER-PAGES 的 `create/` 两文件做审美升级**：`create-workbench-overview.tsx`（四张 3D 橙图 + 液态玻璃卡 → 线性图标 + `.quick-entry-card` 描边卡；项目卡黑色角标改浅底、胶囊改文字链接）与 `create-home-layout.test.ts`（对应断言）。样式层 `.liquid-entry` → `.quick-entry-card` 落在 SHELL 的 `global-surfaces.css`。开工前 `git status` 确认 create/ 无他人未提交改动；OWNER-PAGES 若正在改这两个文件请立即提出，我让路
