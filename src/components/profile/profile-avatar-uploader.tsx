@@ -7,7 +7,7 @@ import { useRef, useState } from "react";
 import { userAvatarFallback } from "@/lib/user-avatar";
 import { type LocalUser, useUserStore } from "@/stores/use-user-store";
 
-export function ProfileAvatarUploader({ onUpdated }: { onUpdated?: (user: LocalUser) => void }) {
+export function ProfileAvatarUploader({ onUpdated, variant = "row" }: { onUpdated?: (user: LocalUser) => void; variant?: "row" | "avatar" }) {
     const { message } = App.useApp();
     const inputRef = useRef<HTMLInputElement>(null);
     const [uploading, setUploading] = useState(false);
@@ -35,6 +35,42 @@ export function ProfileAvatarUploader({ onUpdated }: { onUpdated?: (user: LocalU
         }
     };
 
+    const fileInput = (
+        <input
+            ref={inputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            className="sr-only"
+            aria-label="选择头像图片"
+            onChange={(event) => {
+                const file = event.target.files?.[0];
+                event.target.value = "";
+                if (file) void upload(file);
+            }}
+        />
+    );
+
+    if (variant === "avatar") {
+        return (
+            <div className="relative shrink-0 pb-3">
+                <span className="grid size-20 place-items-center overflow-hidden rounded-full bg-foreground text-lg font-semibold text-background ring-1 ring-border">
+                    {user?.avatarUrl ? <img src={user.avatarUrl} alt="当前头像" className="size-full object-cover" /> : fallback}
+                </span>
+                {fileInput}
+                <button
+                    type="button"
+                    className="absolute bottom-0 left-1/2 inline-flex h-6 -translate-x-1/2 items-center gap-1 whitespace-nowrap rounded-full !bg-foreground px-2 text-[11px] font-medium !text-background shadow-sm ring-2 ring-background transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
+                    onClick={() => inputRef.current?.click()}
+                    disabled={uploading}
+                    aria-label="更换头像"
+                >
+                    <Camera className="size-3" />
+                    {uploading ? "上传中" : "更换"}
+                </button>
+            </div>
+        );
+    }
+
     return (
         <div className="flex min-w-0 items-center gap-3 border-b border-border pb-4 sm:gap-4">
             <span className="grid size-16 shrink-0 place-items-center overflow-hidden rounded-full bg-foreground text-sm font-semibold text-background ring-1 ring-border">
@@ -44,18 +80,7 @@ export function ProfileAvatarUploader({ onUpdated }: { onUpdated?: (user: LocalU
                 <div className="text-sm font-semibold text-foreground">个人头像</div>
                 <div className="mt-1 text-xs text-muted-foreground">PNG、JPG 或 WebP，最大 5MB</div>
             </div>
-            <input
-                ref={inputRef}
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                className="sr-only"
-                aria-label="选择头像图片"
-                onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    event.target.value = "";
-                    if (file) void upload(file);
-                }}
-            />
+            {fileInput}
             <Button className="shrink-0" icon={<Camera className="size-4" />} loading={uploading} onClick={() => inputRef.current?.click()}>
                 更换头像
             </Button>

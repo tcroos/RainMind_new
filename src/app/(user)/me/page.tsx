@@ -167,26 +167,18 @@ export default function MyCreatorPage() {
         <main className="h-full min-h-0 overflow-y-auto bg-background text-foreground">
             <div className="mx-auto w-full max-w-[1280px] px-3 pb-12 sm:px-6 sm:pb-16 lg:px-8">
                 <section className="relative min-w-0 pb-5 pt-4 sm:pb-6 sm:pt-6" aria-labelledby="my-profile-name">
-                    {/* 封面横幅：用户资料暂无封面上传，先用品牌渐变占位 */}
-                    <div className="relative h-24 overflow-hidden rounded-xl ring-1 ring-black/5 ring-inset sm:h-36 sm:rounded-2xl dark:ring-white/10">
+                    {/* 封面横幅：用户资料暂无封面上传能力，先用生成的等高线底图占位 */}
+                    <div className="relative h-32 overflow-hidden rounded-xl ring-1 ring-black/5 ring-inset sm:h-44 sm:rounded-2xl dark:ring-white/10">
+                        <img src="/profile-cover.webp" alt="" aria-hidden="true" width={1600} height={400} className="absolute inset-0 size-full object-cover" />
                         <span
                             aria-hidden="true"
-                            className="absolute inset-0 bg-[linear-gradient(112deg,#075985_0%,#0e7490_44%,#4338ca_100%)]"
+                            className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,6,23,0.04)_0%,rgba(2,6,23,0.3)_100%)]"
                         />
-                        <span
-                            aria-hidden="true"
-                            className="absolute inset-0 bg-[radial-gradient(85%_150%_at_12%_-25%,rgba(255,255,255,0.42),transparent_58%)]"
-                        />
-                        <span
-                            aria-hidden="true"
-                            className="absolute inset-0 bg-[radial-gradient(75%_130%_at_88%_130%,rgba(2,6,23,0.5),transparent_62%)]"
-                        />
-                        <span aria-hidden="true" className="absolute inset-0 bg-black/5 dark:bg-black/20" />
                     </div>
 
                     <div className="px-2 sm:px-4">
                         <span
-                            className="relative z-10 -mt-9 grid size-18 place-items-center overflow-hidden rounded-full bg-foreground text-lg font-semibold text-background ring-4 ring-background sm:-mt-11 sm:size-24 sm:text-2xl"
+                            className="relative z-10 -mt-9 grid size-20 place-items-center overflow-hidden rounded-full bg-foreground text-lg font-semibold text-background shadow-sm ring-4 ring-background sm:-mt-14 sm:size-28 sm:text-2xl"
                             aria-hidden="true"
                         >
                             {avatarUrl ? <img src={avatarUrl} alt="" className="size-full object-cover" /> : userAvatarFallback(profileDisplayName)}
@@ -202,7 +194,7 @@ export default function MyCreatorPage() {
                                 <div className="flex shrink-0 items-center gap-2 pt-0.5">
                                     <button
                                         type="button"
-                                        className="grid size-9 place-items-center rounded-lg border border-border bg-card text-muted-foreground shadow-xs transition hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-45"
+                                        className="grid size-9 place-items-center rounded-lg border border-border bg-card !text-muted-foreground shadow-xs transition hover:bg-muted hover:!text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-45"
                                         disabled={!summary?.publicProfileAvailable}
                                         onClick={shareProfile}
                                         title={summary?.publicProfileAvailable ? "复制公开主页链接" : "使用资料身份发布作品后可分享主页"}
@@ -212,7 +204,7 @@ export default function MyCreatorPage() {
                                     </button>
                                     <button
                                         type="button"
-                                        className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-card px-3 text-sm font-medium text-foreground shadow-xs transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                        className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-card px-3 text-sm font-medium !text-foreground shadow-xs transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                         aria-label="编辑资料"
                                         title="编辑资料"
                                         aria-haspopup="dialog"
@@ -288,27 +280,54 @@ export default function MyCreatorPage() {
             <PublicWorkPreviewModal slug={previewSlug || undefined} onClose={() => setPreviewSlug("")} onOpenCreator={setCreatorUsername} />
             <PublicCreatorModal username={creatorUsername || undefined} nextPath="/me" onClose={() => setCreatorUsername("")} />
             <CommunityActivityModal key={activityView || "closed"} view={activityView} onClose={() => setActivityView(undefined)} onChanged={refreshCommunitySummary} onOpenCreator={setCreatorUsername} onOpenWork={setPreviewSlug} />
-            <Modal
-                title="编辑个人主页"
-                open={editOpen}
-                okText="保存"
-                cancelText="取消"
-                confirmLoading={savingProfile}
-                okButtonProps={{ disabled: !draftDisplayName.trim() }}
-                destroyOnHidden
-                onOk={() => void saveProfile()}
-                onCancel={() => setEditOpen(false)}
-            >
-                <div className="pt-2">
-                    <ProfileAvatarUploader onUpdated={syncVisibleProfile} />
-                    <label className="mt-4 block pb-4">
-                        <span className="text-sm font-medium text-foreground">昵称</span>
-                        <Input className="mt-2" value={draftDisplayName} maxLength={40} showCount placeholder="输入主页显示昵称" onChange={(event) => setDraftDisplayName(event.target.value)} onPressEnter={() => void saveProfile()} />
-                    </label>
-                    <label className="mt-4 block">
-                        <span className="text-sm font-medium text-foreground">个人简介</span>
-                        <Input.TextArea className="mt-2" value={draftBio} maxLength={160} showCount autoSize={{ minRows: 3, maxRows: 5 }} placeholder="介绍你的创作方向、擅长领域或常用风格" onChange={(event) => setDraftBio(event.target.value)} />
-                    </label>
+            <Modal title="编辑资料" open={editOpen} footer={null} width={600} centered destroyOnHidden onCancel={() => setEditOpen(false)}>
+                <div className="flex items-start gap-5 pt-1">
+                    <ProfileAvatarUploader variant="avatar" onUpdated={syncVisibleProfile} />
+                    <div className="min-w-0 flex-1">
+                        <div className="flex items-baseline justify-between gap-2">
+                            <span className="text-[13px] text-muted-foreground">用户名</span>
+                            <span className="text-[11px] tabular-nums text-muted-foreground/70">{draftDisplayName.length}/40</span>
+                        </div>
+                        <Input
+                            variant="filled"
+                            className="!mt-1.5 !h-10 !rounded-lg"
+                            value={draftDisplayName}
+                            maxLength={40}
+                            placeholder="输入主页显示昵称"
+                            onChange={(event) => setDraftDisplayName(event.target.value)}
+                            onPressEnter={() => void saveProfile()}
+                        />
+                        <div className="mt-4 flex items-baseline justify-between gap-2">
+                            <span className="text-[13px] text-muted-foreground">简介</span>
+                            <span className="text-[11px] tabular-nums text-muted-foreground/70">{draftBio.length}/160</span>
+                        </div>
+                        <Input.TextArea
+                            variant="filled"
+                            className="!mt-1.5 !rounded-lg"
+                            value={draftBio}
+                            maxLength={160}
+                            placeholder="介绍一下你自己"
+                            autoSize={{ minRows: 4, maxRows: 6 }}
+                            onChange={(event) => setDraftBio(event.target.value)}
+                        />
+                    </div>
+                </div>
+                <div className="mt-6 flex justify-end gap-2">
+                    <button
+                        type="button"
+                        className="inline-flex h-9 items-center rounded-lg border border-border bg-card px-4 text-sm font-medium !text-foreground transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        onClick={() => setEditOpen(false)}
+                    >
+                        取消
+                    </button>
+                    <button
+                        type="button"
+                        className="inline-flex h-9 items-center rounded-lg !bg-foreground px-4 text-sm font-medium !text-background transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                        disabled={!draftDisplayName.trim() || savingProfile}
+                        onClick={() => void saveProfile()}
+                    >
+                        {savingProfile ? "保存中" : "应用"}
+                    </button>
                 </div>
             </Modal>
         </main>
