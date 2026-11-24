@@ -81,6 +81,7 @@ export function CanvasTopBar({
             <div className="canvas-topbar pointer-events-none absolute left-0 right-0 top-0 z-50 flex h-16 items-center justify-between gap-2 px-3 sm:h-20 sm:px-6" data-save-status={saveState?.status || "saved"}>
                 <div className="canvas-topbar-left pointer-events-auto flex min-w-0 items-center gap-2 sm:gap-3">
                     <Dropdown
+                        rootClassName="canvas-topbar-menu"
                         open={menuOpen}
                         onOpenChange={setMenuOpen}
                         trigger={["click"]}

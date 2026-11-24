@@ -141,7 +141,8 @@
 
     .canvas-image-settings-popover .ant-popover-inner {
         border-radius: 18px;
-        box-shadow: 0 18px 54px rgba(28, 25, 23, 0.16);
+        /* 同上：参数/模型弹层不要外扩投影，靠描边和实色底分层 */
+        box-shadow: none;
         padding: 18px;
     }
 
@@ -979,3 +980,18 @@
 }
 
 
+/*
+ * 画布菜单（左上汉堡）：面板底色和画布几乎同色，antd 默认又只给一层大范围投影，
+ * 边缘在深色点阵上读不出来，看着像"糊在画布上"。补一条 1px 实边 + 收紧投影，
+ * 让边界是一条线而不是一团雾。
+ */
+.canvas-topbar-menu .ant-dropdown-menu {
+    border: 1px solid rgba(17, 17, 19, 0.1);
+    /* 不要投影：那圈大范围的光晕叠在画布上就是"边缘发糊"，用 1px 描边分隔层级 */
+    box-shadow: none !important;
+}
+
+.dark .canvas-topbar-menu .ant-dropdown-menu {
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: none !important;
+}
