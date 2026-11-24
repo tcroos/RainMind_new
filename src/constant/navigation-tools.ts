@@ -47,12 +47,12 @@ export const navigationTools = [
         icon: Clapperboard,
     },
     {
-        /* 素材、我的提示词、公共词库统一成一个「素材库」入口。
+        /* 素材、我的提示词、公共词库统一成一个「素材」入口。
          * 不再做 hover 浮层：那是在用「菜单」伪装「切换内容」，与全站极简语言冲突，
          * 用户也反馈过弹窗突兀。切换全部发生在页面内的三个 tab，侧栏只保留一个入口。
          * /prompts 与 /my-prompts 保留为重定向，旧链接与代码里的深链不断。 */
         slug: "assets",
-        label: "素材库",
+        label: "素材",
         description: "素材、提示词与词库",
         group: "assets",
         icon: Images,
@@ -100,7 +100,7 @@ export function isExternalTool(tool: (typeof navigationTools)[number]) {
 
 export function navigationToolForPathname(pathname: string) {
     const slug = pathname.split("/").filter(Boolean)[0];
-    /* 合并前的旧路由在重定向发生前也要保持「素材库」高亮，避免侧栏闪一下无选中。 */
+    /* 合并前的旧路由在重定向发生前也要保持「素材」高亮，避免侧栏闪一下无选中。 */
     if (slug === "prompts" || slug === "my-prompts") return navigationTools.find((tool) => tool.slug === "assets");
     return navigationTools.find((tool) => tool.slug === slug);
 }

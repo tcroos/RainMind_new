@@ -19,8 +19,8 @@ describe("user navigation order", () => {
     });
 
     it("puts public works into assets and keeps only external links under personal", () => {
-        expect(navigationTools.filter((tool) => tool.group === "assets").map((tool) => tool.label)).toEqual(["素材库", "广场"]);
-        // 素材 / 我的提示词 / 公共词库全部收进「素材库」单入口 + 页面内 tab，侧栏不再有任何浮层子项
+        expect(navigationTools.filter((tool) => tool.group === "assets").map((tool) => tool.label)).toEqual(["素材", "广场"]);
+        // 素材 / 我的提示词 / 公共词库全部收进「素材」单入口 + 页面内 tab，侧栏不再有任何浮层子项
         const assets = navigationTools.find((tool) => tool.slug === "assets");
         expect(assets && "children" in assets).toBe(false);
         // 广场是「别人的作品」，归资产；「社区」这个分组随之取消
