@@ -75,12 +75,12 @@ export function SiteAnnouncementPopup() {
             }}
             aria-label="站点公告"
         >
-            <section className="flex h-full min-h-0 flex-col bg-white text-[#20242a] dark:bg-[#15181d] dark:text-[#f3f5f7]">
-                <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-[#eef0f3] px-4 dark:border-[#2a2f36]">
+            <section className="flex h-full min-h-0 flex-col bg-white text-[#20242a] dark:bg-[var(--surface-panel)] dark:text-[var(--ink-1)]">
+                <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-[#eef0f3] px-4 dark:border-[var(--hairline)]">
                     <h2 className="text-[15px] font-semibold tracking-tight">站点公告</h2>
                     <button
                         type="button"
-                        className="grid size-8 shrink-0 place-items-center rounded-lg text-[#8a939f] transition hover:bg-[#f1f3f5] hover:text-[#20242a] dark:text-[#9aa3af] dark:hover:bg-[#22262c] dark:hover:text-white"
+                        className="grid size-8 shrink-0 place-items-center rounded-lg text-[#8a939f] transition hover:bg-[#f1f3f5] hover:text-[#20242a] dark:text-[var(--ink-3)] dark:hover:bg-[var(--surface-soft)] dark:hover:text-white"
                         onClick={close}
                         aria-label="关闭站点公告"
                         title="关闭"
@@ -100,11 +100,11 @@ export function SiteAnnouncementPopup() {
                                     <div className="mt-1 text-[11px] text-[#9aa2ad] dark:text-[#737d89]">{new Date(active.createdAt).toLocaleString("zh-CN")}</div>
                                 </div>
                             </div>
-                            <div className="mt-4 whitespace-pre-wrap rounded-xl bg-[#f6f8fa] p-4 text-[13px] leading-7 text-[#5d6672] dark:bg-[#1d2127] dark:text-[#c2c8d1]">{active.content}</div>
+                            <div className="mt-4 whitespace-pre-wrap rounded-xl bg-[#f6f8fa] p-4 text-[13px] leading-7 text-[#5d6672] dark:bg-[#1d2127] dark:text-[var(--ink-2)]">{active.content}</div>
                         </>
                     ) : null}
                 </div>
-                <footer className="flex shrink-0 flex-col gap-2 border-t border-[#eef0f3] p-4 sm:flex-row sm:justify-end dark:border-[#2a2f36]">
+                <footer className="flex shrink-0 flex-col gap-2 border-t border-[#eef0f3] p-4 sm:flex-row sm:justify-end dark:border-[var(--hairline)]">
                     <Button onClick={close}>我知道了</Button>
                     <Button type="primary" href="/announcements" onClick={close}>
                         查看全部公告

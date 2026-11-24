@@ -78,9 +78,9 @@ export function AnnouncementNotificationCenter({
             {row ? <span className="min-w-0 flex-1 truncate text-[var(--ink-1)]">消息中心</span> : null}
             {hydrated && totalUnread ? (
                 row ? (
-                    <span className="shrink-0 rounded-full bg-[#66758e] px-1.5 text-[10px] font-semibold leading-4 text-white dark:bg-[#d8dee8] dark:text-[#252b33]">{totalUnread > 99 ? "99+" : totalUnread}</span>
+                    <span className="shrink-0 rounded-full bg-[var(--ink-2)] px-1.5 text-[10px] font-semibold leading-4 text-white dark:bg-[var(--ink-1)] dark:text-[var(--surface-panel)]">{totalUnread > 99 ? "99+" : totalUnread}</span>
                 ) : (
-                    <span className="absolute -right-0.5 -top-0.5 grid min-w-3.5 place-items-center rounded-full bg-[#66758e] px-1 text-[9px] font-semibold leading-[14px] text-white ring-2 ring-white dark:bg-[#d8dee8] dark:text-[#252b33] dark:ring-[#181b20]">
+                    <span className="absolute -right-0.5 -top-0.5 grid min-w-3.5 place-items-center rounded-full bg-[var(--ink-2)] px-1 text-[9px] font-semibold leading-[14px] text-white ring-2 ring-white dark:bg-[var(--ink-1)] dark:text-[var(--surface-panel)] dark:ring-[var(--surface-panel)]">
                         {totalUnread > 9 ? "9+" : totalUnread}
                     </span>
                 )
@@ -184,13 +184,13 @@ function AnnouncementPanel({
     onInteractionRetry: () => void;
 }) {
     return (
-        <section className="flex h-full min-h-0 w-full flex-col bg-white text-[#20242a] dark:bg-[#15181d] dark:text-[#f3f5f7]" aria-label="消息中心">
+        <section className="flex h-full min-h-0 w-full flex-col bg-white text-[#20242a] dark:bg-[var(--surface-panel)] dark:text-[var(--ink-1)]" aria-label="消息中心">
             {/* 即梦式极简头：只有标题和关闭，不摆大图标、不写副标题 */}
-            <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-[#eef0f3] px-4 dark:border-[#2a2f36]">
+            <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-[#eef0f3] px-4 dark:border-[var(--hairline)]">
                 <h2 className="text-[15px] font-semibold tracking-tight">消息中心</h2>
                 <button
                     type="button"
-                    className="grid size-8 shrink-0 place-items-center rounded-lg text-[#8a939f] transition hover:bg-[#f1f3f5] hover:text-[#20242a] dark:text-[#9aa3af] dark:hover:bg-[#22262c] dark:hover:text-white"
+                    className="grid size-8 shrink-0 place-items-center rounded-lg text-[#8a939f] transition hover:bg-[#f1f3f5] hover:text-[#20242a] dark:text-[var(--ink-3)] dark:hover:bg-[var(--surface-soft)] dark:hover:text-white"
                     onClick={onClose}
                     aria-label="关闭消息中心"
                     title="关闭"
@@ -199,12 +199,12 @@ function AnnouncementPanel({
                 </button>
             </header>
             {/* 浅灰槽 + 选中项白胶囊：和即梦「互动 / 官方消息」同一套 */}
-            <div className="mx-3 mt-3 grid shrink-0 grid-cols-2 gap-1 rounded-xl bg-[#f1f3f6] p-1 dark:bg-[#20252c]">
+            <div className="mx-3 mt-3 grid shrink-0 grid-cols-2 gap-1 rounded-xl bg-[#f1f3f6] p-1 dark:bg-[var(--surface-soft)]">
                 <button
                     type="button"
                     className={cn(
                         "h-8 rounded-lg text-xs font-semibold transition",
-                        activeTab === "interactions" ? "bg-white text-[#20242a] shadow-[0_1px_3px_rgba(17,20,28,0.12)] dark:bg-[#3a424e] dark:text-white dark:shadow-[0_1px_3px_rgba(0,0,0,0.4)]" : "text-[#828b96] hover:text-[#4a5260] dark:text-[#9aa3af] dark:hover:text-white",
+                        activeTab === "interactions" ? "bg-white text-[#20242a] shadow-[0_1px_3px_rgba(17,20,28,0.12)] dark:bg-[var(--surface-inset)] dark:text-white dark:shadow-[0_1px_3px_rgba(0,0,0,0.4)]" : "text-[#828b96] hover:text-[#4a5260] dark:text-[var(--ink-3)] dark:hover:text-white",
                     )}
                     onClick={() => onTabChange("interactions")}
                 >
@@ -214,7 +214,7 @@ function AnnouncementPanel({
                     type="button"
                     className={cn(
                         "h-8 rounded-lg text-xs font-semibold transition",
-                        activeTab === "announcements" ? "bg-white text-[#20242a] shadow-[0_1px_3px_rgba(17,20,28,0.12)] dark:bg-[#3a424e] dark:text-white dark:shadow-[0_1px_3px_rgba(0,0,0,0.4)]" : "text-[#828b96] hover:text-[#4a5260] dark:text-[#9aa3af] dark:hover:text-white",
+                        activeTab === "announcements" ? "bg-white text-[#20242a] shadow-[0_1px_3px_rgba(17,20,28,0.12)] dark:bg-[var(--surface-inset)] dark:text-white dark:shadow-[0_1px_3px_rgba(0,0,0,0.4)]" : "text-[#828b96] hover:text-[#4a5260] dark:text-[var(--ink-3)] dark:hover:text-white",
                     )}
                     onClick={() => onTabChange("announcements")}
                 >
@@ -250,7 +250,7 @@ function AnnouncementPanel({
                         {interactionHasMore ? (
                             <button
                                 type="button"
-                                className="flex h-10 w-full items-center justify-center text-xs font-semibold text-[#66758e] transition hover:bg-[#f7f8fa] dark:text-[#c7ced8] dark:hover:bg-[#1d2127]"
+                                className="flex h-10 w-full items-center justify-center text-xs font-semibold text-[var(--ink-2)] transition hover:bg-[#f7f8fa] dark:text-[var(--ink-2)] dark:hover:bg-[var(--surface-soft)]"
                                 disabled={interactionLoadingMore}
                                 onClick={onInteractionMore}
                             >
@@ -273,7 +273,7 @@ function AnnouncementPanel({
                 <Link
                     href="/announcements"
                     onClick={onClose}
-                    className="flex h-11 shrink-0 items-center justify-center border-t border-[#eef0f3] text-xs font-semibold text-[#59677d] transition hover:bg-[#f7f8fa] hover:text-[#20242a] dark:border-[#2a2f36] dark:text-[#c2c8d1] dark:hover:bg-[#1d2127] dark:hover:text-white"
+                    className="flex h-11 shrink-0 items-center justify-center border-t border-[#eef0f3] text-xs font-semibold text-[#59677d] transition hover:bg-[#f7f8fa] hover:text-[#20242a] dark:border-[var(--hairline)] dark:text-[var(--ink-2)] dark:hover:bg-[var(--surface-soft)] dark:hover:text-white"
                 >
                     查看全部公告
                 </Link>
@@ -281,7 +281,7 @@ function AnnouncementPanel({
                 <button
                     type="button"
                     onClick={onInteractionReadAll}
-                    className="flex h-11 shrink-0 items-center justify-center gap-2 border-t border-[#eef0f3] text-xs font-semibold text-[#59677d] transition hover:bg-[#f7f8fa] hover:text-[#20242a] dark:border-[#2a2f36] dark:text-[#c2c8d1] dark:hover:bg-[#1d2127] dark:hover:text-white"
+                    className="flex h-11 shrink-0 items-center justify-center gap-2 border-t border-[#eef0f3] text-xs font-semibold text-[#59677d] transition hover:bg-[#f7f8fa] hover:text-[#20242a] dark:border-[var(--hairline)] dark:text-[var(--ink-2)] dark:hover:bg-[var(--surface-soft)] dark:hover:text-white"
                 >
                     <CheckCheck className="size-3.5" /> 全部设为已读
                 </button>
@@ -297,7 +297,7 @@ function InteractionRow({ item, onClose, onRead }: { item: InteractionNotificati
     return (
         <Link
             href={item.targetPath}
-            className="group flex gap-3 rounded-xl px-3 py-3 transition hover:bg-[#f5f7fa] dark:hover:bg-[#20252c]"
+            className="group flex gap-3 rounded-xl px-3 py-3 transition hover:bg-[#f5f7fa] dark:hover:bg-[var(--surface-soft)]"
             onClick={() => {
                 if (!item.readAt) onRead(item.id);
                 onClose();
@@ -305,7 +305,7 @@ function InteractionRow({ item, onClose, onRead }: { item: InteractionNotificati
         >
             <MessageIcon unread={!item.readAt} kind="interaction" />
             <div className="min-w-0 flex-1">
-                <div className={cn("text-[13.5px] leading-5", item.readAt ? "font-medium text-[#444c56] dark:text-[#d2d7de]" : "font-semibold text-[#20242a] dark:text-white")}>{item.summary}</div>
+                <div className={cn("text-[13.5px] leading-5", item.readAt ? "font-medium text-[#444c56] dark:text-[var(--ink-2)]" : "font-semibold text-[#20242a] dark:text-white")}>{item.summary}</div>
                 <p className="mt-1 truncate text-xs text-[#7b8490] dark:text-[#a7afb9]">{item.actor?.displayName || item.actor?.username || "系统通知"}</p>
                 <time className="mt-1.5 block text-[11px] text-[#9aa2ad] dark:text-[#737d89]">{formatAnnouncementTime(item.createdAt)}</time>
             </div>
@@ -315,11 +315,11 @@ function InteractionRow({ item, onClose, onRead }: { item: InteractionNotificati
 
 function AnnouncementRow({ announcement, expanded, unread, onExpand }: { announcement: PublicAnnouncement; expanded: boolean; unread: boolean; onExpand: () => void }) {
     return (
-        <button type="button" className="group flex w-full gap-3 rounded-xl px-3 py-3 text-left transition hover:bg-[#f5f7fa] dark:hover:bg-[#20252c]" onClick={onExpand} aria-expanded={expanded}>
+        <button type="button" className="group flex w-full gap-3 rounded-xl px-3 py-3 text-left transition hover:bg-[#f5f7fa] dark:hover:bg-[var(--surface-soft)]" onClick={onExpand} aria-expanded={expanded}>
             <MessageIcon unread={unread} kind="announcement" />
             <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-2">
-                    <h3 className={cn("min-w-0 flex-1 text-[13.5px] leading-5", unread ? "font-semibold text-[#20242a] dark:text-white" : "font-medium text-[#444c56] dark:text-[#d2d7de]", expanded ? "" : "truncate")}>{announcement.title}</h3>
+                    <h3 className={cn("min-w-0 flex-1 text-[13.5px] leading-5", unread ? "font-semibold text-[#20242a] dark:text-white" : "font-medium text-[#444c56] dark:text-[var(--ink-2)]", expanded ? "" : "truncate")}>{announcement.title}</h3>
                     <ChevronDown className={cn("mt-0.5 size-3.5 shrink-0 text-[#9aa2ad] transition", expanded && "rotate-180")} />
                 </div>
                 <p className={cn("mt-1 whitespace-pre-wrap text-xs leading-5 text-[#7b8490] dark:text-[#a7afb9]", expanded ? "" : "line-clamp-2")}>{announcement.content}</p>
@@ -369,7 +369,7 @@ function AnnouncementError({ onRetry }: { onRetry: () => void }) {
                 <p className="text-sm font-medium">公告暂时无法加载</p>
                 <button
                     type="button"
-                    className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-lg border border-[#dfe3e8] px-3 text-xs font-semibold text-[#59616c] transition hover:bg-[#f3f5f7] hover:text-[#20242a] dark:border-[#343a43] dark:text-[#c4cad2] dark:hover:bg-[#22262c] dark:hover:text-white"
+                    className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-lg border border-[#dfe3e8] px-3 text-xs font-semibold text-[#59616c] transition hover:bg-[#f3f5f7] hover:text-[#20242a] dark:border-[#343a43] dark:text-[#c4cad2] dark:hover:bg-[var(--surface-soft)] dark:hover:text-white"
                     onClick={onRetry}
                 >
                     <RotateCcw className="size-3.5" /> 重新加载

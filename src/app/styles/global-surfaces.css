@@ -398,15 +398,14 @@ html.announcement-bar-dismissed {
     bottom: var(--announcement-drawer-bottom) !important;
     height: auto !important;
     border-radius: 16px;
-    box-shadow:
-        0 24px 56px -20px rgba(17, 20, 28, 0.36),
-        0 2px 10px -4px rgba(17, 20, 28, 0.16);
+    /* 1px 实边：底色与画布接近时，只靠投影边界会糊成一团 */
+    border: 1px solid rgba(17, 17, 19, 0.1);
+    box-shadow: none;
 }
 
 .dark .announcement-drawer .ant-drawer-content-wrapper {
-    box-shadow:
-        0 24px 56px -18px rgba(0, 0, 0, 0.78),
-        0 2px 10px -4px rgba(0, 0, 0, 0.5);
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: none;
 }
 
 /* 窄屏留白收紧，别让面板矮得装不下标题 + tab + 列表；宽度也扣掉两侧留白 */

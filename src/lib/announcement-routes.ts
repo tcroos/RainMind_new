@@ -5,8 +5,15 @@
  */
 const AUTH_PATHS = ["/login", "/register", "/forgot-password"] as const;
 
+/**
+ * 编辑类页面：画布是手不能停的地方，公告抽屉从右侧滑出来会盖住节点、还会抢走焦点，
+ * 用户正在拖素材时被弹一次体验很差。消息中心入口（顶栏铃铛）不受影响，想看仍然能点开。
+ */
+const EDITOR_PATHS = ["/canvas"] as const;
+
 export function isAnnouncementSuppressedPath(pathname: string | null | undefined) {
     if (!pathname) return false;
     if (pathname === "/") return true;
+    if (EDITOR_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`))) return true;
     return AUTH_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
 }

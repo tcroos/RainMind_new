@@ -491,3 +491,17 @@
         min-width: 0;
     }
 }
+
+/*
+ * 账号菜单面板：之前完全依赖 antd 默认投影（大范围、低对比）+ 无描边，
+ * 面板底色又和画布/背景接近，边界读不出来，看着边缘发糊。补 1px 实边 + 收紧投影。
+ */
+.account-menu-popover .ant-popover-inner {
+    border: 1px solid rgba(17, 17, 19, 0.1);
+    box-shadow: none !important;
+}
+
+.dark .account-menu-popover .ant-popover-inner {
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: none !important;
+}
