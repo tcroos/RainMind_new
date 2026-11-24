@@ -116,6 +116,23 @@ src/app/styles/global-canvas-*.css    # controls / overrides / responsive 三个
   `pg_hba.conf` 对 127.0.0.1 / ::1 都是 trust，卡连接不会是密码问题；若向导 Host 写 `localhost` 而 PG 只监听
   IPv4，改成 `127.0.0.1` 即可。
 
+### 当前运行状态（2026-11-24 23:38 只读诊断，勿当作「服务已就绪」）
+
+- **端口固定为 `3001`**：`.env.local` 里 `PORT=3001`、`NEXT_PUBLIC_SITE_URL=http://localhost:3001`。
+  3002 / 3003 / 3004 只是各角色独立验证时的备用端口，**不是当前服务地址**。
+- **此刻 3001~3004 与 5432 全部无监听，没有任何服务在跑**。dev server 本身能起来
+  （本轮两次 `✓ Ready`，Turbopack，839ms / 4.8s，`/` 与 `/canvas` 都返回 200），
+  但后台进程随 agent 会话 / 用户取消而退出，不是「启动失败」。
+- **真正的故障是便携 PostgreSQL 崩了**，详见 §8 [23:38]。`F:/vozeb-dev-data/pg.log` 显示
+  23:28:42 一个后端进程被 Windows 异常 `0xC000026B` 终止，postmaster 杀光全部子进程后
+  `reinitializing` 未再恢复；`pgdata/postmaster.pid` 仍写着已不存在的 PID 37484（**stale lock**，
+  直接 `pg_ctl start` 会被拒绝，需人工确认进程确实已死后清理）。PG 不通时查库页面会挂起
+  （`/assets` 实测卡满 180s 超时）并全站 307 跳 `/install`。
+  → **其他 AI：先由人在自己终端恢复 PG，再拉起唯一一个 3001 实例；不要盲目反复起服务**
+  （反复强杀 dev server 会持续打断 PG 连接，正是这次崩溃的诱因）。
+- 本轮内存空闲 20.99GB / 31.84GB，**不是性能打满**；`layout.tsx` / `proxy.ts` /
+  `canvas-surface.tsx` / `assets/page.tsx` 等关键入口 TypeScript 转译全部通过，无语法错误。
+
 ## 8. 交接日志（追加写，不要改别人的行）
 
 格式：`- [HH:MM] <角色> <动作> <文件/目录> — <说明>`
@@ -225,6 +242,7 @@ git worktree add ../vozeb-wt-canvas -b feat/canvas-local feat/3034-frontend-loca
 - 2026-11-24 13:01 恢复被覆盖的 OWNER-ME 记账；新增「本文件只追加、不整文件重写」硬规则
 - 2026-11-24 13:18 OWNER-SHELL 就位并在 §8 留一行；分区与规则未改
 - 2026-11-24 13:37 OWNER-SHELL 追加 §8 三条（裁决确认 + 两笔 SHELL 提交）；另在 §8 更正自己 13:22 对抽屉病因的判断，分区与规则未改
+- 2026-11-24 23:38 OWNER-CANVAS 在 §7 新增「当前运行状态」（端口 3001 + PG 崩溃诊断）并在 §8 追加一条只读诊断日志；分区与既有禁令未改，**本轮未启动任何服务**
 - 2026-11-24 14:00 OWNER-SHELL 追加 §8 五条（三笔提交 + 导航文件位置变更提醒 + vitest 失败原因说明）；分区与规则未改
 - 2026-11-24 14:41 OWNER-SHELL 追加 §8 五条（admin 骨架占用与落地、登录回跳行为变化、灰阶对齐、两项待裁决）；分区表中 `/admin/*` 的归属仍待正式写入 §1
 - 2026-11-24 23:00 OWNER-PAGES 在 §7 追加 dev server 禁令裁决（以 §7 为准，§8 18:32 特例不豁免），并在 §8 记账本轮跨域改动；分区表与其余规则未改
@@ -273,3 +291,4 @@ git worktree add ../vozeb-wt-canvas -b feat/canvas-local feat/3034-frontend-loca
   ③ **组名随缩放跟随（用户反馈「没随缩放变动、卡顿、延迟跟随」）**：根因是 previewViewport 只写 world 层 CSS transform，而 displayViewport 这个 state 要等滚轮停 140ms 或拖拽松手才 commit，组名/工具栏却在屏幕层用该 state 算位置。新增组名与工具栏的 DOM ref + syncScreenAnchors：在 applyViewportStyles 里与 world transform **同一帧**直接写 transform，不触发 React 渲染；useLayoutEffect 每次 render 用 viewportRef 校正；工具栏改由外层 wrapper 定位。组框与选区 bounds 的 padding 从按缩放反算改为固定世界单位，避免 commit 瞬间重算跳动。位置公式抽成 groupLabelScreenAnchor 纯函数，JSX 与同步器共用，新增 4 条回归用例（含缩放/平移叠加）。
   **验证**：tsc 0 错误、画布域 eslint 0 error、画布 64 文件 / 383 用例全绿。**按 §7 23:00 裁决，本轮未起任何 dev server、未做浏览器实测或截图**；3001/3002 当前均不可达（只读 curl 探测），视觉与交互验收请由人在自己终端拉起唯一一个实例后复验（重点：缩放时组名是否跟手、四角缩放是否仍需先 hover、滚轮步进是否合适）。
 - [23:10] OWNER-SHELL 在隔离分支提交 `f3aaa0e`「侧边栏 Lovart 化改造」：① 侧栏 208→232px、导航字号 16→14px、行高 44→40px、图标 20→18px，收起态仍 72px；② `workspace-nav-list.tsx` 取消「创作/项目/资产/个人」分组标题，改成 `navigationGroups.flatMap` 出来的 `FLAT_TOOLS` 平铺一列（分组常量保留，只作顺序定义），侧栏与抽屉共用一份渲染；③ 左下账号栏头像 28→24px、积分与名字 13px 同排、无胶囊底；账户弹层重排为「头像 + 邮箱 / 套餐 + 积分一行 / 整宽升级按钮 / 纯文字菜单 / 退出登录」，宽度与侧栏一致 232px；④ 新增 `components/layout/sidebar-projects.tsx`：导航上方「+ 新建项目」直接建画布并跳转，导航下方「最近项目」取 `listCanvasProjectSummaries`，按视口高度在 3~8 条收敛，含悬停封面预览、重命名、删除，收起态不渲染；新建/改名/删除通过 `vozeb:canvas-projects-changed` 事件刷新列表，未往画布域塞全局依赖；⑤ `global-surfaces.css` 追加侧栏新建/最近项目的链接色与底色覆盖（antd 无层级 reset 会压掉工具类）。测试同步更新 `app-workspace-shell.test.ts` / `user-status-actions.test.ts`，侧栏 + 导航 48/48 用例通过、tsc 0 错误。**按 §7 23:00 裁决：本轮曾短暂拉起 3001 单实例（用户反馈卡顿），已立即停止并确认 3000~3009 无监听；此后未再起任何 dev server、未做浏览器截图验收**，浅色/收起态/账户弹层/深色态的视觉复验挂账，等服务由人在自己终端拉起唯一实例后进行。开工前 `git status` 确认 canvas 与 drama 的未提交改动属其他两方，未触碰。
+- [23:38] OWNER-CANVAS 按用户「启动服务并记录端口」授权，曾在 3001 拉起**唯一一个**实例（`NODE_OPTIONS="--max-old-space-size=6144" node --env-file-if-exists=.env.local scripts/run-app.mjs dev`，单实例堆上限从 8GB 压到 6GB 防再吃满内存），两次均 `✓ Ready` 且 `/`、`/canvas` 返回 200；随后用户取消后台任务，**进程退出，当前 3001~3004 与 5432 全无监听**。用户随即要求「检查问题，不要直接启动」，本轮**未再启动任何服务**，全程只读诊断，结论已写入 §7「当前运行状态」：① 根因不是 dev server 起不来，而是**便携 PostgreSQL 崩溃**——`F:/vozeb-dev-data/pg.log` 23:25~23:27 大量 `could not receive data from client: ... aborted / forcibly closed`（dev server 被反复强杀打断 PG 连接），23:28:42 后端进程被异常 `0xC000026B` 终止，postmaster 杀光全部子进程、23:29:05 `reinitializing` 后无新日志；`Get-Process postgres` 为空、5432 不监听，`pgdata/postmaster.pid` 残留失效 PID 37484。② 这解释了上一轮 `/assets` 卡满 180s 超时（查库请求挂起），且按 §7 会全站 307 跳 `/install`。③ 次要问题：日志反复 `GET /api/health/live 404 in 5.0s`，但 `src/app/api/health/live/route.ts` 存在且应返回 200；`scripts/generation-runtime.mjs` 的 `waitForHttpReady` 是无限循环、只在 `response.ok` 时放行，404 会让 `generation-worker` 永远不启动，需等服务与 PG 恢复后复验（怀疑是首次编译期间路由未注册，未确证）。④ 内存空闲 20.99GB/31.84GB，非性能打满；关键入口文件 TypeScript 转译全通过，排除语法错误拖垮全站。**给其他 AI：端口是 3001，但现在没服务；先由人恢复 PG（注意 stale postmaster.pid）再拉起唯一一个实例，别再多方反复起停。**
