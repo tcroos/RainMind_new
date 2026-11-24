@@ -46,21 +46,18 @@ export const navigationTools = [
         icon: Clapperboard,
     },
     {
-        /* 原来的「作品」入口已并入「主页」的「作品管理」tab：
-         * 一个侧栏入口对应「我的作品」这一件事，不再让展示页和管理页各占一格。
-         * /works 保留为到 /me?tab=works 的重定向，旧链接与发布深链仍然可用。 */
+        /* 素材与提示词合并成一个入口：二级面板里切换「素材 / 提示词」。
+         * 两者是同一件事的两面 —— 一个存媒体、一个存文本，各占一格侧栏只会让人来回跳。
+         * /my-prompts 保留为到 /assets?tab=prompts 的重定向，旧链接不断。 */
         slug: "assets",
         label: "素材",
-        description: "图片、视频与音频",
+        description: "素材与提示词",
         group: "assets",
         icon: Images,
-    },
-    {
-        slug: "my-prompts",
-        label: "提示词",
-        description: "个人提示词",
-        group: "assets",
-        icon: BookMarked,
+        children: [
+            { slug: "assets", label: "素材", description: "图片、视频与音频", href: "/assets", icon: Images },
+            { slug: "prompts-mine", label: "提示词", description: "个人提示词库", href: "/assets?tab=prompts", icon: BookMarked },
+        ],
     },
     {
         slug: "prompts",
