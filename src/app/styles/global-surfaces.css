@@ -461,6 +461,17 @@ html.announcement-bar-dismissed {
     color: var(--ink-1);
 }
 
+/* 底色同理，但更容易被忽略：antd reset 的 a{background-color:transparent} 也在无层级里，
+ * 把 @layer utilities 的 bg-[var(--surface-inset)] 一并压掉 —— 实测当前页算出来是 rgba(0,0,0,0)，
+ * 只有文字变深、没有灰底，肉眼几乎判断不出选中。悬停态同样失效。
+ * 只挑导航条目与底部账号入口，顶部的 logo 链接不能跟着出现灰块。 */
+.workspace-shell aside nav a:hover,
+.workspace-shell aside nav a[aria-current="page"],
+.workspace-shell aside > div a:hover,
+.workspace-shell aside > div a[aria-current="page"] {
+    background-color: var(--surface-inset);
+}
+
 
 /* ── 移动端导航抽屉的链接色 / 选中底 ──────────────────────────────────
  * 移动抽屉由 antd Drawer portal 到 <body>，不在 .workspace-shell 里，

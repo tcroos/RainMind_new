@@ -91,6 +91,12 @@ describe("workspace sidebar", () => {
         expect(css).toContain(".workspace-shell aside a:hover,");
         expect(css).toContain("color: var(--ink-2);");
         expect(css).toContain("color: var(--ink-1);");
+        // 底色同样会被 antd reset 的 a{background-color:transparent} 压掉，
+        // 实测当前页算出来是 rgba(0,0,0,0)：只有文字变深、没有灰底，几乎看不出选中。
+        // 只挑导航条目与底部账号入口，顶部 logo 链接不能跟着出现灰块。
+        expect(css).toContain('.workspace-shell aside nav a[aria-current="page"],');
+        expect(css).toContain(".workspace-shell aside > div a[aria-current=\"page\"] {");
+        expect(css).toContain("background-color: var(--surface-inset);");
     });
 
     it("keeps the mobile nav drawer readable despite antd's unlayered anchor rules", async () => {
