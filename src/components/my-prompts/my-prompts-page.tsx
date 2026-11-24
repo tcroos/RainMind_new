@@ -187,6 +187,7 @@ export function MyPromptsPage() {
                             <LibraryEmptyState icon={<Search className="size-5" />} title="没有匹配的提示词" description="换个关键词，或清除分类筛选再看看。" action={<Button icon={<RotateCcw className="size-3.5" />} onClick={clearFilters}>清除筛选</Button>} />
                         ) : (
                             <LibraryShowcaseEmptyState
+                                imageSrc="/library/prompt-empty-banner.webp"
                                 title="还没有提示词"
                                 description="把常用的提示词存进来，创作时一键复用。"
                                 action={

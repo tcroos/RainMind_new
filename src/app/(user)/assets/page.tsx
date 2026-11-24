@@ -91,6 +91,9 @@ export default function AssetsPage() {
     const content = Form.useWatch("content", form) || "";
     const { assets, total, loading, error, reload } = useAssetPage({ userId, page, pageSize, kind: kindFilter, keyword });
     const ready = Boolean(userId);
+    /* 空状态下不再给内容区额外留顶部间距：和「我的提示词」从工具栏下方同一位置起排，
+       两个空状态的示范图与新增按钮才能严格对齐。 */
+    const showAssetsEmpty = !loading && !error && !assets.length;
 
     const openCreate = () => {
         setEditingAsset(null);
@@ -295,7 +298,7 @@ export default function AssetsPage() {
                                 ) : null}
                             </div>
 
-                            <div className="pt-4 sm:pt-5">
+                            <div className={cn(!showAssetsEmpty && "pt-4 sm:pt-5")}>
                                 <div className={cn("grid grid-cols-1 gap-4 transition-opacity sm:grid-cols-[repeat(auto-fill,minmax(240px,280px))] sm:justify-start", loading && assets.length && "opacity-60")} aria-busy={loading}>
                                     {assets.map((asset) => (
                                         <AssetCard
@@ -319,6 +322,7 @@ export default function AssetsPage() {
                                     <LibraryEmptyState icon={<RotateCcw className="size-5" />} title="素材加载失败" description={error} action={<Button onClick={reload}>重新加载</Button>} />
                                 ) : !assets.length ? (
                                     <LibraryShowcaseEmptyState
+                                        imageSrc="/library/asset-empty-banner.webp"
                                         title="还没有素材"
                                         description="把常用的图片、文本与视频存进来，创作时一键复用。"
                                         action={

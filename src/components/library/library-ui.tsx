@@ -67,16 +67,18 @@ export function LibraryEmptyState({ icon, title, description, action, className 
 
 /**
  * 「我的素材 / 我的提示词」完全为空时的引导区。
- * 一张克制的宽幅示范图 + 一句标题 + 一行说明 + 一个出口。
- * 图片从早期 560px 原图缩到 380px 宽幅裁切：既有画面示例，又不会把整页撑满；
- * 层级靠留白和字重，不再靠「示例：……」这类重复说明撑内容。
+ * 两个 tab 各用自己的示范图（imageSrc 由调用方给），但图片尺寸、标题间距和按钮位置完全一致。
+ * 外层用 min-height 把整组内容放到剩余视口的中部，避免贴着工具栏、下方留一大片空白。
  */
-export function LibraryShowcaseEmptyState({ title, description, action }: { title: string; description: string; action: ReactNode }) {
+export function LibraryShowcaseEmptyState({ title, description, action, imageSrc }: { title: string; description: string; action: ReactNode; imageSrc: string }) {
     return (
-        <div className="flex flex-col items-center px-4 pb-10 pt-8 text-center sm:pt-10">
+        <div
+            className="flex flex-col items-center justify-center px-4 pb-14 pt-10 text-center sm:pt-12"
+            style={{ minHeight: "min(600px, calc(100dvh - 200px))" }}
+        >
             <div className="w-full max-w-[380px] overflow-hidden rounded-2xl bg-[var(--surface-inset)] shadow-[0_16px_36px_-28px_rgba(17,17,19,0.38)]">
                 {/* eslint-disable-next-line @next/next/no-img-element -- 本地静态示范图，无需经过图片服务 */}
-                <img src="/library/asset-empty-banner.webp" alt="素材库示范" className="block aspect-[2/1] w-full object-cover" />
+                <img src={imageSrc} alt="素材库示范" className="block aspect-[2/1] w-full object-cover" />
             </div>
             {/* 标题用包裹层承载上边距：Tailwind 的 h1..h6 { margin:0 } 重置排在工具类之后，
                 直接写 mt-* 会被它盖掉（实测计算值 0px）。 */}

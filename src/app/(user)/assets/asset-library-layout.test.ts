@@ -22,14 +22,26 @@ describe("asset library shell", () => {
         expect(page).not.toContain("集中管理创作中复用的内容");
     });
 
-    it("keeps the empty-state showcase compact", async () => {
+    it("keeps the empty-state showcase compact and centers it lower", async () => {
         const ui = await read("src/components/library/library-ui.tsx");
 
         expect(ui).toContain("max-w-[380px]");
         expect(ui).toContain("aspect-[2/1]");
-        await access("public/library/asset-empty-banner.webp");
+        expect(ui).toContain("imageSrc");
+        expect(ui).toContain('minHeight: "min(600px, calc(100dvh - 200px))"');
+        expect(ui).toContain("justify-center");
         // 「示例：……」那行说明与冗长描述已经删掉
         expect(ui).not.toContain("示例：把常用的字体");
+    });
+
+    it("gives my prompts and my assets different showcase images", async () => {
+        const page = await read("src/app/(user)/assets/page.tsx");
+        const prompts = await read("src/components/my-prompts/my-prompts-page.tsx");
+
+        expect(page).toContain('imageSrc="/library/asset-empty-banner.webp"');
+        expect(prompts).toContain('imageSrc="/library/prompt-empty-banner.webp"');
+        await access("public/library/asset-empty-banner.webp");
+        await access("public/library/prompt-empty-banner.webp");
     });
 
     it("exposes three tabs in the agreed order and defaults to the public library", async () => {
