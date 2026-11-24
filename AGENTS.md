@@ -151,6 +151,8 @@ src/app/styles/global-canvas-*.css    # controls / overrides / responsive 三个
 
 - [16:52] OWNER-CANVAS 提交 `de55be6`：按 user 给的 lovart.ai/projects 参照图重做多选。**头部已无搜索与导入**（按需求删除，不是丢失，函数与依赖一并移除，需要时从 `692c8ba` 之前的历史取回）；标题右侧新增多选按钮，进入后卡片右上角出现 16px 复选框、底部浮出「全选/导出/删除/取消」胶囊条。栅格上限 5 列（`xl:grid-cols-5`），容器 1600。`canvas-library-layout.test.ts` 同步改写断言（新增「头部只允许标题+多选」「底部批量条」两条）
 
+- [16:58] OWNER-CANVAS 提交 `fd214a8`：修「切深浅色时新建卡闪白」——根因是新建卡是**唯一**带 `transition-colors` 的卡，`background-color` 被插值，200ms 内从 `#eceef0` 渐变到 `#1d1d20`；项目卡封面没有 transition 所以从不闪。已改为只过渡 `border-color/color`。同时把新建卡底色从 `--surface-soft` 改成 `--surface-inset`，与空白封面同令牌（此前两卡并排有色差）。标题 15→20/22px、多选按钮 24→32px、卡片标题 13→14px
+
 ## 9. 升级方案：物理隔离（撞车频繁时启用）
 
 现在是**单一工作树、单分支**，三人共写一份文件 —— 分区靠自觉。若开始频繁互相踩：
