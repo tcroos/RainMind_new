@@ -51,8 +51,13 @@
      * 改公告条高度的人不会知道要去同步这个数，抽屉就会压在页头上下不来。
      * 现在由三段算式得出，改条高只动 --announcement-bar-h。
      * 注意：公告条的 keyframes 用 px 步进，announcement-marquee.tsx 里的 ITEM_HEIGHT
-     * 必须与 --announcement-bar-h 相等，announcement-marquee.test.ts 有断言锁死。 */
-    --shell-header-h: 64px;
+     * 必须与 --announcement-bar-h 相等，announcement-marquee.test.ts 有断言锁死。
+     *
+     * 桌面端顶栏已取消（账号/积分/主题/消息都进了侧栏底部菜单），所以这里是 0：
+     * 内容从视口最上方开始，抽屉顶边也就落在公告条下沿，不再让出 64px。
+     * 窄屏仍有一条 56px 的极简栏（菜单键 + logo + 消息），用媒体查询补回高度，
+     * 否则抽屉会压在那条栏上。 */
+    --shell-header-h: 0px;
     --shell-gap: 16px;
     --announcement-bar-h: 36px;
     /* 面板顶边落在页头下沿之下：既不盖住顶部通知栏和页头右侧图标，
@@ -72,6 +77,13 @@
  * 不然页头和面板之间会空出一大截。只由「有公告且被关掉」这条路径打标。 */
 html.announcement-bar-dismissed {
     --announcement-drawer-top: calc(var(--shell-header-h) + var(--shell-gap));
+}
+
+/* 窄屏那条极简栏（菜单键 + logo + 消息）高 56px，抽屉顶边要跟着让开 */
+@media (max-width: 1023px) {
+    :root {
+        --shell-header-h: 56px;
+    }
 }
 
 .dark {

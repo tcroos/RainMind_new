@@ -16,7 +16,19 @@ import type { InteractionNotification } from "@/services/api/work-community";
 import { useUserStore } from "@/stores/use-user-store";
 import { AnnouncementGlyph } from "./announcement-glyph";
 
-export function AnnouncementNotificationCenter({ compact, buttonClassName, buttonStyle, onOpen }: { compact: boolean; buttonClassName: string; buttonStyle?: CSSProperties; onOpen?: () => void }) {
+export function AnnouncementNotificationCenter({
+    compact,
+    buttonClassName,
+    buttonStyle,
+    onOpen,
+    variant = "icon",
+}: {
+    compact: boolean;
+    buttonClassName: string;
+    buttonStyle?: CSSProperties;
+    onOpen?: () => void;
+    variant?: "icon" | "row";
+}) {
     const { data: announcements = [], error, isFetching, refetch } = useAnnouncements();
     const user = useUserStore((state) => state.user);
     const interactions = useInteractionNotifications(user?.id);
@@ -47,13 +59,31 @@ export function AnnouncementNotificationCenter({ compact, buttonClassName, butto
             setSessionUnreadIds(new Set());
         }
     };
+    /* 两种外观：
+     *  · icon（默认）—— 顶栏/工具条上的方形图标按钮，未读数用绝对定位的小角标；
+     *  · row —— 塞进账户菜单里的一整行，未读数右对齐成文字。
+     * 消息中心原来只挂在顶栏，顶栏取消后必须能进菜单，否则桌面端没有入口。 */
+    const row = variant === "row";
     const button = (
-        <button type="button" className={cn(buttonClassName, "relative")} style={buttonStyle} onClick={() => handleOpenChange(true)} aria-label={totalUnread ? `消息中心，${totalUnread} 条未读` : "消息中心"} title="消息中心" aria-expanded={open}>
-            <Bell className="size-4" />
+        <button
+            type="button"
+            className={cn(buttonClassName, row ? "flex h-9 w-full items-center gap-2.5 rounded-lg px-2 text-left text-[12.5px] font-medium transition hover:bg-[var(--surface-soft)]" : "relative")}
+            style={buttonStyle}
+            onClick={() => handleOpenChange(true)}
+            aria-label={totalUnread ? `消息中心，${totalUnread} 条未读` : "消息中心"}
+            title="消息中心"
+            aria-expanded={open}
+        >
+            <Bell className={row ? "size-4 shrink-0 text-[var(--ink-3)]" : "size-4"} />
+            {row ? <span className="min-w-0 flex-1 truncate text-[var(--ink-1)]">消息中心</span> : null}
             {hydrated && totalUnread ? (
-                <span className="absolute -right-0.5 -top-0.5 grid min-w-3.5 place-items-center rounded-full bg-[#66758e] px-1 text-[9px] font-semibold leading-[14px] text-white ring-2 ring-white dark:bg-[#d8dee8] dark:text-[#252b33] dark:ring-[#181b20]">
-                    {totalUnread > 9 ? "9+" : totalUnread}
-                </span>
+                row ? (
+                    <span className="shrink-0 rounded-full bg-[#66758e] px-1.5 text-[10px] font-semibold leading-4 text-white dark:bg-[#d8dee8] dark:text-[#252b33]">{totalUnread > 99 ? "99+" : totalUnread}</span>
+                ) : (
+                    <span className="absolute -right-0.5 -top-0.5 grid min-w-3.5 place-items-center rounded-full bg-[#66758e] px-1 text-[9px] font-semibold leading-[14px] text-white ring-2 ring-white dark:bg-[#d8dee8] dark:text-[#252b33] dark:ring-[#181b20]">
+                        {totalUnread > 9 ? "9+" : totalUnread}
+                    </span>
+                )
             ) : null}
         </button>
     );

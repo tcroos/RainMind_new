@@ -184,6 +184,7 @@ export function UserStatusActions({ variant = "default", onOpenShortcuts, initia
                                     setAccountOpen(false);
                                     void logout();
                                 }}
+                                onDismiss={() => setAccountOpen(false)}
                             />
                         }
                     >
@@ -326,7 +327,7 @@ function PointsSummaryPanel({ user, onClose }: { user: LocalUser; onClose: () =>
  * 菜单项之间去掉一条条分割线，靠留白分组；套餐信息收成一块浅底卡片，
  * 续费按钮从黄底改成跟随主题的黑/白小胶囊。
  */
-function AccountMenuPanel({ user, avatarUrl, avatarInitial, onNavigate, onLogout }: { user: LocalUser; avatarUrl?: string; avatarInitial: string; onNavigate: (href: string) => void; onLogout: () => void }) {
+function AccountMenuPanel({ user, avatarUrl, avatarInitial, onNavigate, onLogout, onDismiss }: { user: LocalUser; avatarUrl?: string; avatarInitial: string; onNavigate: (href: string) => void; onLogout: () => void; onDismiss?: () => void }) {
     const accountName = user.displayName || user.username || "用户";
     const planLabel = user.planName || user.planId || "免费版";
     const planActionLabel = user.hasActivePlan ? "续费套餐" : "升级套餐";
@@ -387,6 +388,15 @@ function AccountMenuPanel({ user, avatarUrl, avatarInitial, onNavigate, onLogout
             </div>
 
             <div className="mt-2 flex flex-col">
+                {/* 消息中心并进菜单：顶栏已取消，桌面的通知入口只有这里 */}
+                <AnnouncementNotificationCenter
+                    variant="row"
+                    compact={false}
+                    buttonClassName="text-[var(--ink-1)]"
+                    onOpen={() => {
+                        onDismiss?.();
+                    }}
+                />
                 {rows.map((row) => {
                     const Icon = row.icon;
                     return (
@@ -486,6 +496,7 @@ export function AccountRailBar({ expanded }: { expanded: boolean }) {
                         setOpen(false);
                         void logout();
                     }}
+                    onDismiss={() => setOpen(false)}
                 />
             }
         >

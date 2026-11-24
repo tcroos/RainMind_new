@@ -67,25 +67,29 @@ export function AppWorkspaceShell({ children }: { children: ReactNode }) {
             <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
                 <AppSidebar activeToolSlug={tool?.slug} expanded={sidebarExpanded} onToggleExpanded={toggleSidebarExpanded} />
                 <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-                    <header className="relative z-20 flex h-16 shrink-0 items-center justify-between gap-3 px-3 sm:px-4 lg:px-7">
+                    {/* 桌面端不再有顶栏：整块内容从最上方开始，不再被一条 64px 的横条切断。
+                     * 账号、积分、主题、消息都已收进侧栏底部（AccountRailBar 的展开菜单）。
+                     * 窄屏没有侧栏，仍需要一条极简栏放「菜单键 + logo + 消息」，
+                     * 所以这里只保留 lg:hidden 的部分。 */}
+                    <div className="flex h-14 shrink-0 items-center justify-between gap-3 px-3 lg:hidden">
                         <div className="flex min-w-0 items-center gap-2.5">
                             <button
                                 type="button"
-                                className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-[var(--ink-2)] transition-colors hover:bg-[var(--surface-inset)] hover:text-[var(--ink-1)] lg:hidden"
+                                className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-[var(--ink-2)] transition-colors hover:bg-[var(--surface-inset)] hover:text-[var(--ink-1)]"
                                 onClick={() => setMobileNavOpen(true)}
                                 aria-label="打开导航菜单"
                                 title="导航菜单"
                             >
                                 <Menu className="size-5" />
                             </button>
-                            <Link href="/create" className="inline-flex shrink-0 items-center lg:hidden" aria-label={siteTitle}>
+                            <Link href="/create" className="inline-flex shrink-0 items-center" aria-label={siteTitle}>
                                 <SiteLogo logoUrl={site.logoUrl} className="size-6" />
                             </Link>
                         </div>
-                        <div className="min-w-0 max-w-[calc(100vw-6.5rem)] shrink-0 overflow-visible sm:max-w-[calc(100vw-8rem)] lg:max-w-none">
+                        <div className="min-w-0 shrink-0">
                             <UserStatusActions showAccountCluster={false} />
                         </div>
-                    </header>
+                    </div>
                     <div className="min-h-0 min-w-0 flex-1 overflow-hidden">{children}</div>
                 </div>
             </div>
