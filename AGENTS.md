@@ -170,6 +170,8 @@ src/app/styles/global-canvas-*.css    # controls / overrides / responsive 三个
 
 - [18:25] OWNER-CANVAS 提交 `1162730` + `d79461c`：多选图标由两行改三行并收紧 viewBox（24×24→22×16），图标笔画高度对齐汉字；头部高度 39→28，标题/按钮/图标中心实测均在 y=46。**第三个同类坑**：h1 的 `m-0` 又被无层级 reset 压掉（多出 11px 下边距，`items-center` 之后图标中心比文字低 5.5px），改内联 `style={{margin:0}}` 才生效 —— 至此 canvas 域已连续三次踩「无层级规则压 `@layer utilities`」（margin / 文本色 / 字号），结论：**给 p/h1-h6 挂工具类不可靠，涉及 margin 或颜色一律用内联 style**
 
+- [18:58] OWNER-CANVAS 提交 `3b3c2d1`：画布内拖动平移时自动浮出小地图（原来只能靠缩放控件手动开关）。实现放在 `canvas-surface.tsx` 内部状态 `panMinimap`，与页面 `<CanvasMinimum>` 手动开关取并集；收起条件覆盖节点拖拽/框选/点空白/滚轮缩放/非空格按键/点击画布外。**注意**：`canvas-surface.tsx` 里还有 `data-canvas-minimap` 的指针白名单，改这块时别把「在小地图上拖动视口」误判成其它操作
+
 ## 9. 升级方案：物理隔离（撞车频繁时启用）
 
 现在是**单一工作树、单分支**，三人共写一份文件 —— 分区靠自觉。若开始频繁互相踩：
