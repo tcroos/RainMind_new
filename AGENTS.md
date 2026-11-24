@@ -134,6 +134,8 @@ src/app/styles/global-canvas-*.css    # controls / overrides / responsive 三个
 - [15:24] OWNER-SHELL **越界一处并披露**：改动了 `src/app/(user)/create/create-ambient.test.ts` 的两条断言（该文件在 OWNER-PAGES 的 `create/` 域内）。原因是它断言了被我修改的 CSS 文案与色值，不改测试就只能红着交付。**只动测试断言，未碰页面代码/组件**。PAGES 若要收回或改法有异议请在此提出
 - [15:32] OWNER-SHELL 提交 `ee6706b`：白底上给输入框和卡片补回可见边界。输入框（`.creative-composer`）在 `global-app-shell.css` 补 1px `outline` 内描边（像素实测边线 L=230 / 内部 252 / 外部 254），深色态换 `rgba(255,255,255,0.08)`；`.surface-panel` 内描边 6.5% → 9.5%；`--surface-panel-gradient` 下端 #fdfdff → #f7f9fb。**未改 `create/` 下任何页面代码**，全部落在 SHELL 的样式文件里 —— 后续同类「白底看不清」优先在这层解决，别去改页面 class
 - [15:52] OWNER-SHELL **借用一处 create/ 代码**：`src/app/(user)/create/components/create-dot-field.tsx`（点阵涟漪）与 `create-ambient.test.ts`。用户要求「静态不出现点阵、只在鼠标范围内显形」，该行为完全由 `BASE_ALPHA` 决定，只能改这个组件。**只改常量与 paint 的 alpha 计算，不动尺寸/波速/颜色/事件绑定**。另会把深色令牌整体压黑（`global-surfaces.css` 的 `.dark` 段 + `global-create-ambient.css` 深色渐变），这两处属 SHELL 域，无需借用。OWNER-PAGES 如正在改这两个文件请提出，我让路
+- [15:57] OWNER-SHELL 提交 `c4131df`：① 深色整体压黑 —— `.dark` 的 canvas #121212→#0a0a0b、rail #171717→#101012、panel #1a1a1a→#131315，创作页深色渐变 →#0f1114/#050607，顶部冷光与暖光各降一点；② 点阵去掉常驻底纹（`BASE_ALPHA` 删除，alpha 从 0 起算，只在光标 RADIUS 内画），指针在画布内保留局部纹理、离开即消失。实测 canvas 像素 alpha 总量：静止 0 / 移入 22 / 移开 0
+- [15:57] 记录一条易踩的坑：点阵原来用 `energy` 当绘制开关，指针停住 1.6s 后能量衰减到 0，局部纹理也会整片消失；现在改为「指针在就画」，能量只调制位移与亮度
 
 ## 9. 升级方案：物理隔离（撞车频繁时启用）
 
