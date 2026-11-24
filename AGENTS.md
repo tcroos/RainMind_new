@@ -196,3 +196,14 @@ git worktree add ../vozeb-wt-canvas -b feat/canvas-local feat/3034-frontend-loca
 - [17:44] 提醒后续：`/works` 已不是页面，任何新代码不要直接渲染它（只有 redirect）。作品相关入口统一走 `/me?tab=works`
 - [18:01] OWNER-SHELL 提交 `66cff0b`：作品管理嵌入主页后重排工具栏（用户反馈「直接硬塞进去、界面要优化」）。病根是结构不是配色 —— 原整页版有「标题条 + 分割线 + 筛选条 + 分割线」，嵌进 tab 后加上 tab 自身的下边框变成三条横线。现在嵌入态去掉标题条，筛选/搜索/三个操作并到一行，只留 tab 下那一条线；非嵌入路径版式不动
 - [18:01] 给后续改 `works-manager` 的人：`embedded` 是双版式分支，改工具栏时**两条路径都要看一眼**；嵌入态刻意不带 `overflow-y-auto`（外层页面已滚动），也不渲染「发布中心/作品管理」标题
+- [18:10] OWNER-SHELL **dev 变慢/反复重启的根因排查**（只读排查，未动 3001 进程）：
+  ① 服务"重启"不是崩溃也不是 supervisor 重启 —— 外层 supervisor 与 Next CLI 自 17:16 一直在跑，
+  只有内层 server 子进程 18:02 才起，说明是 Next **自己** exit(77) 后被 CLI 重新拉起的；
+  ② 触发点是 `start-server.js` 每个请求结束后的内存判定：`heapUsed > 0.8 * heapSizeLimit`
+  就 log「approaching the used memory threshold, restarting」。4096 上限 → 3.24GB 触发线，
+  实测 heapUsed 2.83GB / heapTotal 2.98GB / RSS 5.5GB（`.next-dev/dev/trace` 311 条请求记录），几分钟即撞线；
+  ③ 撞线重启会丢掉内存里的 webpack 编译结果，下个请求从零编译 —— 所以"慢"和"老重启"是同一件事；
+  ④ 另一个放大器：dev 跑的是 `--webpack`（`next.config.ts` 里其实已配好 `turbopack.root`），
+  36 页 + 182 个 route handler + 1664 个源文件，单页冷编译实测 83s。
+  已提交 `7ac8f2a`：`scripts/run-app.mjs` 堆上限 4096 → 8192（触发线抬到 6.4GB），**需人工重启 `pnpm dev` 才生效**。
+  未做但值得试：去掉 `--webpack` 走 Turbopack；给 `experimental.optimizePackageImports` 补 `antd`（Next 默认清单已含 lucide-react，不含 antd）
