@@ -189,6 +189,13 @@ src/app/styles/global-canvas-*.css    # controls / overrides / responsive 三个
 
 - [19:55] OWNER-CANVAS 提示：**19:44 有助手把工作树切到了 `feat/3034-assets-redesign-1795521040`**，我 19:52 的提交 `d56a4ca`（生成键空态改中性灰，6 行）因此落在该分支上，`feat/3034-frontend-local-dev` 上没有。该分支包含 `a244bf1` 及其全部历史，所以合并回来不会丢；但**若这个重构分支被废弃，请记得把 `d56a4ca` cherry-pick 回主开发分支**。另外提醒：切换分支时工作区里还有 PAGES 的 `assets/page.tsx`、`my-prompts/page.tsx`、`prompts/page.tsx` 未提交改动，已被一并带过去了
 
+- [21:05] OWNER-CANVAS 提交 `f19e556`（仍在 `feat/3034-assets-redesign-1795521040`，切回主开发分支时记得合并）：按用户三张参考图升级框选体验 ——
+  ① 框选后立即在选区上方弹出**横向悬浮工具栏**（新建 `components/canvas-selection-toolbar.tsx`）：保存到资产 / 创建副本 / 打组·解组(带下拉) / 下载 / 整组执行 / 添加素材 / 排序 / 删除。样式按创作页风格（1px 描边 + 极轻投影，不用大范围模糊阴影，用户之前明确反对）。
+  ② 打组后整组画**中性灰圆角边框 + Group N 标签**（标签按创建顺序由 `buildGroupLabels` 编号）；选区底色也从中性的青蓝 `canvas.selectionFill` 改成中性灰，避免用户反复反馈的「发蓝」。
+  ③ 排序菜单宫格 / 水平 / 垂直，纯函数 `utils/canvas-node-arrange.ts` + 5 单测；整组执行复用 `handleGenerateNode`；复制组会生成新 groupId 不会并入原组。
+  实测：Playwright 框选->工具栏->打组->Group 边框->排序->解组全流程通过；画布 361 用例全绿、tsc 全项目通过。
+  **注意**：`CanvasSurface` 新增必填 prop `selectionActions`（类型 `CanvasSelectionActions`），以后新增 surface 使用点要传；`data-canvas-multi-selection-count` 现在挂在悬浮工具栏根节点上。
+
 ## 9. 升级方案：物理隔离（撞车频繁时启用）
 
 现在是**单一工作树、单分支**，三人共写一份文件 —— 分区靠自觉。若开始频繁互相踩：
