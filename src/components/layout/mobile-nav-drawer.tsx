@@ -31,12 +31,16 @@ export function MobileNavDrawer({ open, activeToolSlug, onClose }: MobileNavDraw
     const accountName = user?.displayName || user?.username || "未登录";
     const avatarInitial = userAvatarInitial(accountName);
     const accountActive = pathname.startsWith("/profile");
+    /* 配色与桌面侧栏 AppSidebar 共用同一套令牌，不要在这里写死 hex：
+     * 之前是 #f0f2f4 / #1d2127 / #697381 一整套手抄值，凑巧和令牌接近所以看不出，
+     * 但 global-surfaces.css 里的底色历史上改过一次（#ededee → #f8f9fa），
+     * 手抄值不会跟着变，窄屏就会和桌面脱队。 */
     const itemClass = (active: boolean) =>
         cn(
             "flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-base transition",
             active
-                ? "bg-[#f0f2f4] font-medium text-[#1d2127] dark:bg-[#22262c] dark:text-[#f3f5f7]"
-                : "text-[#697381] hover:bg-[#f3f5f7] hover:text-[#20242a] dark:text-[#9aa3af] dark:hover:bg-[#20242a] dark:hover:text-[#f3f5f7]",
+                ? "bg-[var(--surface-inset)] font-medium text-[var(--ink-1)]"
+                : "text-[var(--ink-2)] hover:bg-[var(--surface-inset)] hover:text-[var(--ink-1)]",
         );
 
     useEffect(() => {
@@ -48,7 +52,7 @@ export function MobileNavDrawer({ open, activeToolSlug, onClose }: MobileNavDraw
     return (
         <Drawer
             title={
-                <Link href="/create" onClick={onClose} className="inline-flex min-w-0 items-center gap-2.5 text-base font-semibold leading-none text-[#20242a] dark:text-[#f3f5f7]">
+                <Link href="/create" onClick={onClose} className="inline-flex min-w-0 items-center gap-2.5 text-base font-semibold leading-none text-[var(--ink-1)]">
                     <SiteLogo logoUrl={site.logoUrl} className="size-8" />
                     <span className="truncate">{siteTitle}</span>
                 </Link>
@@ -62,7 +66,7 @@ export function MobileNavDrawer({ open, activeToolSlug, onClose }: MobileNavDraw
         >
             {navigationGroups.map((group, groupIndex) => (
                 <div key={group.id} className={cn(groupIndex > 0 && "mt-5")}>
-                    <div className="mb-1 px-3 text-[13px] font-medium text-[#9aa2ad] dark:text-[#737d89]">{group.label}</div>
+                    <div className="mb-1 px-3 text-[13px] font-medium text-[var(--ink-3)]">{group.label}</div>
                     <div className="space-y-1">
                         {navigationTools
                             .filter((tool) => tool.group === group.id)
@@ -110,7 +114,7 @@ export function MobileNavDrawer({ open, activeToolSlug, onClose }: MobileNavDraw
                     className={itemClass(accountActive)}
                     aria-current={accountActive ? "page" : undefined}
                 >
-                    <span className="grid size-6 shrink-0 place-items-center overflow-hidden rounded-full bg-[linear-gradient(140deg,#8a94a3_0%,#3f4854_100%)] text-[10px] font-semibold text-white ring-1 ring-black/5 dark:ring-white/15">
+                    <span className="grid size-6 shrink-0 place-items-center overflow-hidden rounded-full bg-[linear-gradient(135deg,#f6b181_0%,#e2671f_100%)] text-[10px] font-semibold text-white ring-1 ring-black/5 dark:ring-white/15">
                         {avatarUrl ? <img src={avatarUrl} alt="" className="size-full object-cover" referrerPolicy="no-referrer" /> : avatarInitial}
                     </span>
                     <span className="min-w-0 flex-1 truncate">个人中心</span>
@@ -122,7 +126,7 @@ export function MobileNavDrawer({ open, activeToolSlug, onClose }: MobileNavDraw
                     onMouseEnter={() => router.prefetch("/")}
                     onFocus={() => router.prefetch("/")}
                     onClick={onClose}
-                    className="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-base text-[#697381] transition hover:bg-[#f3f5f7] hover:text-[#20242a] dark:text-[#9aa3af] dark:hover:bg-[#20242a] dark:hover:text-[#f3f5f7]"
+                    className={itemClass(false)}
                 >
                     <Globe className="size-5 shrink-0" />
                     <span className="min-w-0 flex-1 truncate">官网首页</span>
