@@ -18,7 +18,7 @@ describe("personal creator page layout", () => {
         expect(page).toContain("flex items-start justify-between gap-3");
         expect(page).toContain("<ProfileMetricDivider />");
         expect(page).not.toContain("rounded-md border border-border bg-card text-muted-foreground");
-        expect(page).toContain("<UserRoundPen");
+        expect(page).toContain("<Pencil");
         expect(page).not.toContain("@{user.username}");
         expect(page).toContain('aria-haspopup="dialog"');
         expect(page).toContain("<Input.TextArea");

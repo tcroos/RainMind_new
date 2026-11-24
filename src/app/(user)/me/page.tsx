@@ -1,7 +1,7 @@
 "use client";
 
 import { App, Button, Input, Modal, Pagination, Spin } from "antd";
-import { ExternalLink, Grid3X3, Heart, ImageIcon, Share2, UserRoundPen } from "lucide-react";
+import { ExternalLink, Grid3X3, Heart, ImageIcon, Pencil, Share2 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
@@ -210,7 +210,7 @@ export default function MyCreatorPage() {
                                         aria-haspopup="dialog"
                                         onClick={() => setEditOpen(true)}
                                     >
-                                        <UserRoundPen className="size-4" />
+                                        <Pencil className="size-4" />
                                         <span className="whitespace-nowrap">编辑资料</span>
                                     </button>
                                 </div>

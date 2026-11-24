@@ -52,20 +52,23 @@ export function ProfileAvatarUploader({ onUpdated, variant = "row" }: { onUpdate
 
     if (variant === "avatar") {
         return (
-            <div className="relative shrink-0 pb-3">
+            <div className="group relative shrink-0">
                 <span className="grid size-20 place-items-center overflow-hidden rounded-full bg-foreground text-lg font-semibold text-background ring-1 ring-border">
                     {user?.avatarUrl ? <img src={user.avatarUrl} alt="当前头像" className="size-full object-cover" /> : fallback}
                 </span>
                 {fileInput}
+                {/* 悬停/聚焦时浮出遮罩；触屏设备没有 hover，用 @media(hover:none) 兜底常驻 */}
                 <button
                     type="button"
-                    className="absolute bottom-0 left-1/2 inline-flex h-6 -translate-x-1/2 items-center gap-1 whitespace-nowrap rounded-full !bg-foreground px-2 text-[11px] font-medium !text-background shadow-sm ring-2 ring-background transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
+                    className="absolute inset-0 grid place-items-center rounded-full bg-black/45 opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-visible:opacity-100 disabled:cursor-not-allowed [@media(hover:none)]:opacity-100"
                     onClick={() => inputRef.current?.click()}
                     disabled={uploading}
                     aria-label="更换头像"
                 >
-                    <Camera className="size-3" />
-                    {uploading ? "上传中" : "更换"}
+                    <span className="flex items-center gap-1 text-[11px] font-medium !text-white">
+                        <Camera className="size-3.5" />
+                        {uploading ? "上传中" : "更换"}
+                    </span>
                 </button>
             </div>
         );
