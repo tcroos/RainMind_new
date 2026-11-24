@@ -136,3 +136,37 @@
     background-color: var(--surface-inset) !important;
     color: var(--ink-1) !important;
 }
+
+/* 新建提示词弹窗：和库内控件同一套「浅底无线条」语言。
+ * 表单边框全部去掉，靠 --surface-inset 分块；只保留聚焦柔光，避免截图里那种
+ * 一堆灰色描边把弹窗切碎的观感。 */
+.prompt-form .ant-form-item-label > label {
+    color: var(--ink-2) !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+}
+.prompt-form .ant-input,
+.prompt-form .ant-input-affix-wrapper,
+.prompt-form textarea.ant-input {
+    background: var(--surface-inset) !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    border-radius: 12px !important;
+    color: var(--ink-1) !important;
+}
+.prompt-form .ant-input::placeholder,
+.prompt-form textarea.ant-input::placeholder {
+    color: var(--ink-3) !important;
+}
+.prompt-form .ant-input:focus,
+.prompt-form .ant-input-affix-wrapper:focus-within {
+    box-shadow: 0 0 0 2px var(--brand-soft) !important;
+}
+.prompt-create-modal .ant-modal-header {
+    border-bottom: 0 !important;
+    padding-bottom: 4px !important;
+}
+.prompt-create-modal .ant-modal-footer {
+    border-top: 0 !important;
+    padding-top: 8px !important;
+}

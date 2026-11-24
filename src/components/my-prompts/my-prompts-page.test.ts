@@ -44,4 +44,14 @@ describe("my prompts page layout", () => {
         expect(page).toContain("Popconfirm");
         expect(page).toContain("删除后无法恢复");
     });
+
+    it("keeps the create dialog compact and borderless", async () => {
+        const page = await read();
+
+        expect(page).toContain("prompt-create-modal");
+        expect(page).toContain('className="prompt-form"');
+        expect(page).not.toContain("存下来的提示词只对自己可见");
+        expect(page).not.toContain("extra=");
+        expect(page).toContain('className="library-primary"');
+    });
 });

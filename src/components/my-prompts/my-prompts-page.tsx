@@ -215,7 +215,8 @@ export function MyPromptsPage() {
                                             <Button
                                                 size="small"
                                                 type="text"
-                                                className="!rounded-lg"
+                                                shape="circle"
+                                                className="library-card-action"
                                                 icon={<FolderPlus className="size-3.5" />}
                                                 aria-label="加入我的素材"
                                                 title="加入我的素材"
@@ -225,8 +226,9 @@ export function MyPromptsPage() {
                                                 <Button
                                                     size="small"
                                                     type="text"
+                                                    shape="circle"
                                                     danger
-                                                    className="!rounded-lg"
+                                                    className="library-card-action"
                                                     icon={<Trash2 className="size-3.5" />}
                                                     aria-label="删除提示词"
                                                     title="删除提示词"
@@ -262,6 +264,7 @@ export function MyPromptsPage() {
             />
 
             <Modal
+                className="prompt-create-modal"
                 title="添加提示词"
                 open={createOpen}
                 footer={null}
@@ -270,33 +273,34 @@ export function MyPromptsPage() {
                 destroyOnHidden
                 onCancel={() => setCreateOpen(false)}
                 afterClose={() => form.resetFields()}
-                styles={{ body: { maxHeight: "calc(100dvh - 200px)", overflowY: "auto" } }}
+                styles={{ header: { borderBottom: 0 }, body: { maxHeight: "calc(100dvh - 200px)", overflowY: "auto", paddingTop: 4 } }}
             >
-                <p className="-mt-1 text-xs leading-5 text-[var(--ink-3)]">存下来的提示词只对自己可见，可以随时复制或收进我的素材。</p>
-                <Form form={form} layout="vertical" onFinish={createPrompt} requiredMark={false} className="pt-3">
+                <Form form={form} layout="vertical" onFinish={createPrompt} requiredMark={false} className="prompt-form">
                     <div className="grid gap-x-4 sm:grid-cols-2">
                         <Form.Item label="标题" name="title" rules={[{ required: true, message: "请输入标题" }]}>
-                            <Input size="large" className="!h-10" placeholder="例如：产品摄影主视觉" />
+                            <Input size="large" placeholder="例如：产品摄影主视觉" />
                         </Form.Item>
                         <Form.Item label="分类" name="category">
-                            <Input size="large" className="!h-10" placeholder="例如：商业海报" />
+                            <Input size="large" placeholder="例如：商业海报" />
                         </Form.Item>
-                        <Form.Item label="标签" name="tags" extra="用逗号分隔，会显示在卡片上">
-                            <Input size="large" className="!h-10" placeholder="摄影, 电商, 写实" />
+                        <Form.Item label="标签" name="tags">
+                            <Input size="large" placeholder="摄影, 电商, 写实" />
                         </Form.Item>
-                        <Form.Item label="封面 URL" name="coverUrl" extra="可选，留空时卡片显示文字封面">
-                            <Input size="large" className="!h-10" placeholder="https://..." />
+                        <Form.Item label="封面 URL" name="coverUrl">
+                            <Input size="large" placeholder="https://..." />
                         </Form.Item>
                     </div>
                     <Form.Item label="提示词内容" name="prompt" rules={[{ required: true, message: "请输入提示词内容" }]}>
-                        <Input.TextArea rows={5} placeholder="输入完整提示词..." />
+                        <Input.TextArea rows={6} placeholder="输入完整提示词..." />
                     </Form.Item>
-                    <Form.Item label="备注 / 预览" name="preview" extra="可选，记录使用场景或效果备注">
-                        <Input.TextArea rows={2} placeholder="例如：适合 3:4 竖版，人物近景" />
+                    <Form.Item label="备注" name="preview">
+                        <Input size="large" placeholder="可选" />
                     </Form.Item>
                     <div className="flex justify-end gap-2 pt-1">
-                        <Button onClick={() => setCreateOpen(false)}>取消</Button>
-                        <Button type="primary" htmlType="submit" loading={submitting} icon={<Plus className="size-4" />}>
+                        <Button className="library-tool" size="large" onClick={() => setCreateOpen(false)}>
+                            取消
+                        </Button>
+                        <Button className="library-primary" type="primary" htmlType="submit" size="large" loading={submitting} icon={<Plus className="size-4" />}>
                             保存提示词
                         </Button>
                     </div>
