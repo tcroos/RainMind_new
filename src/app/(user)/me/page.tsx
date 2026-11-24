@@ -1,9 +1,16 @@
 "use client";
 
 import { App, Button, Input, Modal, Pagination, Spin } from "antd";
-import { ExternalLink, Grid3X3, Heart, ImageIcon, Pencil, Share2 } from "lucide-react";
+import { ExternalLink, GalleryVerticalEnd, Grid3X3, Heart, ImageIcon, Pencil, Share2 } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+
+/* 作品管理原本是独立页面 /works，现在作为主页的第三个 tab：
+ * 对外展示（已发布 / 我的喜欢）和对内管理（草稿、审核、版本）本来就是同一件事的两面，
+ * 分成两个侧栏入口只会让人来回跳。组件留在 works 路由下，这里跨路由引用，
+ * 避免把 works 的业务文件再挪一遍。 */
+import { WorksManager } from "@/app/(user)/works/components/works-manager";
 
 import { ProfileAvatarUploader } from "@/components/profile/profile-avatar-uploader";
 import { PublicWorkGalleryCard } from "@/components/works/public-work-gallery-card";
@@ -17,7 +24,7 @@ import { type LocalUser, useUserStore } from "@/stores/use-user-store";
 import { CommunityActivityModal, type CommunityActivityView } from "./community-activity-modal";
 
 const PAGE_SIZE = 18;
-type ProfileTab = "published" | "likes";
+type ProfileTab = "published" | "likes" | "works";
 type LikedWorksPage = Extract<CommunityActivityPage, { view: "likes" }>;
 
 export default function MyCreatorPage() {
@@ -25,7 +32,10 @@ export default function MyCreatorPage() {
     const copyText = useCopyText();
     const user = useUserStore((state) => state.user);
     const setUser = useUserStore((state) => state.setUser);
-    const [activeTab, setActiveTab] = useState<ProfileTab>("published");
+    /* /works 已改成重定向到 /me?tab=works，所以这里读一次 query 决定初始 tab；
+     * 其它情况一律从「已发布」开始。 */
+    const searchParams = useSearchParams();
+    const [activeTab, setActiveTab] = useState<ProfileTab>(() => (searchParams.get("tab") === "works" ? "works" : "published"));
     const [summary, setSummary] = useState<CommunityActivitySummary>();
     const [publishedPage, setPublishedPage] = useState<PublicCreatorPage>();
     const [publishedLoading, setPublishedLoading] = useState(true);
@@ -168,8 +178,8 @@ export default function MyCreatorPage() {
             <div className="mx-auto w-full max-w-[1280px] px-3 pb-12 sm:px-6 sm:pb-16 lg:px-8">
                 <section className="relative min-w-0 pb-5 pt-4 sm:pb-6 sm:pt-6" aria-labelledby="my-profile-name">
                     {/* 封面横幅：用户资料暂无封面上传能力，先用生成的等高线底图占位 */}
-                    <div className="relative h-36 overflow-hidden rounded-xl ring-1 ring-black/5 ring-inset sm:h-56 sm:rounded-2xl dark:ring-white/10">
-                        <img src="/profile-cover.webp" alt="" aria-hidden="true" width={2400} height={460} className="absolute inset-0 size-full object-cover object-[22%_center] sm:object-center" />
+                    <div className="relative h-32 overflow-hidden rounded-xl ring-1 ring-black/5 ring-inset sm:h-44 sm:rounded-2xl dark:ring-white/10">
+                        <img src="/profile-cover.webp" alt="" aria-hidden="true" width={2400} height={362} className="absolute inset-0 size-full object-cover object-[22%_center] sm:object-center" />
                         <span
                             aria-hidden="true"
                             className="absolute inset-0 bg-[linear-gradient(180deg,rgba(26,9,3,0.04)_0%,rgba(26,9,3,0.02)_55%,rgba(26,9,3,0.16)_100%)]"
@@ -178,7 +188,7 @@ export default function MyCreatorPage() {
 
                     <div className="px-2 sm:px-4">
                         <span
-                            className="relative z-10 -mt-12 grid size-24 place-items-center overflow-hidden rounded-full bg-[linear-gradient(135deg,#f6b181_0%,#e2671f_100%)] text-2xl font-semibold text-white shadow-[0_10px_28px_-6px_rgba(70,26,8,0.45)] ring-4 ring-background sm:-mt-16 sm:size-32 sm:text-4xl"
+                            className="relative z-10 -mt-12 grid size-24 place-items-center overflow-hidden rounded-full bg-[linear-gradient(135deg,#f6b181_0%,#e2671f_100%)] text-2xl font-semibold text-white shadow-[0_10px_28px_-6px_rgba(70,26,8,0.45)] ring-4 ring-background sm:-mt-14 sm:size-32 sm:text-4xl"
                             aria-hidden="true"
                         >
                             {avatarUrl ? <img src={avatarUrl} alt="" className="size-full object-cover" /> : userAvatarInitial(profileDisplayName)}
@@ -233,6 +243,7 @@ export default function MyCreatorPage() {
                     <div className="flex items-center gap-5 border-b border-border" role="tablist" aria-label="主页内容">
                         <ProfileTabButton active={activeTab === "published"} icon={<Grid3X3 className="size-4" />} label="已发布" count={metrics.published} onClick={() => setActiveTab("published")} />
                         <ProfileTabButton active={activeTab === "likes"} icon={<Heart className="size-4" />} label="我的喜欢" count={summary?.likedWorkCount || 0} onClick={() => setActiveTab("likes")} />
+                        <ProfileTabButton active={activeTab === "works"} icon={<GalleryVerticalEnd className="size-4" />} label="作品管理" onClick={() => setActiveTab("works")} />
                     </div>
 
                     {activeTab === "published" ? (
@@ -242,14 +253,20 @@ export default function MyCreatorPage() {
                             emptyTitle="发布我的第一件作品"
                             emptyDescription=""
                             emptyAction={
-                                <Link href="/works" className="inline-flex h-9 items-center gap-2 rounded-md !bg-foreground px-4 text-sm font-medium !text-background transition hover:opacity-90">
+                                <button
+                                    type="button"
+                                    className="inline-flex h-9 items-center gap-2 rounded-md !bg-foreground px-4 text-sm font-medium !text-background transition hover:opacity-90"
+                                    onClick={() => setActiveTab("works")}
+                                >
                                     <ImageIcon className="size-4" /> 从项目挑选作品
-                                </Link>
+                                </button>
                             }
                             onOpen={setPreviewSlug}
                             onOpenAuthor={setCreatorUsername}
                         />
-                    ) : (
+                    ) : null}
+
+                    {activeTab === "likes" ? (
                         <WorkCollection
                             loading={likedLoading}
                             items={likedPage?.items || []}
@@ -263,7 +280,11 @@ export default function MyCreatorPage() {
                             onOpen={setPreviewSlug}
                             onOpenAuthor={setCreatorUsername}
                         />
-                    )}
+                    ) : null}
+
+                    {/* 只在切到该 tab 时才挂载：作品列表要单独拉数据，
+                     * 没必要每次进主页都请求一遍 */}
+                    {activeTab === "works" ? <WorksManager embedded /> : null}
 
                     {activeTab === "published" && publishedPage?.nextCursor ? (
                         <div className="flex justify-center pt-3 sm:pt-5">
@@ -365,7 +386,7 @@ function ProfileMetricDivider() {
     );
 }
 
-function ProfileTabButton({ active, icon, label, count, onClick }: { active: boolean; icon: React.ReactNode; label: string; count: number; onClick: () => void }) {
+function ProfileTabButton({ active, icon, label, count, onClick }: { active: boolean; icon: React.ReactNode; label: string; count?: number; onClick: () => void }) {
     return (
         <button
             type="button"
@@ -376,7 +397,8 @@ function ProfileTabButton({ active, icon, label, count, onClick }: { active: boo
         >
             {icon}
             {label}
-            <span className="text-xs tabular-nums text-muted-foreground">{count}</span>
+            {/* 「作品管理」没有天然计数，不显示数字，避免出现一个 0 */}
+            {count === undefined ? null : <span className="text-xs tabular-nums text-muted-foreground">{count}</span>}
             {active ? <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-foreground" /> : null}
         </button>
     );

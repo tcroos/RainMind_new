@@ -7,7 +7,7 @@ describe("personal creator page layout", () => {
         const page = await readFile(resolve(process.cwd(), "src/app/(user)/me/page.tsx"), "utf8");
 
         // 封面横幅 + 头像压边（负 margin 上浮，ring 用背景色隔开）
-        expect(page).toContain("sm:h-56 sm:rounded-2xl");
+        expect(page).toContain("sm:h-44 sm:rounded-2xl");
         expect(page).toContain("/profile-cover.webp");
         expect(page).toContain("relative z-10 -mt-12 grid size-24");
         expect(page).toContain("ring-4 ring-background");

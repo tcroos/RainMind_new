@@ -46,13 +46,9 @@ export const navigationTools = [
         icon: Clapperboard,
     },
     {
-        slug: "works",
-        label: "作品",
-        description: "发布、审核与分享",
-        group: "assets",
-        icon: GalleryVerticalEnd,
-    },
-    {
+        /* 原来的「作品」入口已并入「主页」的「作品管理」tab：
+         * 一个侧栏入口对应「我的作品」这一件事，不再让展示页和管理页各占一格。
+         * /works 保留为到 /me?tab=works 的重定向，旧链接与发布深链仍然可用。 */
         slug: "assets",
         label: "素材",
         description: "图片、视频与音频",
