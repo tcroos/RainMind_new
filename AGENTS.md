@@ -1,7 +1,7 @@
-# AGENTS.md — 多助手协作约定
+# AGENTS.md — 三助手协作约定
 
-> 本仓库同时有 **2 个 AI 助手**在改造前端页面。开工前请先读本文件，遵循分区与提交纪律。
-> 修改本文件 = 修改契约，需在提交信息里写 `chore(agents):` 并在下方「变更记录」留一行。
+> 本仓库同时有 **3 个 AI 助手**在改造前端。开工前请先读本文件，按分区干活。
+> 修改本文件 = 修改契约，提交信息用 `chore(agents):`，并在末尾「变更记录」留一行。
 
 ---
 
@@ -9,23 +9,24 @@
 
 ```bash
 git status --short          # 有哪些未提交改动，是谁的
-git log --oneline -5        # 上一个提交在做什么
+git log --oneline -5        # 前面的人在做什么
 ```
 
-- 目标文件出现在 `git status` 里 → **视为对方正在用**，不要覆盖，先换文件或先问人
+- 目标文件出现在 `git status` 里 → **视为别人正在用**，换文件或写进 §8 交接日志再等人裁决
 - 只 `git add <自己改的具体路径>`，**禁止** `git add -A` / `git add .` / `git commit -a`
-- 一个逻辑改动立刻提交，不要让 diff 在工作区挂很久（挂越久越容易被对方误伤）
+- 一个逻辑改动立刻提交，别让 diff 在工作区挂太久（挂越久越容易被误伤）
 
-## 1. 参与者与分区
+## 1. 三方分区
 
-| 角色 | 负责域 | 独占目录 |
+| 角色 | 负责 | 独占范围 |
 | --- | --- | --- |
-| **OWNER-ME** | 个人主页 / 个人中心 | `src/app/(user)/me/`、`src/app/(user)/profile/`、`src/app/(user)/u/`、`src/components/profile/`、`src/lib/user-avatar.ts`、`public/profile-cover.*` |
-| **OWNER-CANVAS** | 画布（Canvas） | 见下 |
+| **OWNER-SHELL** | 全站布局、导航、共享 UI、全局样式、**页面合并调整** | `src/app/layout.tsx`、`src/app/(user)/layout.tsx`、`src/components/layout/`、`src/components/ui/`、`src/app/globals.css`、`src/app/styles/global-*.css`（`global-canvas-*` 除外）、路由结构与页面搬迁 |
+| **OWNER-PAGES** | 具体页面改造 | `(user)/me/`、`profile/`、`u/`、`works/`、`gallery/`、`community/`、`create/`、`drama/`、`wallet/`、`billing/`、`help/`、`assets/`、`prompts/`、`my-prompts/`、`src/components/profile/`、`src/components/works/`、`src/lib/user-avatar.ts`、`public/profile-cover.*` |
+| **OWNER-CANVAS** | 画布 | `(user)/canvas/**`、`src/lib/canvas-*.ts`、`src/app/api/canvas/**`、`src/app/styles/global-canvas-*.css` |
 
-**规则：只在自己独占目录里动代码。** 需要改对方独占目录 → 停手，写进 §5 交接日志，由人决定谁改。
+**一句话规则：** 自己的独占目录随便改；别人的独占目录**只读**；需要别人改 → 写 §8，由人转达。
 
-### OWNER-CANVAS 独占范围
+### OWNER-CANVAS 独占范围细节
 
 ```
 src/app/(user)/canvas/**              # 页面、[id] 详情、components/(81 文件)、stores/、utils/
@@ -34,81 +35,91 @@ src/app/api/canvas/**                 # projects、image-decomposition
 src/app/styles/global-canvas-*.css    # controls / overrides / responsive 三个分片
 ```
 
-画布约 140 文件 / 1 万行，核心是 `canvas/components/canvas-surface.tsx`（1641 行）与 `canvas/[id]/use-canvas-generation-actions.tsx`（1221 行）。
+约 140 文件 / 1 万行，核心 `canvas/components/canvas-surface.tsx`（1641 行）、`canvas/[id]/use-canvas-generation-actions.tsx`（1221 行）。
 
-**画布对外的只读依赖**（可读、不擅自改，要改走 §2 共享层流程）：
-`services/api`（44 处）、`stores/use-theme-store`、`stores/use-config-store`、`lib/media-image-url`、`lib/image-utils`、`components/agent/`。
+**画布对外只读依赖**：`services/api`（44 处）、`stores/use-theme-store`、`stores/use-config-store`、`lib/media-image-url`、`lib/image-utils`、`components/agent/`。
 
-分给画布、但**其它域暂无人认领**的目录（`create/`、`drama/`、`works/`、`gallery/`、`community/`、`wallet/`、`billing/`、`help/`、`assets/`、`prompts/`）：需要改时按共享层流程走，改前在 §5 记一行。
+### 共管文件（两个助手都用）
 
-## 2. 共享层（谁都能碰，但必须走流程）
-
-以下文件被两个域的页面同时引用，改动会外溢：
-
-| 共享层 | 被谁复用 | 注意 |
+| 文件 | 共管方 | 规则 |
 | --- | --- | --- |
-| `src/components/layout/`（app-sidebar、mobile-nav-drawer、user-status-actions） | 全站 | 改行为会影响所有页 |
-| `src/components/ui/` | 全站 | 改基础组件 = 改全站 |
-| `src/app/globals.css`、`src/app/styles/global-*.css`（非 canvas 分片） | 全站 | 优先加新文件；`globals.css` 只允许「新增 @import 一行」 |
-| `src/components/works/` | 作品广场 + `me` 页复用卡片 | **改卡片签名/结构会直接打断 me 页** |
-| `src/components/agent/` | 画布 + 创作工作台共用 | 双方都可能动，改前必须记账 |
-| `src/services/api/`、`src/stores/` | 全站 | 只加不改，改接口必同步所有调用方 |
-| `src/lib/media-image-url`、`image-utils`、`utils` 等公共工具 | 全站 | 签名保持向后兼容 |
+| `src/components/agent/` | OWNER-CANVAS + OWNER-PAGES | 先记账再改；加 prop 用可选、不删旧字段；改完在 §8 留一行 |
 
-**共享层改动三步：**
+## 2. 骨架 ↔ 页面 的接口约定（OWNER-SHELL 必须遵守）
 
-1. 改之前，在 §5 交接日志写一行「我要改 X，原因 Y」
-2. 改动保持**向后兼容**（加 prop 用可选、加字段不删旧字段）
-3. **单独一个 commit**，不和页面改动混在一起 —— 方便对方 cherry-pick 或回滚
+这是三方协作里最容易出事的地方，写死：
 
-## 3. 提交纪律
+- **shell 只管外壳**：导航、侧边栏、顶栏、外层 padding、max-width、滚动容器。页面内容区内部结构归各页面负责人。
+- **内容容器必须「高度确定 + 可 100% 撑满 + 不重复滚动」**，不得在页面外层套固定高度或 `overflow: auto`。
+- **画布的硬性要求**：内容区必须**全幅（无左右 padding）、高度 100%、外层不滚动**，缩放和平移由画布自己管。若 shell 改动导致画布出现双滚动条、视口塌陷或四周留白，属**破坏性改动**，改前必须协商。
+- shell 改导航分组 / 路由路径 → 必须同步更新所有受影响链接，并在 §8 通知两个页面负责人。
 
-- 沿用现有 conventional commit，scope 写域名，归属一眼可辨：`feat(canvas):` / `fix(me):` / `chore(agents):`
-- 一次提交只装一件事；页面改动和共享层改动分开
-- **禁止** `git commit --amend`、`git rebase`、`git reset --hard`、`git checkout -- <file>`、`git stash`、切换分支
-  —— 这些操作会直接吞掉对方未提交的工作
-- 需要撤销自己的改动：`git restore --source=HEAD -- <自己的文件>`，只针对自己
+## 3. 页面合并 / 搬迁的冻结协议（OWNER-SHELL 执行）
 
-## 4. 撞车了怎么办
+「页面合并调整」必然要移动别人正在改的文件，必须走冻结：
 
-1. **先别 commit**，`git diff <冲突文件>` 看清双方改动
-2. 双方都想改同一个文件 → 按分区归属，**非归属方退出**，把需求写进 §5
-3. 已经互相覆盖（文件内容丢了）→ `git reflog` 找回自己那次提交，`git show <hash> -- <file>` 取回，不要 reset
-4. 真的分不开（同一文件两侧都要改）→ 升级到物理隔离，见 §6
+1. 先在 §8 写冻结公告：`[HH:MM] OWNER-SHELL 冻结 <文件或目录> — 计划合并为 <目标>`
+2. 冻结期内该文件的原负责人**不得改动**；有需求先写进 §8，等解冻
+3. 搬迁单独一个 commit：`refactor(shell): 合并 X → Y（仅搬迁，无逻辑改动）`
+4. 紧接着一个 commit 修引用（import、路由、redirect）
+5. 完成后在 §8 写 `解除冻结`；两个 commit 之间**不要夹业务逻辑改动**
 
-## 5. 交接日志（追加写，不要改别人的行）
+## 4. 共享层现状
+
+原先的「共享层」已按所有权拆开：
+
+- `components/layout/`、`components/ui/`、`globals.css`、`styles/global-*.css` → **有主了，归 OWNER-SHELL**，另两人只读
+- `components/works/`、`components/profile/` → 归 OWNER-PAGES
+- `components/agent/` → 共管，见 §1
+- `services/api/`、`stores/`、`lib/media-*`、`lib/utils` 等跨域工具 → **无人独占**，谁改谁负责，要求：只加不改、向后兼容、单独 commit、在 §8 记账
+
+## 5. 提交纪律
+
+- scope 前缀标归属，三方交替提交时一眼可辨：`feat(canvas):` / `feat(page):` / `refactor(shell):` / `chore(agents):`
+- 一次提交只装一件事；页面改动与共享层改动分开
+- **禁止** `git commit --amend`、`git rebase`、`git reset --hard`、`git checkout -- <file>`、`git stash`、切换分支 —— 这些会直接吞掉别人未提交的工作
+- 撤销自己的改动：`git restore --source=HEAD -- <自己的文件>`，只针对自己
+- `pnpm typecheck` 是全项目严格 tsc，**别人没写完时也会报错** —— 只把自己文件的错误当阻塞项
+
+## 6. 撞车了怎么办
+
+1. **先别 commit**，`git diff <文件>` 看清双方改动
+2. 双方都要改同一文件 → 按分区归属，**非归属方退出**，需求写进 §8
+3. 已经互相覆盖（内容丢了）→ `git reflog` 找回自己那次提交，`git show <hash> -- <file>` 取回，**不要 reset**
+4. 实在分不开 → 升级到物理隔离，见 §9
+
+## 7. 端口与运行环境
+
+- **3001**：主工作树共用的 dev server，**谁都不要重启或杀进程**（有人的 Playwright 脚本写死了它）
+- 需要独立跑验证：CANVAS 用 `PORT=3002`、PAGES 用 `PORT=3003`、SHELL 用 `PORT=3004`；同时最多开 2 个
+- **注意**：`layout.tsx` / `globals.css` 一旦语法错误，会拖垮 3001 上所有人的页面。shell 改动请小步保存，出错立刻修
+- 不要删 `.next-dev/`、`.tsconfig.tsbuildinfo`、`.tmp/` —— 可能有人正在用
+
+## 8. 交接日志（追加写，不要改别人的行）
 
 格式：`- [HH:MM] <角色> <动作> <文件/目录> — <说明>`
 
-- [12:53] OWNER-CANVAS 占用 `.workbuddy/`、`AGENTS.md` — 建立协作契约，不涉及业务代码
-- [12:53] OWNER-ME 持有 7 个文件未提交（头像渐变调整），OWNER-CANVAS 不触碰
-- [12:56] OWNER-ME 提交 `3846a2d` — `public/profile-cover.*`、`scripts/generate-profile-cover.mjs`：封面底色改中性石墨，只动自己域
-- [12:56] OWNER-ME 补记历史改动：`108a33f` 里一并改了共享层 `components/layout/{app-sidebar,mobile-nav-drawer,user-status-actions}.tsx` 的头像渐变类名（纯 class 替换、无行为/接口变更），当时契约尚未建立；此后共享层改动会单独提交并在此记账
+- [12:53] OWNER-CANVAS 占用 `.workbuddy/`、`AGENTS.md` — 建立协作契约
+- [12:53] OWNER-ME 持有 7 个文件未提交（头像渐变），OWNER-CANVAS 不触碰
+- [12:58] 分区定稿：OWNER-PAGES → OWNER-CANVAS（画布域）
+- [13:00] 契约升级为三方版：新增 OWNER-SHELL（全站骨架 + 页面合并），`components/layout`、`components/ui`、`globals.css` 从「共享层」改为 OWNER-SHELL 独占
+- [13:00] 历史说明：`108a33f`（头像配色）曾修改 `components/layout/` 三个文件，属两方制时期的改动，**不回滚**；此后 layout 归 OWNER-SHELL
 
-## 6. 端口与运行环境
+## 9. 升级方案：物理隔离（撞车频繁时启用）
 
-- **3001**：主工作树的 dev server，OWNER-ME 的 Playwright 脚本写死了这个端口 —— 不要重启、不要杀进程
-- OWNER-CANVAS 需要独立跑截图/验证时，用 `PORT=3002 pnpm dev` 另起一份（`next dev` 读 `process.env.PORT`；若 `.env.local` 里的 `PORT=3001` 覆盖了它，复制一份 `.env.canvas` 后 `node --env-file=.env.canvas ...` 起）
-- **不要** 为了跑自己的验证去重启 3001，会打断对方的截图脚本
-
-## 7. 升级方案：物理隔离（撞车频繁时启用）
-
-当前是**单一工作树、单分支**，两个助手直接写同一份文件 —— 分区靠自觉，撞车靠沟通。若开始频繁互相踩：
+现在是**单一工作树、单分支**，三人共写一份文件 —— 分区靠自觉。若开始频繁互相踩：
 
 ```bash
-# 给其中一方开独立 worktree + 独立分支（两者共享同一个 .git，能互相合并）
 git worktree add ../vozeb-wt-canvas -b feat/canvas-local feat/3034-frontend-local-dev
 ```
 
-配套：
-
 - 各自 `node_modules`（pnpm store 硬链接，成本低）、各自 `.env.local`（gitignore，需手动复制）
-- **端口分开**：主树 3001 保持不动（对方脚本指这里），新树用 `PORT=3002`
-- 定期 `git merge` 对方分支收敛；合并时冲突就是真冲突，按 §4 处理
-- 注意：同一分支不能同时检出到两个 worktree
+- 端口分开：主树 3001 不动，新树 3002 / 3003
+- 定期 `git merge` 收敛；合并冲突按 §6 处理
+- 同一分支不能同时检出到两个 worktree
 
 ## 变更记录
 
-- 2026-11-24 12:53 初版，OWNER-PAGES 建立
-- 2026-11-24 12:58 分区定稿：OWNER-PAGES → OWNER-CANVAS（画布域），补端口约定与画布只读依赖
-- 2026-11-24 12:57 OWNER-ME 在 §5 追加两条记账（封面提交、历史共享层改动补记），未改分区与规则
+- 2026-11-24 12:53 初版，双助手（ME / PAGES）
+- 2026-11-24 12:58 分区定稿：OWNER-PAGES → OWNER-CANVAS
+- 2026-11-24 13:00 三方版：新增 OWNER-SHELL；补骨架接口约定、搬迁冻结协议、端口分配
