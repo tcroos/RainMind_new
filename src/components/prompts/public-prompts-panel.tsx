@@ -2,7 +2,7 @@
 
 import { FolderPlus, RotateCcw, Search } from "lucide-react";
 import { useDeferredValue, useEffect, useRef, useState } from "react";
-import { App, Button, Input, Pagination, Select, Tag } from "antd";
+import { App, Button, Input, Pagination, Tag } from "antd";
 
 import { LibraryEmptyState } from "@/components/library/library-ui";
 import { PromptCard } from "@/components/prompts/prompt-card";
@@ -24,7 +24,6 @@ const PAGE_SIZE = 16;
 export function PublicPromptsPanel() {
     const { message } = App.useApp();
     const [titleKeyword, setTitleKeyword] = useState("");
-    const [selectedTag, setSelectedTag] = useState(ALL_PROMPTS_OPTION);
     const [selectedCategory, setSelectedCategory] = useState(ALL_PROMPTS_OPTION);
     const [page, setPage] = useState(1);
     const [selectedPrompt, setSelectedPrompt] = useState<Prompt | null>(null);
@@ -36,17 +35,16 @@ export function PublicPromptsPanel() {
     const {
         query,
         items: promptItems,
-        tags: promptTags,
         categories: promptCategoryOptions,
         total: totalPrompts,
     } = usePromptPage({
         keyword: deferredKeyword,
-        tag: selectedTag,
+        tag: ALL_PROMPTS_OPTION,
         category: selectedCategory,
         page,
         pageSize: PAGE_SIZE,
     });
-    const hasFilters = Boolean(titleKeyword.trim()) || selectedTag !== ALL_PROMPTS_OPTION || selectedCategory !== ALL_PROMPTS_OPTION;
+    const hasFilters = Boolean(titleKeyword.trim()) || selectedCategory !== ALL_PROMPTS_OPTION;
 
     useEffect(() => {
         if (query.isError) {
@@ -59,15 +57,9 @@ export function PublicPromptsPanel() {
         setPage(1);
     };
 
-    const updateTag = (value: string) => {
-        setSelectedTag(value);
-        setPage(1);
-    };
-
     const clearFilters = () => {
         setTitleKeyword("");
         setSelectedCategory(ALL_PROMPTS_OPTION);
-        setSelectedTag(ALL_PROMPTS_OPTION);
         setPage(1);
     };
 
@@ -87,9 +79,10 @@ export function PublicPromptsPanel() {
 
     return (
         <div className="bg-background">
-            {/* 筛选工具行：无描边容器，控件用浅底块；总数与清除放在同一行，
-                不再「搜索 + 下拉 + 清除」一行、「分类」另一行、页头还挂一个胶囊计数。 */}
-            <div className="flex flex-wrap items-center gap-2 pt-5">
+            {/* 两行工具区，边距和另外两个 tab 对齐：
+                第一行搜索 + 清除，第二行分类胶囊与总数齐高。删掉「分类」小字与标签下拉，
+                胶囊本身就是筛选器，再挂一个下拉只会让人以为有两套筛选。 */}
+            <div className="flex flex-wrap items-center gap-2 pt-4 sm:pt-5">
                 <Input
                     allowClear
                     size="large"
@@ -102,26 +95,12 @@ export function PublicPromptsPanel() {
                         setPage(1);
                     }}
                 />
-                <Select
-                    size="large"
-                    showSearch
-                    aria-label="提示词标签"
-                    className="library-select w-full sm:w-44"
-                    optionFilterProp="label"
-                    value={selectedTag}
-                    options={promptTags.map((tag) => ({ label: tag, value: tag }))}
-                    onChange={updateTag}
-                />
                 <Button size="large" className="library-tool" icon={<RotateCcw className="size-3.5" />} disabled={!hasFilters} onClick={clearFilters}>
                     清除
                 </Button>
-                <span className="ml-auto shrink-0 text-[12px] tabular-nums text-[var(--ink-3)]">
-                    共 {totalPrompts} 条{hasFilters ? " · 已筛选" : ""}
-                </span>
             </div>
 
-            <div className="mt-3 flex min-w-0 items-center gap-2">
-                <span className="w-8 shrink-0 text-[11px] font-medium text-[var(--ink-3)]">分类</span>
+            <div className="mt-3 flex min-w-0 items-center gap-3">
                 <div className="thin-scrollbar flex min-w-0 flex-1 gap-1.5 overflow-x-auto px-0.5 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                     {promptCategoryOptions.map((option) => (
                         <Tag.CheckableTag
@@ -134,6 +113,7 @@ export function PublicPromptsPanel() {
                         </Tag.CheckableTag>
                     ))}
                 </div>
+                <span className="shrink-0 text-[12px] tabular-nums text-[var(--ink-3)]">共 {totalPrompts} 条</span>
             </div>
 
             <div ref={listStartRef} className="scroll-mt-4 pt-4 sm:pt-5">

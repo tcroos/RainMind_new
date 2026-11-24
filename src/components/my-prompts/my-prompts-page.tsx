@@ -1,10 +1,10 @@
 "use client";
 
-import { BookMarked, FolderPlus, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
+import { FolderPlus, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
 import { useCallback, useDeferredValue, useEffect, useRef, useState } from "react";
 import { App, Button, Form, Input, Modal, Pagination, Popconfirm, Tag } from "antd";
 
-import { LibraryEmptyState } from "@/components/library/library-ui";
+import { LibraryEmptyState, LibraryShowcaseEmptyState } from "@/components/library/library-ui";
 import { PromptCard } from "@/components/prompts/prompt-card";
 import { PromptDetailDialog } from "@/components/prompts/prompt-detail-dialog";
 import { cn } from "@/lib/utils";
@@ -148,9 +148,13 @@ export function MyPromptsPage() {
                     </Button>
                     <div className="ml-auto flex shrink-0 items-center gap-2.5">
                         <span className="hidden text-[12px] tabular-nums text-[var(--ink-3)] sm:inline">共 {total} 条</span>
-                        <Button type="primary" size="large" icon={<Plus className="size-4" />} className="library-primary" onClick={() => setCreateOpen(true)}>
-                            添加提示词
-                        </Button>
+                        {/* 完全空白时只留下方引导区那一个入口，工具栏不再重复；
+                            与「我的素材」保持同一套规则。 */}
+                        {loading || items.length ? (
+                            <Button type="primary" size="large" icon={<Plus className="size-4" />} className="library-primary" onClick={() => setCreateOpen(true)}>
+                                添加提示词
+                            </Button>
+                        ) : null}
                     </div>
                 </div>
 
@@ -176,12 +180,11 @@ export function MyPromptsPage() {
                         hasFilters ? (
                             <LibraryEmptyState icon={<Search className="size-5" />} title="没有匹配的提示词" description="换个关键词，或清除分类筛选再看看。" action={<Button icon={<RotateCcw className="size-3.5" />} onClick={clearFilters}>清除筛选</Button>} />
                         ) : (
-                            <LibraryEmptyState
-                                icon={<BookMarked className="size-5" />}
-                                title="还没有保存提示词"
-                                description="把调好的提示词存进来，下次直接复制使用，也可以一键加入我的素材。"
+                            <LibraryShowcaseEmptyState
+                                title="还没有提示词"
+                                description="把常用的提示词存进来，创作时一键复用。"
                                 action={
-                                    <Button type="primary" className="library-primary" icon={<Plus className="size-4" />} onClick={() => setCreateOpen(true)}>
+                                    <Button type="primary" size="large" className="library-primary" icon={<Plus className="size-4" />} onClick={() => setCreateOpen(true)}>
                                         添加第一个提示词
                                     </Button>
                                 }

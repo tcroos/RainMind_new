@@ -16,6 +16,20 @@ describe("asset library shell", () => {
         expect(page.match(/<main/g)).toHaveLength(1);
         expect(page).toContain("<LibraryTabs");
         expect(page).not.toContain("<LibraryTab ");
+        // 页头只有标题 + tab，不再挂逐 tab 的营销副标题
+        expect(page).not.toContain("发现公共提示词");
+        expect(page).not.toContain("把调好的提示词存成自己的库");
+        expect(page).not.toContain("集中管理创作中复用的内容");
+    });
+
+    it("keeps the empty-state showcase compact", async () => {
+        const ui = await read("src/components/library/library-ui.tsx");
+
+        expect(ui).toContain("max-w-[380px]");
+        expect(ui).toContain("aspect-[2/1]");
+        await access("public/library/asset-empty-banner.webp");
+        // 「示例：……」那行说明与冗长描述已经删掉
+        expect(ui).not.toContain("示例：把常用的字体");
     });
 
     it("exposes three tabs in the agreed order and defaults to the public library", async () => {
@@ -49,7 +63,7 @@ describe("asset library shell", () => {
         // 完全空白时隐藏工具栏的新增按钮，只在下方引导区保留一个入口
         expect(page).toContain("(loading || assets.length > 0)");
         expect(page).toContain("LibraryShowcaseEmptyState");
-        await access("public/library/asset-empty-preview.webp");
+        await access("public/library/asset-empty-banner.webp");
     });
 
     it("switches tabs through history state instead of an RSC navigation", async () => {

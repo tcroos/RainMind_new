@@ -30,8 +30,9 @@ export function PromptCard({
     extraAction?: ReactNode;
 }) {
     const open = () => onOpen(item.coverUrl ? imagePreviewUrl(item.coverUrl, 640) : undefined);
-    // 分类已经压在封面上，标签行里再出现一次就是重复信息
-    const metaTags = item.tags.filter((tag) => tag !== item.category);
+    // 分类已经压在封面上；模型名（gpt image 2 之类）是生成参数不是内容标签，
+    // 两者都在标签行里重复出现只会挤高卡片，统一滤掉。
+    const metaTags = item.tags.filter((tag) => tag !== item.category && !isModelTag(tag));
     const hasCover = Boolean(item.coverUrl);
 
     return (
@@ -40,7 +41,7 @@ export function PromptCard({
                 「我的提示词」里几乎都是这种情况，一排灰框会让页面看起来像加载失败。 */}
             {hasCover ? (
                 <button type="button" className="relative block w-full overflow-hidden bg-[var(--surface-inset)] text-left" aria-label={`查看 ${item.title}`} onClick={open}>
-                    <div className="aspect-[16/10] w-full overflow-hidden">
+                    <div className="aspect-[16/9] w-full overflow-hidden">
                         <PromptCover url={imagePreviewUrl(item.coverUrl || "", 640)} title={item.title} />
                     </div>
                     {item.category ? (
@@ -54,7 +55,7 @@ export function PromptCard({
                 </button>
             ) : null}
 
-            <div className="flex min-w-0 flex-1 flex-col p-3 sm:p-3.5">
+            <div className="flex min-w-0 flex-1 flex-col p-3 sm:p-3">
                 {!hasCover ? (
                     <div className="mb-2 flex min-w-0 items-center gap-1.5">
                         <span className="grid size-6 shrink-0 place-items-center rounded-lg bg-[var(--brand-soft)] text-[var(--brand-600)]">
@@ -67,19 +68,21 @@ export function PromptCard({
                 ) : null}
                 <button type="button" className="block min-w-0 text-left" onClick={open}>
                     <h2 className="line-clamp-1 text-[13.5px] font-semibold leading-5 text-[var(--ink-1)] sm:text-sm">{item.title}</h2>
-                    <p className={cn("mt-1 text-[12px] leading-5 text-[var(--ink-2)]", hasCover ? "line-clamp-2 min-h-10" : "line-clamp-4")}>{item.prompt}</p>
+                    <p className={cn("mt-0.5 text-[11.5px] leading-[18px] text-[var(--ink-2)]", hasCover ? "line-clamp-2" : "line-clamp-3")}>{item.prompt}</p>
                 </button>
 
-                <div className="mt-2.5 flex min-w-0 flex-1 items-start gap-1 overflow-hidden">
-                    {metaTags.slice(0, 2).map((tag) => (
-                        <span key={tag} className="max-w-28 shrink-0 truncate rounded-md bg-[var(--surface-inset)] px-1.5 py-0.5 text-[10.5px] leading-4 text-[var(--ink-2)]">
-                            {tag}
-                        </span>
-                    ))}
-                    {metaTags.length > 2 ? <span className="shrink-0 text-[10.5px] leading-4 text-[var(--ink-3)]">+{metaTags.length - 2}</span> : null}
-                </div>
+                {metaTags.length ? (
+                    <div className="mt-2 flex min-w-0 items-start gap-1 overflow-hidden">
+                        {metaTags.slice(0, 2).map((tag) => (
+                            <span key={tag} className="max-w-24 shrink-0 truncate rounded-md bg-[var(--surface-inset)] px-1.5 py-0.5 text-[10px] leading-4 text-[var(--ink-2)]">
+                                {tag}
+                            </span>
+                        ))}
+                        {metaTags.length > 2 ? <span className="shrink-0 text-[10px] leading-4 text-[var(--ink-3)]">+{metaTags.length - 2}</span> : null}
+                    </div>
+                ) : null}
 
-                <div className="mt-3 flex items-center justify-between gap-2">
+                <div className="mt-2 flex items-center justify-between gap-2">
                     <span className="shrink-0 text-[11px] text-[var(--ink-3)]">{formatPromptDate(item.updatedAt)}</span>
                     <div className="flex min-w-0 items-center gap-1">
                         <Button size="small" type={actionType} icon={actionIcon} className="!rounded-lg" onClick={onCopy}>
@@ -91,6 +94,12 @@ export function PromptCard({
             </div>
         </article>
     );
+}
+
+/* 生成模型名（gpt image 2 / flux / midjourney 等）属于元数据，不是内容标签。
+ * 词库里几乎每张卡都挂同一个模型名，显示出来既占高度又没有辨识度。 */
+function isModelTag(tag: string) {
+    return /^(gpt[\s-]?image|dall-?e|midjourney|flux|seedream|stable\s*diffusion|sdxl|imagen)\b/i.test(tag.trim());
 }
 
 /**

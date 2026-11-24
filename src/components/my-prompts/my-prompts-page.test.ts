@@ -25,12 +25,15 @@ describe("my prompts page layout", () => {
         expect(page).toContain("清除筛选");
     });
 
-    it("explains the empty state and offers the create action", async () => {
+    it("uses the showcase empty state with a single create action", async () => {
         const page = await read();
 
-        expect(page).toContain("还没有保存提示词");
+        expect(page).toContain("LibraryShowcaseEmptyState");
+        expect(page).toContain("还没有提示词");
         expect(page).toContain("添加第一个提示词");
         expect(page).toContain("MyPromptGridSkeleton");
+        // 空白态工具栏不再重复「添加提示词」按钮，只留下方引导区一个入口
+        expect(page).toContain("loading || items.length ?");
     });
 
     it("asks for confirmation before deleting", async () => {

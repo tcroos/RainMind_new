@@ -66,21 +66,25 @@ export function LibraryEmptyState({ icon, title, description, action, className 
 }
 
 /**
- * 「我的素材」完全为空时的引导区。
- * 用户反馈：只有文字 + 一个按钮太单薄，参考品牌工具的做法给一张成品拼板做示范，
- * 让用户一眼知道「存进来之后能做什么」。图片是本地静态资源，不依赖任何后端接口。
+ * 「我的素材 / 我的提示词」完全为空时的引导区。
+ * 一张克制的宽幅示范图 + 一句标题 + 一行说明 + 一个出口。
+ * 图片从早期 560px 原图缩到 380px 宽幅裁切：既有画面示例，又不会把整页撑满；
+ * 层级靠留白和字重，不再靠「示例：……」这类重复说明撑内容。
  */
 export function LibraryShowcaseEmptyState({ title, description, action }: { title: string; description: string; action: ReactNode }) {
     return (
-        <div className="flex flex-col items-center px-4 pb-6 pt-6 text-center sm:pt-8">
-            <div className="w-full max-w-[560px] overflow-hidden rounded-2xl bg-[var(--surface-inset)] shadow-[0_18px_42px_-30px_rgba(17,17,19,0.45)]">
+        <div className="flex flex-col items-center px-4 pb-10 pt-8 text-center sm:pt-10">
+            <div className="w-full max-w-[380px] overflow-hidden rounded-2xl bg-[var(--surface-inset)] shadow-[0_16px_36px_-28px_rgba(17,17,19,0.38)]">
                 {/* eslint-disable-next-line @next/next/no-img-element -- 本地静态示范图，无需经过图片服务 */}
-                <img src="/library/asset-empty-preview.webp" alt="素材示范：字体、人像、插画与配色拼板" className="block h-auto w-full object-cover" />
+                <img src="/library/asset-empty-banner.webp" alt="素材库示范" className="block aspect-[2/1] w-full object-cover" />
             </div>
-            <p className="mt-3.5 text-[11.5px] text-[var(--ink-3)]">示例：把常用的字体、人像、插画与配色放在一起</p>
-            <h2 className="mt-5 text-[16px] font-semibold text-[var(--ink-1)] sm:text-[17px]">{title}</h2>
-            <p className="mt-1.5 max-w-[380px] text-[12.5px] leading-6 text-[var(--ink-3)]">{description}</p>
-            <div className="mt-5">{action}</div>
+            {/* 标题用包裹层承载上边距：Tailwind 的 h1..h6 { margin:0 } 重置排在工具类之后，
+                直接写 mt-* 会被它盖掉（实测计算值 0px）。 */}
+            <div className="mt-8">
+                <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-[var(--ink-1)]">{title}</h2>
+            </div>
+            <p className="mt-2 text-[12px] leading-5 text-[var(--ink-3)]">{description}</p>
+            <div className="mt-6">{action}</div>
         </div>
     );
 }

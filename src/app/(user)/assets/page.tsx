@@ -241,21 +241,10 @@ export default function AssetsPage() {
                     {/* 统一外框：一个标题、一组 tab、一个滚动容器。
                         三段内容（素材 / 我的提示词 / 公共词库）共用这里，面板不再自带页头与滚动。
                         没有分割线、没有描边卡：层级靠留白、字重与浅底药丸表达。 */}
+                    {/* 页头只留标题与 tab。三句副标题是上一版逐 tab 写的营销话术，
+                        与卡片信息重复又占纵向空间，删掉后靠 tab 自身说明当前位置。 */}
                     <header>
-                        <div className="flex flex-wrap items-end justify-between gap-3">
-                            <div className="min-w-0">
-                                <h1 className="text-xl font-semibold tracking-[-0.01em] text-[var(--ink-1)] sm:text-2xl">素材库</h1>
-                                <p className="mt-1 text-xs text-[var(--ink-3)] sm:text-[13px]">
-                                    {tab === "public"
-                                        ? "发现公共提示词，一键收进自己的素材"
-                                        : tab === "mine"
-                                          ? "把调好的提示词存成自己的库，随时复制复用"
-                                          : total
-                                            ? `${total} 项素材 · 集中管理创作中复用的内容`
-                                            : "集中管理创作中复用的内容"}
-                                </p>
-                            </div>
-                        </div>
+                        <h1 className="text-xl font-semibold tracking-[-0.01em] text-[var(--ink-1)] sm:text-2xl">素材库</h1>
                         <LibraryTabs tabs={LIBRARY_TABS} active={tab} onSelect={selectTab} />
                     </header>
 
@@ -326,8 +315,8 @@ export default function AssetsPage() {
                                     <LibraryEmptyState icon={<RotateCcw className="size-5" />} title="素材加载失败" description={error} action={<Button onClick={reload}>重新加载</Button>} />
                                 ) : !assets.length ? (
                                     <LibraryShowcaseEmptyState
-                                        title="保持创作风格一致"
-                                        description="把常用的字体、人像、配色和文案存成素材，创作时一键复用，让生成结果更贴近你的品牌调性。"
+                                        title="还没有素材"
+                                        description="把常用的图片、文本与视频存进来，创作时一键复用。"
                                         action={
                                             <div className="flex flex-wrap items-center justify-center gap-2">
                                                 {keyword || kindFilter !== "all" ? (
