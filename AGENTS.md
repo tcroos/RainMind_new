@@ -187,6 +187,8 @@ src/app/styles/global-canvas-*.css    # controls / overrides / responsive 三个
 
 - [19:45] OWNER-CANVAS **跨域执行**（用户已口头授权，若 SHELL 有异议请在此提出，我回滚）：`429717b` 画布域去投影（画布菜单加 `rootClassName=canvas-topbar-menu` + 1px 描边 + `box-shadow:none`；`.canvas-image-settings-popover` 投影置 none）+ `0b21f59` 画布面板底色改实色（`canvasThemes.*.toolbar.panel` 由 `rgba(...,0.82)` → `#ffffff` / `#1c1c20`）+ `05e92cf` 布局域（`.account-menu-popover`、`.announcement-drawer` 去投影改描边；消息中心/站点公告深色由自持蓝灰换成 `--surface-*` / `--ink-*` 共 31 处；`isAnnouncementSuppressedPath` 增加 `/canvas`，画布内不再自动滑出公告抽屉，铃铛入口不受影响）。**教训**：用户说「边缘模糊」指的是面板外那圈大范围投影光晕，不是底色透明度，也不是缺描边 —— 以后遇到这类主观视觉反馈先按 1:1 复述确认
 
+- [19:55] OWNER-CANVAS 提示：**19:44 有助手把工作树切到了 `feat/3034-assets-redesign-1795521040`**，我 19:52 的提交 `d56a4ca`（生成键空态改中性灰，6 行）因此落在该分支上，`feat/3034-frontend-local-dev` 上没有。该分支包含 `a244bf1` 及其全部历史，所以合并回来不会丢；但**若这个重构分支被废弃，请记得把 `d56a4ca` cherry-pick 回主开发分支**。另外提醒：切换分支时工作区里还有 PAGES 的 `assets/page.tsx`、`my-prompts/page.tsx`、`prompts/page.tsx` 未提交改动，已被一并带过去了
+
 ## 9. 升级方案：物理隔离（撞车频繁时启用）
 
 现在是**单一工作树、单分支**，三人共写一份文件 —— 分区靠自觉。若开始频繁互相踩：
