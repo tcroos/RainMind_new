@@ -101,6 +101,13 @@ src/app/styles/global-canvas-*.css    # controls / overrides / responsive 三个
   撞上限就 `web process stopped unexpectedly with code 1`——**进程起来 0.6s 就死，和业务代码无关**。
   关沙箱（dangerouslyDisableSandbox）也无效，因为 shim 走的是环境变量不是沙箱。
   → 服务挂了请让**人**在自己的终端执行 `pnpm dev`；agent 侧只做只读探测（curl、读日志）。
+- **本地数据库是便携版 PostgreSQL**，不是服务、不是容器：bin 在 `F:\vozeb-dev-data\pgsql`，数据在
+  `F:\vozeb-dev-data\pgdata`，日志 `F:\vozeb-dev-data\pg.log`。挂了要人工拉起：
+  `& "F:\vozeb-dev-data\pgsql\bin\pg_ctl.exe" -D "F:\vozeb-dev-data\pgdata" -l "F:\vozeb-dev-data\pg.log" start`
+- **诊断特征**：PG 不通时 `install-status` 检查失败 → 全站 307 跳 `/install` 安装向导，向导停在
+  「步骤 2/3 配置并初始化数据库」并报「无法连接 PostgreSQL」。**看到安装向导先查 5432，不要去改安装流程**。
+  `pg_hba.conf` 对 127.0.0.1 / ::1 都是 trust，卡连接不会是密码问题；若向导 Host 写 `localhost` 而 PG 只监听
+  IPv4，改成 `127.0.0.1` 即可。
 
 ## 8. 交接日志（追加写，不要改别人的行）
 
