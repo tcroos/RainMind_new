@@ -11,7 +11,7 @@ import { AnnouncementChipGlyph, type ChipGlyphVariant } from "./announcement-gly
 
 /** 每条公告「停留 + 上滑」占用的秒数 */
 const SECONDS_PER_ITEM = 4.5;
-/** 单条行高，必须和 global-surfaces.css 里 .announcement-marquee-item 的 36px 一致 */
+/** 单条行高，必须和 global-surfaces.css 里 --announcement-bar-h 的 36px 一致（单测锁死两者相等） */
 const ITEM_HEIGHT = 36;
 /** 一条周期里停留的比例，剩下的时间用来向上滑一格。
  * 停留占大头：滑动时才不会长时间露出上下两行半截字 */
@@ -100,7 +100,7 @@ export function AnnouncementMarquee() {
     const items = rotating ? [...messages, messages[0]] : messages;
 
     return (
-        <div className="announcement-marquee relative z-40 flex h-9 shrink-0 items-center px-3 sm:px-4">
+        <div className="announcement-marquee relative z-40 flex h-[var(--announcement-bar-h)] shrink-0 items-center px-3 sm:px-4">
             {rotating ? <style>{verticalKeyframes(messages.length)}</style> : null}
             <Link
                 href="/announcements"

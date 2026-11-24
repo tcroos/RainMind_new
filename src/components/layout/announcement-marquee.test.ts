@@ -21,8 +21,8 @@ describe("site announcement bar", () => {
         expect(tsx).not.toContain("bg-[#18181b]");
         expect(tsx).not.toContain("dark:bg-[#1c1c1c]");
         expect(css).toContain("color: var(--ink-1);");
-        // 字号放大后条高跟着从 28px 抬到 36px
-        expect(tsx).toContain("h-9");
+        // 字号放大后条高跟着从 28px 抬到 36px；条高统一取令牌，不再写 h-9
+        expect(tsx).toContain("h-[var(--announcement-bar-h)]");
     });
 
     it("switches announcements vertically, one line at a time", async () => {
@@ -38,7 +38,8 @@ describe("site announcement bar", () => {
         expect(tsx).toContain("const rotating = messages.length > 1;");
 
         expect(css).toContain("flex-direction: column;");
-        expect(css).toContain("height: 36px;");
+        expect(css).toContain("height: var(--announcement-bar-h);");
+        expect(css).toContain("flex: 0 0 var(--announcement-bar-h);");
         expect(css).not.toContain("translate3d(-50%");
         // 悬停暂停 + 尊重减少动态效果
         expect(css).toContain("animation-play-state: paused");
@@ -50,7 +51,7 @@ describe("site announcement bar", () => {
 
         // 横幅是容器，里面一枚铺满的 Link：点渐变空白处、文字、模板块都能跳；
         // 右端那枚 × 是 Link 的同级兄弟，不能嵌进 <a> 里造成非法交互嵌套
-        expect(tsx).toContain('<div className="announcement-marquee relative z-40 flex h-9');
+        expect(tsx).toContain('<div className="announcement-marquee relative z-40 flex h-[var(--announcement-bar-h)]');
         expect(tsx).toContain('href="/announcements"');
         expect(tsx).toContain('aria-label="站点公告，点击进入公告中心"');
         expect(tsx).toContain('className="relative flex min-w-0 flex-1 items-center"');
@@ -88,7 +89,7 @@ describe("site announcement bar", () => {
         expect(tsx).toContain("announcement-bar-dismissed");
         expect(tsx).toContain("document.documentElement.classList.toggle");
         expect(css).toContain("html.announcement-bar-dismissed");
-        expect(css).toContain("--announcement-drawer-top: 80px;");
+        expect(css).toContain("--announcement-drawer-top: calc(var(--shell-header-h) + var(--shell-gap));");
         // 窄屏文字会铺满，左右对称留白避免省略号贴住 ×
         expect(css).toContain("padding-inline: 22px;");
     });
@@ -146,5 +147,25 @@ describe("site announcement bar", () => {
         expect(popupTsx).toContain("markPopupDismissed");
         expect(popupTsx).not.toContain("localStorage");
         expect(tsx).toContain("useState<string | null>(() => readBarDismissSignature())");
+    });
+
+    it("keeps the bar height in one token so the drawer offset cannot silently drift", async () => {
+        const [tsx, css] = await Promise.all([component(), styles()]);
+
+        // 条高只在一处声明：--announcement-bar-h。外壳、视口、每行都取它，
+        // 抽屉顶边再由「条 + 页头 + 呼吸」算出来 —— 原先写死 116px 是手工加出来的，
+        // 改条高的人不会知道要去同步，抽屉就会被压到页头上面或下面。
+        expect(css).toContain("--announcement-bar-h: 36px;");
+        expect(css).toContain("--announcement-drawer-top: calc(var(--announcement-bar-h) + var(--shell-header-h) + var(--shell-gap));");
+        expect(css).not.toContain("--announcement-drawer-top: 116px;");
+        expect(css).not.toContain("--announcement-drawer-top: 80px;");
+        expect(tsx).not.toContain("h-9 shrink-0 items-center");
+
+        // 唯一必须保留的重复是 JS 的 ITEM_HEIGHT：keyframes 的 translateY 只能用 px。
+        // 锁死它和 CSS 令牌相等，改一处漏改另一处时这条用例会直接红。
+        const barToken = /--announcement-bar-h:\s*(\d+)px/.exec(css)?.[1];
+        const itemHeight = /const ITEM_HEIGHT = (\d+);/.exec(tsx)?.[1];
+        expect(barToken).toBeDefined();
+        expect(itemHeight).toBe(barToken);
     });
 });

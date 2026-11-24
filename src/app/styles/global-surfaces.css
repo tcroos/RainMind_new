@@ -38,9 +38,18 @@
     /* 右侧消息中心是「浮」在页面上的一张卡片：上边避开顶部的渐变通知栏并留一段空隙，
      * 右边、底边也各留一口气，不再是从窗口顶贴到底的一整条。 */
     --announcement-drawer-mask: rgba(17, 20, 28, 0.06);
-    /* 36px 渐变公告条 + 64px 页头 + 16px 呼吸：面板顶边落在页头下沿之下，
-     * 既不盖住顶部通知栏和页头右侧图标，也和通知栏拉开一段可见的距离。 */
-    --announcement-drawer-top: 116px;
+    /* 骨架竖向节奏：公告条 / 页头 / 呼吸各一个令牌。
+     * 原先 --announcement-drawer-top 写死 116px，是「36 + 64 + 16」手工加出来的，
+     * 改公告条高度的人不会知道要去同步这个数，抽屉就会压在页头上下不来。
+     * 现在由三段算式得出，改条高只动 --announcement-bar-h。
+     * 注意：公告条的 keyframes 用 px 步进，announcement-marquee.tsx 里的 ITEM_HEIGHT
+     * 必须与 --announcement-bar-h 相等，announcement-marquee.test.ts 有断言锁死。 */
+    --shell-header-h: 64px;
+    --shell-gap: 16px;
+    --announcement-bar-h: 36px;
+    /* 面板顶边落在页头下沿之下：既不盖住顶部通知栏和页头右侧图标，
+     * 也和通知栏拉开一段可见的距离。 */
+    --announcement-drawer-top: calc(var(--announcement-bar-h) + var(--shell-header-h) + var(--shell-gap));
     --announcement-drawer-right: 16px;
     --announcement-drawer-bottom: 32px;
     /* 宽度收窄：原来 400/380 的面板配 752px 的高度，读起来是一整块「厚板」。
@@ -54,7 +63,7 @@
 /* 用户关掉顶部横幅后，页头整体上移 36px（横幅高度）；抽屉顶边跟着抬，
  * 不然页头和面板之间会空出一大截。只由「有公告且被关掉」这条路径打标。 */
 html.announcement-bar-dismissed {
-    --announcement-drawer-top: 80px;
+    --announcement-drawer-top: calc(var(--shell-header-h) + var(--shell-gap));
 }
 
 .dark {
@@ -132,7 +141,7 @@ html.announcement-bar-dismissed {
 @layer utilities {
     /* 一行 36px：字号放大后仍留得住上下呼吸，竖向切换靠轨道整体 translateY */
     .announcement-marquee-viewport {
-        height: 36px;
+        height: var(--announcement-bar-h);
     }
 
     .announcement-marquee-track {
@@ -146,14 +155,15 @@ html.announcement-bar-dismissed {
         animation: announcement-vertical-scroll var(--announcement-duration, 18s) ease-in-out infinite;
     }
 
-    /* 每条独占一行、内容整体居中：高度必须和组件里 ITEM_HEIGHT（36）一致，
+    /* 每条独占一行、内容整体居中：高度必须和组件里 ITEM_HEIGHT 一致，
      * 否则 keyframes 的位移步长会对不齐，切换时会露出半行字。
+     * 两者都取自 --announcement-bar-h，单测锁死相等。
      * 字号从 12px 提到 14px —— 渐变带上的小字太难读，是这轮的主要反馈。
      * 前面是几枚模板小方块（不是圆点），和文字、箭头一起随整行切换。 */
     .announcement-marquee-item {
         display: flex;
-        height: 36px;
-        flex: 0 0 36px;
+        height: var(--announcement-bar-h);
+        flex: 0 0 var(--announcement-bar-h);
         align-items: center;
         justify-content: center;
         gap: 8px;
