@@ -53,6 +53,26 @@ describe("workspace sidebar", () => {
         expect(css).toContain("color: var(--ink-1);");
     });
 
+    it("keeps the mobile nav drawer readable despite antd's unlayered anchor rules", async () => {
+        const [drawer, css] = await Promise.all([readFile(resolve(process.cwd(), "src/components/layout/mobile-nav-drawer.tsx"), "utf8"), readFile(resolve(process.cwd(), "src/app/styles/global-surfaces.css"), "utf8")]);
+
+        // 抽屉被 antd portal 到 <body>，不在 .workspace-shell 里，上面那条 aside 规则管不到。
+        // 而 antd reset 的 a{background-color:transparent} 和 a{color:var(--ant-color-link)}
+        // 都是无层级的，会压过 @layer utilities —— 结果是组件里写的 text-/bg- 全部失效，
+        // 实测选中项没有底色、整列文字都取 antd 链接色。必须挂稳定根类并在 @layer 之外覆盖。
+        expect(drawer).toContain('rootClassName="workspace-mobile-nav"');
+        expect(css).toContain(".workspace-mobile-nav .ant-drawer-body a {");
+        expect(css).toContain('.workspace-mobile-nav .ant-drawer-body a[aria-current="page"] {');
+        expect(css).toContain(".workspace-mobile-nav .ant-drawer-body a:hover {");
+        expect(css).toContain(".workspace-mobile-nav .ant-drawer-title a {");
+        expect(css).toContain("background-color: var(--surface-inset);");
+        // 组件侧改用令牌，不再手抄灰阶（头像渐变由页面域统一维护，不在此断言范围）
+        expect(drawer).toContain("bg-[var(--surface-inset)]");
+        expect(drawer).toContain("text-[var(--ink-2)]");
+        expect(drawer).not.toContain("#697381");
+        expect(drawer).not.toContain("#9aa2ad");
+    });
+
     it("opens Canvas and drama project details as full-screen workspaces only", () => {
         expect(isFullscreenWorkspacePath("/canvas/canvas-one")).toBe(true);
         expect(isFullscreenWorkspacePath("/canvas/canvas-one/history")).toBe(true);

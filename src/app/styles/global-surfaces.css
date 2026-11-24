@@ -462,6 +462,34 @@ html.announcement-bar-dismissed {
 }
 
 
+/* ── 移动端导航抽屉的链接色 / 选中底 ──────────────────────────────────
+ * 移动抽屉由 antd Drawer portal 到 <body>，不在 .workspace-shell 里，
+ * 所以上面那条 aside 规则管不到它。后果比侧栏更严重：
+ *  · antd reset 的 `a { background-color: transparent }` 是无层级的，
+ *    会压过 @layer utilities 里的 bg-[var(--surface-inset)]，选中项没有底色；
+ *  · antd 的 `a { color: var(--ant-color-link) }` 同理，浅色态整列都是 #171717，
+ *    深色态一律取 antd 的链接色 —— 组件里写的 text-[var(--ink-*)] 全是死代码。
+ * 所以按侧栏的办法，在 @layer 之外按 ink 令牌重新指定一遍。
+ */
+.workspace-mobile-nav .ant-drawer-body a {
+    color: var(--ink-2);
+}
+
+.workspace-mobile-nav .ant-drawer-body a:hover {
+    color: var(--ink-1);
+    background-color: var(--surface-inset);
+}
+
+.workspace-mobile-nav .ant-drawer-body a[aria-current="page"] {
+    color: var(--ink-1);
+    background-color: var(--surface-inset);
+}
+
+.workspace-mobile-nav .ant-drawer-title a {
+    color: var(--ink-1);
+}
+
+
 /* ── 液态玻璃卡片（首页快捷入口）───────────────────────────────────────
  * 参考 iOS liquid glass：半透明渐变底 + 背景模糊 + 内侧高光边，
  * 上方再压一层高光/品牌色光斑，让卡片边缘像液面一样有厚度。

@@ -32,9 +32,11 @@ export function MobileNavDrawer({ open, activeToolSlug, onClose }: MobileNavDraw
     const avatarInitial = userAvatarInitial(accountName);
     const accountActive = pathname.startsWith("/profile");
     /* 配色与桌面侧栏 AppSidebar 共用同一套令牌，不要在这里写死 hex：
-     * 之前是 #f0f2f4 / #1d2127 / #697381 一整套手抄值，凑巧和令牌接近所以看不出，
-     * 但 global-surfaces.css 里的底色历史上改过一次（#ededee → #f8f9fa），
-     * 手抄值不会跟着变，窄屏就会和桌面脱队。 */
+     * 原先是一整套手抄的灰阶（底色 / 主文字 / 次文字 / 深色态各一份），凑巧和令牌
+     * 数值接近所以看不出，但 global-surfaces.css 里的底色整体提亮过一档，
+     * 手抄值不会跟着变，窄屏就会和桌面脱队。
+     * 注意：这些 text-/bg- 工具类本身压不过 antd 的无层级 a 规则，
+     * 真正生效的覆盖在 global-surfaces.css 的 .workspace-mobile-nav 段。 */
     const itemClass = (active: boolean) =>
         cn(
             "flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-base transition",
@@ -62,6 +64,10 @@ export function MobileNavDrawer({ open, activeToolSlug, onClose }: MobileNavDraw
             open={open}
             onClose={onClose}
             className="lg:hidden"
+            /* 抽屉被 portal 到 body 之外，不在 .workspace-shell 里，
+             * 所以吃不到侧栏那条无层级覆盖规则。挂一个稳定的根类，
+             * 让 global-surfaces.css 能按同样的方式压住 antd 的 reset。 */
+            rootClassName="workspace-mobile-nav"
             styles={{ header: { borderBottomColor: "var(--border)", minHeight: 60, padding: "12px 16px" }, body: { padding: "12px 14px 18px" } }}
         >
             {navigationGroups.map((group, groupIndex) => (
