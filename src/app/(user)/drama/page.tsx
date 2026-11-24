@@ -36,8 +36,6 @@ export default function DramaPage() {
     const [customWidth, setCustomWidth] = useState(1080);
     const [customHeight, setCustomHeight] = useState(1920);
     const [creating, setCreating] = useState(false);
-    const episodeCount = projects.reduce((total, project) => total + project.episodeCount, 0);
-    const pendingCount = projects.reduce((total, project) => total + project.pendingTaskCount, 0);
     useEffect(() => {
         void hydrate();
     }, [hydrate, userId]);
@@ -61,24 +59,9 @@ export default function DramaPage() {
     return (
         <main className="h-full overflow-y-auto bg-background text-foreground">
             <div className="mx-auto w-full max-w-[1440px] px-5 pb-20 pt-8 sm:px-9 sm:pb-24 sm:pt-12 lg:px-12">
-                {/* 页头不再压一条横线：标题、说明、统计和动作各自成组，靠留白分层。 */}
-                <header className="flex min-w-0 flex-wrap items-end justify-between gap-x-6 gap-y-5">
-                    <div className="min-w-0">
-                        <div className="flex items-center gap-2 text-[12px] font-medium text-[var(--ink-3)]">
-                            <Clapperboard className="size-3.5" />
-                            短剧生产线
-                        </div>
-                        {/* h1 的 margin 被 antd 重置，上边距交给包裹层承载。 */}
-                        <div className="mt-3">
-                            <h1 className="text-[26px] font-semibold tracking-[-0.02em] text-[var(--ink-1)] sm:text-[32px]">短剧项目</h1>
-                        </div>
-                        <p className="mt-2 text-[13px] leading-6 text-[var(--ink-3)]">从故事简介到分镜成片，一条线把每集做完</p>
-                        <div className="mt-5 flex min-w-0 flex-wrap items-center gap-2 text-[12px] text-[var(--ink-2)]">
-                            <span className="inline-flex h-7 items-center rounded-full bg-[var(--surface-inset)] px-3">{projectTotal} 个项目</span>
-                            <span className="inline-flex h-7 items-center rounded-full bg-[var(--surface-inset)] px-3">{episodeCount} 集</span>
-                            {pendingCount ? <span className="inline-flex h-7 items-center rounded-full bg-amber-50 px-3 text-amber-700 dark:bg-amber-950/40 dark:text-amber-200">{pendingCount} 个任务执行中</span> : null}
-                        </div>
-                    </div>
+                {/* 页头只留标题和一个动作：眉标、副标题、统计胶囊都是重复信息，全部去掉。 */}
+                <header className="flex min-w-0 flex-wrap items-center justify-between gap-x-6 gap-y-4">
+                    <h1 className="text-[24px] font-semibold tracking-[-0.02em] text-[var(--ink-1)] sm:text-[28px]">短剧项目</h1>
                     <button type="button" disabled={!hydrated} onClick={() => setOpen(true)} className={primaryButtonClass}>
                         <Plus className="size-4" />
                         新建短剧
@@ -93,18 +76,18 @@ export default function DramaPage() {
                     <div className="grid min-h-40 place-items-center text-[13px] text-[var(--ink-3)]">正在加载短剧项目…</div>
                 ) : projects.length ? (
                     <>
-                        <section className="mt-8 grid gap-4 sm:mt-10 sm:grid-cols-2 sm:gap-5 xl:grid-cols-3">
-                            {/* 新建入口从虚线框改成一块浅底卡：不靠边框提示「可点击」。 */}
+                        <section className="mt-7 grid gap-3 sm:mt-8 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
+                            {/* 尺寸向画布节点靠拢，造型与项目卡统一成一块浅底圆角卡；
+                                只留橙色加号和标题，说明文字是重复信息。 */}
                             <button
                                 type="button"
                                 onClick={() => setOpen(true)}
-                                className="group/create flex min-h-[210px] flex-col items-center justify-center gap-1 rounded-2xl bg-[var(--surface-inset)] px-6 text-center transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_36px_-28px_rgba(17,17,19,0.42)] motion-reduce:transition-none"
+                                className="group/create flex min-h-[152px] flex-col items-center justify-center gap-2.5 rounded-2xl bg-[var(--surface-inset)] px-4 text-center transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_36px_-28px_rgba(17,17,19,0.42)] motion-reduce:transition-none"
                             >
-                                <span className="grid size-12 place-items-center rounded-full bg-[var(--surface-panel)] text-[var(--brand-600)] transition-transform duration-200 group-hover/create:scale-105">
-                                    <Plus className="size-5" />
+                                <span className="grid size-10 place-items-center rounded-full bg-[var(--surface-panel)] text-[var(--brand-600)] transition-transform duration-200 group-hover/create:scale-105">
+                                    <Plus className="size-[18px]" strokeWidth={2} />
                                 </span>
-                                <span className="mt-3 text-[14px] font-semibold text-[var(--ink-1)]">新建短剧</span>
-                                <span className="mt-1 text-[12px] text-[var(--ink-3)]">从故事简介开始搭分镜</span>
+                                <span className="text-[13px] font-semibold text-[var(--ink-1)]">新建短剧</span>
                             </button>
                             {projects.map((project) => (
                                 <DramaProjectCard key={project.id} project={project} />
@@ -126,7 +109,7 @@ export default function DramaPage() {
                         <div className="mt-6">
                             <h2 className="text-[17px] font-semibold tracking-[-0.01em] text-[var(--ink-1)]">还没有短剧项目</h2>
                         </div>
-                        <p className="mt-2 max-w-sm text-[13px] leading-6 text-[var(--ink-3)]">从剧本结构开始创建第一条短剧生产线。</p>
+                        <p className="mt-2 max-w-sm text-[13px] leading-6 text-[var(--ink-3)]">从剧本结构开始，创建第一个项目。</p>
                         <div className="mt-7">
                             <button type="button" onClick={() => setOpen(true)} className={primaryButtonClass}>
                                 <Plus className="size-4" />

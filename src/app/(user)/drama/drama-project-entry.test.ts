@@ -17,6 +17,13 @@ describe("drama project entry", () => {
         expect(source).toContain("library-segmented");
         expect(source).not.toContain("border-dashed");
         expect(source).not.toContain("border-b border-border");
+        /* 页头只留标题 + 新建按钮：眉标、副标题、统计胶囊都是重复信息。 */
+        expect(source).not.toContain("短剧生产线");
+        expect(source).not.toContain("从故事简介到分镜成片");
+        expect(source).not.toContain("个项目</span>");
+        /* 卡片缩到画布节点量级，与新建卡同高。 */
+        expect(source).toContain("min-h-[152px]");
+        expect(source).toContain("xl:grid-cols-4");
     });
 
     it("uses a whole-card project link while keeping publish and delete as independent actions", async () => {
@@ -32,5 +39,9 @@ describe("drama project entry", () => {
         expect(source).not.toContain("border border-[var(--hairline)]");
         expect(source).not.toContain("border-t border-[var(--hairline)]");
         expect(source).not.toContain("ring-1");
+        /* 与新建卡同造型同高度：浅底整卡，不再铺封面带和四枚统计胶囊。 */
+        expect(source).toContain("min-h-[152px]");
+        expect(source).not.toContain("h-[112px]");
+        expect(source).toContain("bg-[var(--surface-inset)]");
     });
 });
