@@ -154,7 +154,6 @@ export default function CanvasPage() {
                                 <CanvasProjectCard key={project.id} project={project} selectable={selectMode} />
                             ))}
                         </div>
-                        {!projects.length ? <p className="pb-6 text-center text-[12px] text-[var(--ink-3)]">还没有画布，点上面的空格子开始搭第一个</p> : null}
                         {total > pageSize ? (
                             <div className="flex justify-center pb-2">
                                 <Pagination current={page} pageSize={pageSize} total={total} showSizeChanger={false} onChange={(nextPage) => void hydrate(true, nextPage)} />
