@@ -93,7 +93,7 @@ export function AppSidebar({ activeToolSlug, expanded }: { activeToolSlug?: Navi
                     )}
                     aria-current={accountActive ? "page" : undefined}
                 >
-                    <span className="grid size-7 shrink-0 place-items-center overflow-hidden rounded-full bg-[linear-gradient(135deg,#f6b181_0%,#e2671f_100%)] text-[11px] font-semibold text-white ring-1 ring-black/5 dark:ring-white/15">
+                    <span className="grid size-7 shrink-0 place-items-center overflow-hidden rounded-full bg-[linear-gradient(140deg,#f9cdb3_0%,#e08a5f_100%)] text-[11px] font-semibold text-white ring-1 ring-black/5 dark:ring-white/15">
                         {avatarUrl ? <img src={avatarUrl} alt="" className="size-full object-cover" referrerPolicy="no-referrer" /> : avatarInitial}
                     </span>
                     {expanded ? (

@@ -110,7 +110,7 @@ export function MobileNavDrawer({ open, activeToolSlug, onClose }: MobileNavDraw
                     className={itemClass(accountActive)}
                     aria-current={accountActive ? "page" : undefined}
                 >
-                    <span className="grid size-6 shrink-0 place-items-center overflow-hidden rounded-full bg-[linear-gradient(135deg,#f6b181_0%,#e2671f_100%)] text-[10px] font-semibold text-white ring-1 ring-black/5 dark:ring-white/15">
+                    <span className="grid size-6 shrink-0 place-items-center overflow-hidden rounded-full bg-[linear-gradient(140deg,#f9cdb3_0%,#e08a5f_100%)] text-[10px] font-semibold text-white ring-1 ring-black/5 dark:ring-white/15">
                         {avatarUrl ? <img src={avatarUrl} alt="" className="size-full object-cover" referrerPolicy="no-referrer" /> : avatarInitial}
                     </span>
                     <span className="min-w-0 flex-1 truncate">个人中心</span>

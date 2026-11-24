@@ -178,7 +178,7 @@ export default function MyCreatorPage() {
 
                     <div className="px-2 sm:px-4">
                         <span
-                            className="relative z-10 -mt-9 grid size-20 place-items-center overflow-hidden rounded-full bg-[linear-gradient(135deg,#f6b181_0%,#e2671f_100%)] text-2xl font-semibold text-white shadow-sm ring-4 ring-background sm:-mt-14 sm:size-28 sm:text-3xl"
+                            className="relative z-10 -mt-9 grid size-20 place-items-center overflow-hidden rounded-full bg-[linear-gradient(140deg,#f9cdb3_0%,#e08a5f_100%)] text-2xl font-semibold text-white shadow-sm ring-4 ring-background sm:-mt-14 sm:size-28 sm:text-3xl"
                             aria-hidden="true"
                         >
                             {avatarUrl ? <img src={avatarUrl} alt="" className="size-full object-cover" /> : userAvatarInitial(profileDisplayName)}
