@@ -90,10 +90,12 @@ describe("workspace sidebar", () => {
         expect(shell).not.toContain("pageTitle");
         expect(shell).toContain("onToggleExpanded={toggleSidebarExpanded}");
 
-        // 开关在侧栏品牌行右侧，收起后退到下一行（用 self-center，mx-auto 在 flex 列上不生效）
+        // 开关在侧栏品牌行右侧；收起态不再占一行，折叠图标平时透明、悬停品牌图标才换出来
         expect(sidebar).toContain("SidebarToggle");
         expect(sidebar).toContain("justify-between gap-2 pl-5 pr-3");
-        expect(sidebar).toContain("self-center");
+        expect(sidebar).toContain("group-hover:opacity-0");
+        expect(sidebar).toContain("group-hover:opacity-100");
+        expect(sidebar).not.toContain("self-center");
         // 图标用最简的 PanelLeft，不再用带箭头的两枚
         expect(sidebar).toContain("PanelLeft");
         expect(sidebar).not.toContain("PanelLeftClose");

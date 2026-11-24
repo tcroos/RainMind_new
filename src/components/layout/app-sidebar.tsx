@@ -21,7 +21,7 @@ function SidebarToggle({ expanded, onToggle, className }: { expanded: boolean; o
     return (
         <button
             type="button"
-            className={cn("inline-flex shrink-0 items-center justify-center rounded-lg text-[var(--ink-2)] transition-colors hover:bg-[var(--surface-inset)] hover:text-[var(--ink-1)]", className)}
+            className={cn("inline-flex shrink-0 items-center justify-center rounded-lg text-[var(--ink-2)] transition hover:bg-[var(--surface-inset)] hover:text-[var(--ink-1)]", className)}
             onClick={onToggle}
             aria-label={expanded ? "收起侧边栏" : "展开侧边栏"}
             title={expanded ? "收起侧边栏" : "展开侧边栏"}
@@ -45,16 +45,29 @@ export function AppSidebar({ activeToolSlug, expanded, onToggleExpanded }: { act
 
     return (
         <aside className={cn("hidden h-full shrink-0 flex-col bg-[var(--surface-rail)] text-[var(--ink-1)] transition-[width] duration-200 lg:flex", expanded ? "w-52" : "w-[72px]")}>
-            <div className={cn("flex h-16 shrink-0 items-center", expanded ? "justify-between gap-2 pl-5 pr-3" : "justify-center px-2")}>
-                <Link href="/create" className={cn("flex min-w-0 items-center", expanded ? "" : "justify-center")} aria-label={siteTitle}>
-                    <SiteLogo logoUrl={site.logoUrl} className="size-8 shrink-0" />
-                    {expanded ? <span className="ml-2.5 min-w-0 truncate text-[17px] font-semibold">{siteTitle}</span> : null}
-                </Link>
-                {expanded ? <SidebarToggle expanded onToggle={onToggleExpanded} className="size-8" /> : null}
-            </div>
-            {/* 收起后品牌行放不下第二个方块，把开关移到下面一行；用 self-center 水平居中
-                （mx-auto 在这条 flex 列上没起作用，实测会贴到左边缘） */}
-            {expanded ? null : <SidebarToggle expanded={false} onToggle={onToggleExpanded} className="mb-2 size-8 self-center" />}
+            {expanded ? (
+                <div className="flex h-16 shrink-0 items-center justify-between gap-2 pl-5 pr-3">
+                    <Link href="/create" className="flex min-w-0 items-center" aria-label={siteTitle}>
+                        <SiteLogo logoUrl={site.logoUrl} className="size-8 shrink-0" />
+                        <span className="ml-2.5 min-w-0 truncate text-[17px] font-semibold">{siteTitle}</span>
+                    </Link>
+                    <SidebarToggle expanded onToggle={onToggleExpanded} className="size-8" />
+                </div>
+            ) : (
+                /* 收起态不额外占一行：折叠图标平时完全透明，指针落到品牌图标上才把它换出来
+                 * （logo 淡出、图标淡入，同一个位置）。72px 塞不下两个方块，而常驻按钮
+                 * 会在侧栏顶部多出一块实心方块，比导航还抢眼。键盘用户 Tab 到按钮时由 focus-visible 显形。 */
+                <div className="group relative flex h-16 shrink-0 items-center justify-center px-2">
+                    <Link href="/create" className="flex items-center justify-center transition-opacity group-hover:opacity-0" aria-label={siteTitle}>
+                        <SiteLogo logoUrl={site.logoUrl} className="size-8 shrink-0" />
+                    </Link>
+                    <SidebarToggle
+                        expanded={false}
+                        onToggle={onToggleExpanded}
+                        className="absolute top-1/2 left-1/2 size-8 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+                    />
+                </div>
+            )}
 
             <WorkspaceNavList variant="rail" activeToolSlug={activeToolSlug} expanded={expanded} />
 
