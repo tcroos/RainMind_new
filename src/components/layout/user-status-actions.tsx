@@ -344,48 +344,49 @@ function AccountMenuPanel({ user, avatarUrl, avatarInitial, onNavigate, onLogout
         { key: "site", label: "官网首页", icon: Globe, href: "/" },
     ];
     return (
-        <div className="w-[min(16.5rem,calc(100vw-2rem))] text-[var(--ink-1)]">
+        /* 参考 Lovart 账户弹层：头像 + 邮箱、一行套餐/积分、整宽升级按钮、纯文字菜单、退出登录。
+         * 原来的「当前套餐」灰卡 + 重复积分行已被压成一行，菜单行距也更紧，整块宽度与侧栏一致。 */
+        <div className="w-[232px] text-[var(--ink-1)]">
             <div className="flex items-center gap-2.5 px-0.5">
-                <span className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-full ring-1 ring-black/5 dark:ring-white/15">
+                <span className="grid size-8 shrink-0 place-items-center overflow-hidden rounded-full ring-1 ring-black/5 dark:ring-white/15">
                     {avatarUrl ? (
                         <img src={avatarUrl} alt="" className="size-full object-cover" referrerPolicy="no-referrer" />
                     ) : (
-                        <span className="grid size-full place-items-center bg-[linear-gradient(135deg,#f6b181_0%,#e2671f_100%)] text-[13px] font-semibold text-white">{avatarInitial}</span>
+                        <span className="grid size-full place-items-center bg-[linear-gradient(135deg,#f6b181_0%,#e2671f_100%)] text-[12px] font-semibold text-white">{avatarInitial}</span>
                     )}
                 </span>
                 <div className="min-w-0 flex-1">
-                    <div className="truncate text-[13.5px] font-semibold leading-5">{accountName}</div>
-                    <div className="mt-0.5 truncate text-[11px] leading-4 text-[var(--ink-3)]">ID：{user.accountId}</div>
+                    <div className="truncate text-[13px] font-semibold leading-5">{accountName}</div>
+                    <div className="mt-0.5 truncate text-[11px] leading-4 text-[var(--ink-3)]">{user.email || `ID：${user.accountId}`}</div>
                 </div>
             </div>
 
-            <div className="mt-3 rounded-xl bg-[var(--surface-inset)] p-2.5">
-                <div className="flex items-center justify-between gap-2">
-                    <div className="min-w-0">
-                        <div className="text-[10.5px] leading-4 text-[var(--ink-3)]">当前套餐</div>
-                        <div className="mt-0.5 truncate text-[13px] font-semibold leading-5">{planLabel}</div>
-                    </div>
-                    <button
-                        type="button"
-                        /* 按钮文字色走内联样式：全局有未分层级的 `button { color: inherit }`，
-                           Tailwind 的文字颜色类在 @layer 里会被它压掉，黑底黑字就这么来的。 */
-                        style={{ color: "var(--surface-panel)" }}
-                        className="inline-flex h-7 shrink-0 items-center gap-1 rounded-md bg-[#18181b] px-2.5 text-[11px] font-semibold transition hover:opacity-90 dark:bg-[#ffffff]"
-                        onClick={() => onNavigate("/wallet?section=billing")}
-                        aria-label={planActionLabel}
-                        title={planActionLabel}
-                    >
-                        <Crown className="size-3" /> {planActionLabel}
-                    </button>
-                </div>
-                <div className="mt-2 flex items-center justify-between border-t border-black/5 pt-2 text-[11px] text-[var(--ink-3)] dark:border-white/10">
-                    <span>积分余额</span>
-                    <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--ink-1)]">
-                        <CreditSymbol className="text-[var(--brand-600)]" />
-                        {formatCreditAmount(user.pointsBalance)}
-                    </span>
-                </div>
+            <div className="mt-3 flex items-center justify-between gap-2 border-t border-[var(--hairline)] px-0.5 pt-3">
+                <span className="min-w-0 truncate text-[12px] text-[var(--ink-3)]">{planLabel}</span>
+                <button
+                    type="button"
+                    className="inline-flex shrink-0 items-center gap-1 rounded-md px-1 py-0.5 text-[12.5px] font-semibold text-[var(--ink-1)] transition hover:bg-[var(--surface-soft)]"
+                    onClick={() => onNavigate("/wallet")}
+                    aria-label="查看积分与账单"
+                >
+                    <CreditSymbol className="text-[13px] text-[var(--brand-600)]" />
+                    <span className="tabular-nums">{formatCreditAmount(user.pointsBalance)}</span>
+                    <ChevronRight className="size-3.5 text-[var(--ink-3)]" />
+                </button>
             </div>
+
+            <button
+                type="button"
+                /* 按钮文字色走内联样式：全局有未分层级的 `button { color: inherit }`，
+                   Tailwind 的文字颜色类在 @layer 里会被它压掉，黑底黑字就这么来的。 */
+                style={{ color: "var(--surface-panel)" }}
+                className="mt-2 flex h-9 w-full items-center justify-center gap-1.5 rounded-lg bg-[#18181b] text-[12.5px] font-semibold transition hover:opacity-90 dark:bg-white"
+                onClick={() => onNavigate("/wallet?section=billing")}
+                aria-label={planActionLabel}
+                title={planActionLabel}
+            >
+                <Crown className="size-3.5" /> {planActionLabel}
+            </button>
 
             <div className="mt-2 flex flex-col">
                 {/* 消息中心并进菜单：顶栏已取消，桌面的通知入口只有这里 */}
@@ -411,9 +412,7 @@ function AccountMenuPanel({ user, avatarUrl, avatarInitial, onNavigate, onLogout
                         </button>
                     );
                 })}
-                {/* 外观（深浅切换）作为普通一行跟在其它入口后面：
-                 * 之前单独加了一条分割线，看起来像另一个分区，
-                 * 但它和上面那几行是同一类「菜单项」，不该被切开。 */}
+                {/* 外观作为普通一行，右侧显示当前模式与箭头，和参考站的「浅色 >」一致 */}
                 <button
                     type="button"
                     className="flex h-9 w-full items-center gap-2.5 rounded-lg px-2 text-left text-[12.5px] font-medium text-[var(--ink-1)] transition hover:bg-[var(--surface-soft)]"
@@ -422,6 +421,7 @@ function AccountMenuPanel({ user, avatarUrl, avatarInitial, onNavigate, onLogout
                     {theme === "dark" ? <Moon className="size-4 shrink-0 text-[var(--ink-3)]" /> : <Sun className="size-4 shrink-0 text-[var(--ink-3)]" />}
                     外观
                     <span className="ml-auto text-[11.5px] font-normal text-[var(--ink-3)]">{theme === "dark" ? "深色" : "浅色"}</span>
+                    <ChevronRight className="size-3.5 text-[var(--ink-3)]" />
                 </button>
             </div>
 
@@ -446,7 +446,7 @@ function PointsQuickPanel({ user, onNavigate }: { user: LocalUser; onNavigate: (
     const planActionLabel = user.hasActivePlan ? "续费" : "升级";
     const dailyPoints = user.dailyPointsBalance || 0;
     return (
-        <div className="w-[min(15rem,calc(100vw-2rem))] text-[var(--ink-1)]">
+        <div className="w-[232px] text-[var(--ink-1)]">
             <div className="flex items-center justify-between gap-2 px-1">
                 <span className="min-w-0 truncate text-[13px] font-semibold">{planLabel}</span>
                 <button
@@ -480,7 +480,7 @@ function PointsQuickPanel({ user, onNavigate }: { user: LocalUser; onNavigate: (
                 </div>
             </div>
 
-            <div className="mt-1 border-t border-[var(--hairline)] pt-1">
+            <div className="mt-1">
                 <button
                     type="button"
                     className="flex h-9 w-full items-center gap-2.5 rounded-lg px-1 text-left text-[12.5px] font-medium transition hover:bg-[var(--surface-soft)]"
@@ -564,15 +564,15 @@ export function AccountRailBar({ expanded }: { expanded: boolean }) {
                     type="button"
                     aria-label="账户菜单"
                     title={accountName}
-                    className={cn(
-                        "flex items-center rounded-lg text-[var(--ink-2)] transition-colors hover:bg-[var(--surface-inset)] hover:text-[var(--ink-1)]",
-                        expanded ? "h-11 min-w-0 flex-1 gap-2 px-2" : "size-10 justify-center",
-                    )}
-                >
-                    <span className="grid size-7 shrink-0 place-items-center overflow-hidden rounded-full bg-[linear-gradient(135deg,#f6b181_0%,#e2671f_100%)] text-[11px] font-semibold text-white ring-1 ring-black/5 dark:ring-white/15">
-                        {avatarUrl ? <img src={avatarUrl} alt="" className="size-full object-cover" referrerPolicy="no-referrer" /> : avatarInitial}
-                    </span>
-                    {expanded ? <span className="min-w-0 flex-1 truncate text-left text-[13px] font-medium text-[var(--ink-1)]">{accountName}</span> : null}
+                className={cn(
+                    "flex items-center rounded-lg text-[var(--ink-2)] transition-colors hover:bg-[var(--surface-inset)] hover:text-[var(--ink-1)]",
+                    expanded ? "h-10 min-w-0 flex-1 gap-2 px-2" : "size-9 justify-center",
+                )}
+            >
+                <span className="grid size-6 shrink-0 place-items-center overflow-hidden rounded-full bg-[linear-gradient(135deg,#f6b181_0%,#e2671f_100%)] text-[10px] font-semibold text-white ring-1 ring-black/5 dark:ring-white/15">
+                    {avatarUrl ? <img src={avatarUrl} alt="" className="size-full object-cover" referrerPolicy="no-referrer" /> : avatarInitial}
+                </span>
+                {expanded ? <span className="min-w-0 flex-1 truncate text-left text-[13px] font-medium text-[var(--ink-1)]">{accountName}</span> : null}
                 </button>
             </Popover>
 
@@ -598,9 +598,9 @@ export function AccountRailBar({ expanded }: { expanded: boolean }) {
                     title="积分与套餐"
                     /* 不加胶囊底色：和左边的名字同属一行文字信息，
                      * 一有底色就会被读成「按钮压在账号行上」，破坏整行的干净。 */
-                    className="inline-flex h-7 shrink-0 items-center gap-1 rounded-full px-1 text-[12px] font-semibold tabular-nums text-[var(--ink-2)] transition-colors hover:text-[var(--ink-1)]"
+                    className="inline-flex h-7 shrink-0 items-center gap-1 rounded-full px-1 text-[13px] font-semibold tabular-nums text-[var(--ink-2)] transition-colors hover:text-[var(--ink-1)]"
                 >
-                    <CreditSymbol className="text-[13px] text-[var(--brand-600)]" />
+                    <CreditSymbol className="text-[14px] text-[var(--brand-600)]" />
                     {formatCreditAmount(user.pointsBalance)}
                 </button>
             </Popover>

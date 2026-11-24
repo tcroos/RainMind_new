@@ -13,7 +13,7 @@ describe("workspace sidebar", () => {
 
         expect(shell).toContain("const [sidebarExpanded, setSidebarExpanded] = useState(true)");
         expect(shell).toContain("expanded={sidebarExpanded}");
-        expect(sidebar).toContain('expanded ? "w-52" : "w-[72px]"');
+        expect(sidebar).toContain('expanded ? "w-[232px]" : "w-[72px]"');
         // 滚动容器挂在导航列表上（sidebar 与抽屉共用），不是侧栏壳本身
         expect(nav).toContain("hide-scrollbar min-h-0 flex-1 overflow-y-auto");
         expect(nav).not.toContain("thin-scrollbar min-h-0 flex-1 overflow-y-auto");
@@ -41,26 +41,38 @@ describe("workspace sidebar", () => {
         expect(shell).toContain("const [sidebarExpanded, setSidebarExpanded] = useState(true)");
     });
 
-    it("uses a larger nav type scale and a Dreamina-like rail width", async () => {
+    it("uses the wider Lovart-like rail with a compact type scale", async () => {
         const [sidebar, mobile, nav] = await Promise.all([layoutFile("app-sidebar.tsx"), layoutFile("mobile-nav-drawer.tsx"), layoutFile("workspace-nav-list.tsx")]);
 
-        // 即梦工作台侧栏约占视口 12%；仅从 176 → 192px 肉眼几乎看不出变化，
-        // 这次放大到 208px(14.4%) 并把字号抬到 16px，让加宽一眼可见。
-        expect(sidebar).toContain('expanded ? "w-52" : "w-[72px]"');
-        expect(sidebar).not.toContain('"w-44"');
-        expect(sidebar).not.toContain('"w-48"');
-        // 12 个导航项要在 900px 高度内排完，行高从 48 收到 44，字号仍是 16px。
-        // 这些条目样式现在只有一份，写在 workspace-nav-list 的 VARIANTS.rail 里。
-        expect(nav).toContain("h-11 items-center rounded-lg px-2 text-base");
-        expect(nav).toContain("text-[13px] font-normal text-[var(--ink-3)]");
-        expect(nav).toContain("size-5 shrink-0");
-        expect(sidebar).toContain("text-[17px] font-semibold");
-        // 收起态只留图标，宽度不变，避免折叠时跳动
+        // 侧栏从 208px 放宽到 232px（参考 Lovart），收起态仍是 72px 不跳动
+        expect(sidebar).toContain('expanded ? "w-[232px]" : "w-[72px]"');
+        expect(sidebar).not.toContain('"w-52"');
         expect(sidebar).toContain('"w-[72px]"');
-        // 移动抽屉同步字号与触控高度，桌面/窄屏读起来是同一套比例
-        expect(nav).toContain("min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-base");
+        // 分组标题取消后不需要 16px 大字：条目 14px / 行高 40px / 图标 18px
+        expect(nav).toContain("h-10 items-center rounded-lg px-2 text-[14px]");
+        expect(nav).toContain("size-[18px] shrink-0");
+        expect(nav).not.toContain("groupLabel");
+        expect(sidebar).toContain("text-[15px] font-semibold");
+        // 移动抽屉沿用同一套字号，触控高度单独放宽
+        expect(nav).toContain("min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-[14px]");
         expect(mobile).toContain("text-base");
-        expect(mobile).toContain("size-5 shrink-0");
+    });
+
+    it("places new-project and recent-project blocks around a single flat nav", async () => {
+        const [sidebar, nav, projects] = await Promise.all([layoutFile("app-sidebar.tsx"), layoutFile("workspace-nav-list.tsx"), layoutFile("sidebar-projects.tsx")]);
+
+        expect(sidebar).toContain("<SidebarNewProject expanded={expanded} />");
+        expect(sidebar).toContain("footer={<SidebarRecentProjects expanded={expanded} />}");
+        // 分组只用来定顺序，不再渲染小字标题；两种形态共用一份渲染
+        expect(nav).toContain("FLAT_TOOLS");
+        expect(nav).toContain("navigationGroups.flatMap");
+        expect(nav).not.toContain("group.label");
+        // 新建 = 画布项目；最近项目按视口高度在 3~8 条之间收敛
+        expect(projects).toContain("createCanvasProject({ title: \"未命名画布\" })");
+        expect(projects).toContain("MAX_RECENT_PROJECTS = 8");
+        expect(projects).toContain("listCanvasProjectSummaries({ page: 1, pageSize: MAX_RECENT_PROJECTS })");
+        expect(projects).toContain("saveCanvasProjectMutation");
+        expect(projects).toContain("deleteCanvasProjects([project.id])");
     });
 
     it("renders the workspace nav from one implementation instead of two copies", async () => {
@@ -75,11 +87,10 @@ describe("workspace sidebar", () => {
         expect(mobile).not.toContain("navigationTools");
         expect(sidebar).not.toContain("navigationGroups");
         expect(mobile).not.toContain("navigationGroups");
-        // 有意的差异集中在一张表里，想对齐就改一处
-        expect(nav).toContain('group: "mt-4"');
-        expect(nav).toContain('group: "mt-5"');
-        expect(nav).toContain("activeDot: false");
-        expect(nav).toContain("activeDot: true");
+        // 有意的差异集中在一张表里，想对齐就改一处；选中态只用浅底不再加圆点
+        expect(nav).toContain('items: "space-y-0.5"');
+        expect(nav).toContain("activeItem: \"bg-[var(--surface-inset)] text-[var(--ink-1)]\"");
+        expect(nav).toContain("activeItem: \"font-semibold text-[var(--brand-600)]\"");
         // 抽屉底部的非导航条目（个人中心 / 官网首页）复用同一套条目样式
         expect(mobile).toContain("drawerNavItemClass");
     });
