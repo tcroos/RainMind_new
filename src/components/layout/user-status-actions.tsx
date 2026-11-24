@@ -337,7 +337,7 @@ function AccountMenuPanel({ user, avatarUrl, avatarInitial, onNavigate, onLogout
     const theme = useThemeStore((state) => state.theme);
     const setTheme = useThemeStore((state) => state.setTheme);
     const rows = [
-        { key: "profile", label: "个人中心", icon: UserCircle, href: "/profile" },
+        { key: "profile", label: "账户管理", icon: UserCircle, href: "/profile" },
         { key: "wallet", label: "钱包", icon: Wallet, href: "/wallet" },
         { key: "help", label: "帮助中心", icon: CircleHelp, href: "/help" },
         ...(user.role === "admin" ? [{ key: "admin", label: "管理员后台", icon: ShieldCheck, href: "/admin" }] : []),
@@ -498,7 +498,7 @@ function PointsQuickPanel({ user, onNavigate }: { user: LocalUser; onNavigate: (
  * 侧栏底部的账号条（工作台专用）。
  *
  * 未点开时就是一行「头像 + 名字 …… ⚡积分」，整行是账户菜单的触发器；
- * 点开后的菜单里才有套餐/余额、个人中心、钱包、帮助、外观切换和退出登录。
+ * 点开后的菜单里才有套餐/余额、账户管理、钱包、帮助、外观切换和退出登录。
  * 不再把积分、主题、头像拆成三个按钮塞进这一行 —— 侧栏展开也才 208px，
  * 塞第四个控件名字就没地方了，而且满排小按钮比一行账号信息更嘈杂。
  */

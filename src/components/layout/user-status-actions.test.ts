@@ -49,6 +49,14 @@ describe("signing out of the workspace", () => {
         expect(tsx).toContain('style={{ color: "var(--surface-panel)" }}');
     });
 
+    it("labels the profile entry as 账户管理 in the bottom-left account popover", async () => {
+        const tsx = await read("src/components/layout/user-status-actions.tsx");
+
+        // 账户菜单第一行改叫「账户管理」，但入口仍指向 /profile，行为不变
+        expect(tsx).toContain('key: "profile", label: "账户管理", icon: UserCircle, href: "/profile"');
+        expect(tsx).not.toContain('label: "个人中心"');
+    });
+
     it("uses the compact Lovart-style account rail and popover", async () => {
         const tsx = await read("src/components/layout/user-status-actions.tsx");
 
