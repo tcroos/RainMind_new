@@ -529,7 +529,7 @@ export function CanvasNodePromptPanel({ node, isRunning, onPromptChange, onConfi
                             ? { width: 36, height: 36, background: theme.node.danger, color: theme.node.actionDangerText }
                             : canRun
                               ? { width: 36, height: 36, background: "linear-gradient(135deg, var(--brand-500), var(--brand-600))", color: "#ffffff", boxShadow: "0 6px 16px rgba(226,103,31,0.26)" }
-                              : { width: 36, height: 36, background: theme.toolbar.itemHover, color: theme.node.muted }
+                              : { width: 36, height: 36, background: theme.toolbar.sendIdleBg, color: theme.toolbar.sendIdleText }
                     }
                     disabled={!isRunning && !canRun}
                     onClick={() => (isRunning ? onStop(node.id) : submit())}

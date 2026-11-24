@@ -57,6 +57,9 @@ export const canvasThemes = {
             itemHover: "#eef6fb",
             activeBg: "#f8fafc",
             activeText: "#0f172a",
+            /* 发送键空态单独走中性灰：itemHover 是蓝调（#eef6fb），空提示词时按钮看着像淡蓝色 */
+            sendIdleBg: "rgba(17, 17, 19, 0.07)",
+            sendIdleText: "#8c8c95",
         },
     },
     dark: {
@@ -113,6 +116,8 @@ export const canvasThemes = {
             itemHover: "#2b2b2f",
             activeBg: "#f8fafc",
             activeText: "#0f172a",
+            sendIdleBg: "rgba(255, 255, 255, 0.09)",
+            sendIdleText: "#7a7a82",
         },
     },
 } as const;
