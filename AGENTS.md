@@ -168,6 +168,8 @@ src/app/styles/global-canvas-*.css    # controls / overrides / responsive 三个
 
 - [18:10] OWNER-CANVAS 提交 `ad942b1` + `8acb27d`：画布列表间距放开（页边距/标题到网格/行距 均 →32，卡片标题到日期 7→15px）、多选入口图标改为自绘两行点划。**踩坑记一笔**：日期原来是 `<p>`，antd 无层级 reset 的 `p{margin:0}` 压过 `@layer utilities`，`mt-*` 三次调整实测都是同一个 7px；改 `div` 才生效 —— 与 SHELL 13:37 发现的「无层级规则压 utilities」是同一种病，canvas 域内后续避免在 p/h 系列标签上挂 margin 工具类
 
+- [18:25] OWNER-CANVAS 提交 `1162730` + `d79461c`：多选图标由两行改三行并收紧 viewBox（24×24→22×16），图标笔画高度对齐汉字；头部高度 39→28，标题/按钮/图标中心实测均在 y=46。**第三个同类坑**：h1 的 `m-0` 又被无层级 reset 压掉（多出 11px 下边距，`items-center` 之后图标中心比文字低 5.5px），改内联 `style={{margin:0}}` 才生效 —— 至此 canvas 域已连续三次踩「无层级规则压 `@layer utilities`」（margin / 文本色 / 字号），结论：**给 p/h1-h6 挂工具类不可靠，涉及 margin 或颜色一律用内联 style**
+
 ## 9. 升级方案：物理隔离（撞车频繁时启用）
 
 现在是**单一工作树、单分支**，三人共写一份文件 —— 分区靠自觉。若开始频繁互相踩：
