@@ -1,12 +1,16 @@
 import type { ComponentProps } from "react";
-import { Sparkles } from "lucide-react";
+import { Zap } from "lucide-react";
 import { logicalVideoBillingRule, videoBillingDurationMultiplier, videoBillingResolutionMultiplier, type VideoBillingRule } from "@/lib/video-billing";
 import type { LogicalModel } from "@/lib/auth/store-types";
 
+/* 积分的统一符号：一支闪电。
+ * 原来用 Sparkles（四角星），和「创作/生成」的语义撞车 —— 界面上到处都是星芒图标，
+ * 分不清哪个是积分、哪个是功能。闪电是「消耗/余额」的通用符号，也和参考站一致。
+ * 全站积分显示都走这个组件（顶栏、侧栏、画布面板、计费、账户中心），改这里一处统一生效。 */
 export function CreditSymbol({ className, ...props }: ComponentProps<"span">) {
     return (
         <span {...props} className={`inline-flex items-center justify-center ${className || ""}`}>
-            <Sparkles className="size-[1em]" strokeWidth={2.4} />
+            <Zap className="size-[1em]" strokeWidth={2.4} />
         </span>
     );
 }

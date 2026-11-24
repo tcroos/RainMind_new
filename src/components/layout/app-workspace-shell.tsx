@@ -83,7 +83,7 @@ export function AppWorkspaceShell({ children }: { children: ReactNode }) {
                             </Link>
                         </div>
                         <div className="min-w-0 max-w-[calc(100vw-6.5rem)] shrink-0 overflow-visible sm:max-w-[calc(100vw-8rem)] lg:max-w-none">
-                            <UserStatusActions />
+                            <UserStatusActions showAccountCluster={false} />
                         </div>
                     </header>
                     <div className="min-h-0 min-w-0 flex-1 overflow-hidden">{children}</div>

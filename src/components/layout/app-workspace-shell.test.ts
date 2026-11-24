@@ -17,9 +17,11 @@ describe("workspace sidebar", () => {
         // 滚动容器挂在导航列表上（sidebar 与抽屉共用），不是侧栏壳本身
         expect(nav).toContain("hide-scrollbar min-h-0 flex-1 overflow-y-auto");
         expect(nav).not.toContain("thin-scrollbar min-h-0 flex-1 overflow-y-auto");
-        // 底部固定账号入口（帮助已收进个人中心），点它进个人中心
-        expect(sidebar).toContain('href="/profile"');
-        expect(sidebar).toContain("个人中心");
+        // 底部账号条不再直接跳个人中心：它现在是账户菜单的触发器，
+        // 小字「个人中心」和右侧箭头已去掉（参考稿：未点开只有头像/名字/积分一行）
+        expect(sidebar).toContain("AccountRailBar");
+        expect(sidebar).not.toContain("个人中心");
+        expect(sidebar).not.toContain("ChevronRight");
         expect(sidebar).not.toContain('href="/help"');
         expect(sidebar).not.toContain("userAvatarFallback");
         expect(sidebar).not.toContain("workspaceUrl");

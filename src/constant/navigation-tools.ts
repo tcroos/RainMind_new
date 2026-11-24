@@ -1,4 +1,4 @@
-import { BookMarked, Braces, Clapperboard, Compass, FileText, GalleryVerticalEnd, Images, Maximize2, MessageSquareText, Sparkles, UserRound, Wallet } from "lucide-react";
+import { BookMarked, Braces, Clapperboard, Compass, FileText, GalleryVerticalEnd, House, Images, Maximize2, MessageSquareText, UserRound, Wallet } from "lucide-react";
 
 import { FEEDBACK_FORM_URL } from "./site-links";
 
@@ -23,10 +23,12 @@ export const landingNavigationTools = [
 export const navigationTools = [
     {
         slug: "create",
-        label: "Agent",
+        label: "首页",
         description: "统一创作入口",
         group: "create",
-        icon: Sparkles,
+        /* 图标用「房子」：这是工作台的入口/首页，不是「生成」功能。
+         * 之前用 Sparkles，和积分符号、生成按钮的星芒撞在一起，分不清语义。 */
+        icon: House,
         primary: true,
     },
     {

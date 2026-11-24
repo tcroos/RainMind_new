@@ -2,7 +2,7 @@
 
 import type { CSSProperties, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
-import { ChevronRight, CircleHelp, CreditCard, Crown, Gift, Globe, Keyboard, LogOut, ShieldCheck, UserCircle, Wallet } from "lucide-react";
+import { ChevronRight, CircleHelp, CreditCard, Crown, Gift, Globe, Keyboard, LogOut, Moon, ShieldCheck, Sun, UserCircle, Wallet } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { App, Button, Input, Popover } from "antd";
@@ -23,9 +23,12 @@ type UserStatusActionsProps = {
     initialUser?: LocalUser;
     /** 插在深浅切换左侧的额外控件（画布用：色盘入口） */
     themeTogglePrefix?: ReactNode;
+    /** 工作台把「积分 / 主题 / 头像」搬到了侧栏底部（AccountRailBar），
+     * 顶栏就只留通知铃；后台页面没有侧栏，仍走默认值 true。 */
+    showAccountCluster?: boolean;
 };
 
-export function UserStatusActions({ variant = "default", onOpenShortcuts, initialUser, themeTogglePrefix }: UserStatusActionsProps) {
+export function UserStatusActions({ variant = "default", onOpenShortcuts, initialUser, themeTogglePrefix, showAccountCluster = true }: UserStatusActionsProps) {
     const router = useRouter();
     const { message } = App.useApp();
     const [pointsOpen, setPointsOpen] = useState(false);
@@ -122,7 +125,7 @@ export function UserStatusActions({ variant = "default", onOpenShortcuts, initia
 
     return (
         <div ref={rootRef} className={cn("user-status-actions inline-flex max-w-full items-center gap-1.5 sm:gap-2", variant === "canvas" ? "canvas-user-status-actions shrink-0" : "app-user-status-actions min-w-0")}>
-            {user ? (
+            {showAccountCluster && user ? (
                 <Popover
                     rootClassName="user-points-popover"
                     open={pointsOpen}
@@ -146,17 +149,21 @@ export function UserStatusActions({ variant = "default", onOpenShortcuts, initia
                     setAccountOpen(false);
                 }}
             />
-            {themeTogglePrefix}
-            <AnimatedThemeToggler
-                theme={theme}
-                onThemeChange={setTheme}
-                className={cn(naturalIconClass, variant === "canvas" && "canvas-theme-action")}
-                style={iconStyle}
-                aria-label={theme === "dark" ? "切换到浅色主题" : "切换到深色主题"}
-                title={theme === "dark" ? "切换到浅色主题" : "切换到深色主题"}
-            />
-            {user ? (
+            {showAccountCluster ? (
                 <>
+                    {themeTogglePrefix}
+                    <AnimatedThemeToggler
+                        theme={theme}
+                        onThemeChange={setTheme}
+                        className={cn(naturalIconClass, variant === "canvas" && "canvas-theme-action")}
+                        style={iconStyle}
+                        aria-label={theme === "dark" ? "切换到浅色主题" : "切换到深色主题"}
+                        title={theme === "dark" ? "切换到浅色主题" : "切换到深色主题"}
+                    />
+                </>
+            ) : null}
+            {showAccountCluster ? (
+                user ? (
                     <Popover
                         rootClassName="account-menu-popover"
                         open={accountOpen}
@@ -204,13 +211,13 @@ export function UserStatusActions({ variant = "default", onOpenShortcuts, initia
                             )}
                         </button>
                     </Popover>
-                </>
-            ) : (
-                <Link href="/login" className={cn(variant === "canvas" ? canvasControlClass : defaultControlClass, "gap-2 px-2.5", variant === "canvas" && "canvas-account-action")} style={iconStyle}>
-                    <UserCircle className="size-4" />
-                    <span className="hidden sm:inline">登录</span>
-                </Link>
-            )}
+                ) : (
+                    <Link href="/login" className={cn(variant === "canvas" ? canvasControlClass : defaultControlClass, "gap-2 px-2.5", variant === "canvas" && "canvas-account-action")} style={iconStyle}>
+                        <UserCircle className="size-4" />
+                        <span className="hidden sm:inline">登录</span>
+                    </Link>
+                )
+            ) : null}
             {onOpenShortcuts ? (
                 <button type="button" className={cn(naturalIconClass, variant === "canvas" && "canvas-shortcuts-action")} style={iconStyle} onClick={onOpenShortcuts} aria-label="快捷键" title="快捷键">
                     <Keyboard className="size-4" />
@@ -323,6 +330,11 @@ function AccountMenuPanel({ user, avatarUrl, avatarInitial, onNavigate, onLogout
     const accountName = user.displayName || user.username || "用户";
     const planLabel = user.planName || user.planId || "免费版";
     const planActionLabel = user.hasActivePlan ? "续费套餐" : "升级套餐";
+    /* 外观切换收进菜单：顶栏那枚太阳/月亮已经移到侧栏底部，
+     * 而底部那行按参考稿只放「头像 + 名字 + 积分」，第四个按钮会把名字挤没，
+     * 所以主题放在展开后的菜单里（和参考站把「深色」放进账户菜单一致）。 */
+    const theme = useThemeStore((state) => state.theme);
+    const setTheme = useThemeStore((state) => state.setTheme);
     const rows = [
         { key: "profile", label: "个人中心", icon: UserCircle, href: "/profile" },
         { key: "wallet", label: "钱包", icon: Wallet, href: "/wallet" },
@@ -392,11 +404,113 @@ function AccountMenuPanel({ user, avatarUrl, avatarInitial, onNavigate, onLogout
             </div>
 
             <div className="mt-2 border-t border-[var(--hairline)] pt-2">
+                <button
+                    type="button"
+                    className="flex h-9 w-full items-center gap-2.5 rounded-lg px-2 text-left text-[12.5px] font-medium text-[var(--ink-1)] transition hover:bg-[var(--surface-soft)]"
+                    onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                >
+                    {theme === "dark" ? <Moon className="size-4 shrink-0 text-[var(--ink-3)]" /> : <Sun className="size-4 shrink-0 text-[var(--ink-3)]" />}
+                    外观
+                    <span className="ml-auto text-[11.5px] font-normal text-[var(--ink-3)]">{theme === "dark" ? "深色" : "浅色"}</span>
+                </button>
+            </div>
+
+            <div className="mt-2 border-t border-[var(--hairline)] pt-2">
                 <button type="button" className="flex h-9 w-full items-center gap-2.5 rounded-lg px-2 text-left text-[12.5px] font-medium text-rose-600 transition hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-950/30" onClick={onLogout}>
                     <LogOut className="size-4 shrink-0" />
                     退出登录
                 </button>
             </div>
         </div>
+    );
+}
+
+/**
+ * 侧栏底部的账号条（工作台专用）。
+ *
+ * 未点开时就是一行「头像 + 名字 …… ⚡积分」，整行是账户菜单的触发器；
+ * 点开后的菜单里才有套餐/余额、个人中心、钱包、帮助、外观切换和退出登录。
+ * 不再把积分、主题、头像拆成三个按钮塞进这一行 —— 侧栏展开也才 208px，
+ * 塞第四个控件名字就没地方了，而且满排小按钮比一行账号信息更嘈杂。
+ */
+export function AccountRailBar({ expanded }: { expanded: boolean }) {
+    const router = useRouter();
+    const { message } = App.useApp();
+    const [open, setOpen] = useState(false);
+    const user = useUserStore((state) => state.user);
+    const avatarUrl = user?.avatarUrl?.trim();
+    const accountName = user?.displayName || user?.username || "用户";
+    const avatarInitial = userAvatarInitial(accountName);
+
+    const logout = async () => {
+        try {
+            await fetch("/api/auth/logout", { method: "POST" });
+            await resetClientSessionState();
+            router.replace("/login");
+            router.refresh();
+        } catch (error) {
+            message.error(error instanceof Error ? error.message : "退出登录失败");
+        }
+    };
+
+    if (!user) {
+        return (
+            <Link
+                href="/login"
+                className={cn("flex h-11 items-center rounded-lg text-[13px] text-[var(--ink-2)] transition-colors hover:bg-[var(--surface-inset)] hover:text-[var(--ink-1)]", expanded ? "gap-2 px-2" : "justify-center")}
+            >
+                <UserCircle className="size-4" />
+                {expanded ? "登录" : null}
+            </Link>
+        );
+    }
+
+    return (
+        <Popover
+            rootClassName="account-menu-popover"
+            open={open}
+            onOpenChange={setOpen}
+            trigger="click"
+            placement="topLeft"
+            arrow={false}
+            content={
+                <AccountMenuPanel
+                    user={user}
+                    avatarUrl={avatarUrl}
+                    avatarInitial={avatarInitial}
+                    onNavigate={(href) => {
+                        setOpen(false);
+                        router.push(href);
+                    }}
+                    onLogout={() => {
+                        setOpen(false);
+                        void logout();
+                    }}
+                />
+            }
+        >
+            <button
+                type="button"
+                aria-label="账户菜单"
+                title={accountName}
+                className={cn(
+                    "flex w-full items-center rounded-lg text-[var(--ink-2)] transition-colors hover:bg-[var(--surface-inset)] hover:text-[var(--ink-1)]",
+                    expanded ? "h-11 gap-2 px-2" : "h-11 justify-center px-0",
+                )}
+            >
+                <span className="grid size-7 shrink-0 place-items-center overflow-hidden rounded-full bg-[linear-gradient(135deg,#f6b181_0%,#e2671f_100%)] text-[11px] font-semibold text-white ring-1 ring-black/5 dark:ring-white/15">
+                    {avatarUrl ? <img src={avatarUrl} alt="" className="size-full object-cover" referrerPolicy="no-referrer" /> : avatarInitial}
+                </span>
+                {expanded ? (
+                    <>
+                        <span className="min-w-0 flex-1 truncate text-left text-[13px] font-medium text-[var(--ink-1)]">{accountName}</span>
+                        <span className="inline-flex shrink-0 items-center gap-1 text-[12px] font-semibold tabular-nums">
+                            <CreditSymbol className="text-[13px] text-[var(--brand-600)]" />
+                            {formatCreditAmount(user.pointsBalance)}
+                        </span>
+                    </>
+                ) : null}
+            </button>
+        </Popover>
     );
 }
