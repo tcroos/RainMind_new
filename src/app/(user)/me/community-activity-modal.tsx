@@ -158,7 +158,7 @@ function CommunityUserList({
             {items.map((item) => {
                 const identity = (
                     <>
-                        <span className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-full bg-[linear-gradient(140deg,#f9cdb3_0%,#e08a5f_100%)] text-sm font-semibold text-white ring-1 ring-black/5 dark:ring-white/15">
+                        <span className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-full bg-[linear-gradient(140deg,#8a94a3_0%,#3f4854_100%)] text-sm font-semibold text-white ring-1 ring-black/5 dark:ring-white/15">
                             {item.avatarUrl ? <img src={item.avatarUrl} alt="" className="size-full object-cover" loading="lazy" /> : userAvatarInitial(item.displayName || item.username)}
                         </span>
                         <span className="min-w-0 flex-1">

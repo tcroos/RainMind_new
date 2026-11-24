@@ -169,16 +169,16 @@ export default function MyCreatorPage() {
                 <section className="relative min-w-0 pb-5 pt-4 sm:pb-6 sm:pt-6" aria-labelledby="my-profile-name">
                     {/* 封面横幅：用户资料暂无封面上传能力，先用生成的等高线底图占位 */}
                     <div className="relative h-32 overflow-hidden rounded-xl ring-1 ring-black/5 ring-inset sm:h-44 sm:rounded-2xl dark:ring-white/10">
-                        <img src="/profile-cover.webp" alt="" aria-hidden="true" width={1600} height={400} className="absolute inset-0 size-full object-cover" />
+                        <img src="/profile-cover.webp" alt="" aria-hidden="true" width={2400} height={400} className="absolute inset-0 size-full object-cover object-[22%_center] sm:object-center" />
                         <span
                             aria-hidden="true"
-                            className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,6,23,0.04)_0%,rgba(2,6,23,0.3)_100%)]"
+                            className="absolute inset-0 bg-[linear-gradient(180deg,rgba(26,9,3,0.04)_0%,rgba(26,9,3,0.02)_55%,rgba(26,9,3,0.16)_100%)]"
                         />
                     </div>
 
                     <div className="px-2 sm:px-4">
                         <span
-                            className="relative z-10 -mt-9 grid size-20 place-items-center overflow-hidden rounded-full bg-[linear-gradient(140deg,#f9cdb3_0%,#e08a5f_100%)] text-2xl font-semibold text-white shadow-sm ring-4 ring-background sm:-mt-14 sm:size-28 sm:text-3xl"
+                            className="relative z-10 -mt-9 grid size-20 place-items-center overflow-hidden rounded-full bg-[linear-gradient(140deg,#8a94a3_0%,#3f4854_100%)] text-2xl font-semibold text-white shadow-[0_10px_28px_-6px_rgba(70,26,8,0.45)] ring-4 ring-background sm:-mt-14 sm:size-28 sm:text-3xl"
                             aria-hidden="true"
                         >
                             {avatarUrl ? <img src={avatarUrl} alt="" className="size-full object-cover" /> : userAvatarInitial(profileDisplayName)}

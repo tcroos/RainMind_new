@@ -53,7 +53,7 @@ export function ProfileAvatarUploader({ onUpdated, variant = "row" }: { onUpdate
     if (variant === "avatar") {
         return (
             <div className="group relative shrink-0">
-                <span className="grid size-20 place-items-center overflow-hidden rounded-full bg-[linear-gradient(140deg,#f9cdb3_0%,#e08a5f_100%)] text-2xl font-semibold text-white ring-1 ring-black/5 dark:ring-white/15">
+                <span className="grid size-20 place-items-center overflow-hidden rounded-full bg-[linear-gradient(140deg,#8a94a3_0%,#3f4854_100%)] text-2xl font-semibold text-white ring-1 ring-black/5 dark:ring-white/15">
                     {user?.avatarUrl ? <img src={user.avatarUrl} alt="当前头像" className="size-full object-cover" /> : fallback}
                 </span>
                 {fileInput}
@@ -76,7 +76,7 @@ export function ProfileAvatarUploader({ onUpdated, variant = "row" }: { onUpdate
 
     return (
         <div className="flex min-w-0 items-center gap-3 border-b border-border pb-4 sm:gap-4">
-            <span className="grid size-16 shrink-0 place-items-center overflow-hidden rounded-full bg-[linear-gradient(140deg,#f9cdb3_0%,#e08a5f_100%)] text-xl font-semibold text-white ring-1 ring-black/5 dark:ring-white/15">
+            <span className="grid size-16 shrink-0 place-items-center overflow-hidden rounded-full bg-[linear-gradient(140deg,#8a94a3_0%,#3f4854_100%)] text-xl font-semibold text-white ring-1 ring-black/5 dark:ring-white/15">
                 {user?.avatarUrl ? <img src={user.avatarUrl} alt="当前头像" className="size-full object-cover" /> : fallback}
             </span>
             <div className="min-w-0 flex-1">
