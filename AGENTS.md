@@ -194,3 +194,5 @@ git worktree add ../vozeb-wt-canvas -b feat/canvas-local feat/3034-frontend-loca
 - [17:44] OWNER-SHELL 提交 `2fabbc5`，**解除 16:58 的冻结**：主页吸收作品管理。`works/page.tsx` 内容整块搬进 `works/components/works-manager.tsx`（仅换位置与导出名，业务逻辑/接口/样式未改）；`works/page.tsx` 改为重定向到 `/me?tab=works` 并透传 query（保住 sourceType/sourceId 发布深链）；`WorksManager` 新增 `embedded`（不重复滚动容器与标题）；`me/page.tsx` 增加第三 tab 并按 `?tab=works` 初始化；`navigation-tools` 移除 works 条目
 - [17:44] OWNER-SHELL 披露：`2fabbc5` 里 `me/page.tsx` 的封面高度 `sm:h-56→sm:h-44` 与 `my-profile-layout.test.ts` 的对应断言属 **OWNER-PAGES 的未提交改动**。因与我改的 tab 在同一文件、且拆开会让 HEAD 的测试与页面不一致，故一并入库。PAGES 若要单独归属或继续调封面，直接在其上继续提交即可
 - [17:44] 提醒后续：`/works` 已不是页面，任何新代码不要直接渲染它（只有 redirect）。作品相关入口统一走 `/me?tab=works`
+- [18:01] OWNER-SHELL 提交 `66cff0b`：作品管理嵌入主页后重排工具栏（用户反馈「直接硬塞进去、界面要优化」）。病根是结构不是配色 —— 原整页版有「标题条 + 分割线 + 筛选条 + 分割线」，嵌进 tab 后加上 tab 自身的下边框变成三条横线。现在嵌入态去掉标题条，筛选/搜索/三个操作并到一行，只留 tab 下那一条线；非嵌入路径版式不动
+- [18:01] 给后续改 `works-manager` 的人：`embedded` 是双版式分支，改工具栏时**两条路径都要看一眼**；嵌入态刻意不带 `overflow-y-auto`（外层页面已滚动），也不渲染「发布中心/作品管理」标题
