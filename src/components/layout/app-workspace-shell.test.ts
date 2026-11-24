@@ -22,6 +22,19 @@ describe("workspace sidebar", () => {
         expect(sidebar).not.toContain("window.location.host");
     });
 
+    it("remembers the collapsed sidebar across reloads", async () => {
+        const shell = await readFile(resolve(process.cwd(), "src/components/layout/app-workspace-shell.tsx"), "utf8");
+
+        // 壳是持久布局，站内跳转不丢；但硬刷新 / 新开标签会回到默认展开，所以必须落盘
+        expect(shell).toContain('appStorageKey("sidebar_expanded")');
+        expect(shell).toContain('if (stored === "collapsed") setSidebarExpanded(false);');
+        expect(shell).toContain('next ? "expanded" : "collapsed"');
+        // localStorage 在隐私模式会抛异常，读和写都要兜住，不能因为留不住偏好就点不动
+        expect(shell).toContain("} catch {");
+        // 首帧仍用展开态：服务端与客户端必须一致，否则 hydration 报错
+        expect(shell).toContain("const [sidebarExpanded, setSidebarExpanded] = useState(true)");
+    });
+
     it("uses a larger nav type scale and a Dreamina-like rail width", async () => {
         const [sidebar, mobile] = await Promise.all([readFile(resolve(process.cwd(), "src/components/layout/app-sidebar.tsx"), "utf8"), readFile(resolve(process.cwd(), "src/components/layout/mobile-nav-drawer.tsx"), "utf8")]);
 

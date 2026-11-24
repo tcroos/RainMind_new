@@ -3,7 +3,7 @@
 import { Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { AnnouncementMarquee } from "@/components/layout/announcement-marquee";
 import { AppSidebar } from "@/components/layout/app-sidebar";
@@ -12,6 +12,7 @@ import { MobileNavDrawer } from "@/components/layout/mobile-nav-drawer";
 import { SiteLogo } from "@/components/layout/site-logo";
 import { UserStatusActions } from "@/components/layout/user-status-actions";
 import { navigationToolForPathname } from "@/constant/navigation-tools";
+import { appStorageKey } from "@/lib/storage-keys";
 import { DEFAULT_SITE_TITLE, resolveSiteTitle } from "@/lib/site-brand";
 import { usePublicSessionStore } from "@/stores/use-public-session-store";
 
@@ -22,10 +23,37 @@ const PAGE_TITLES: Record<string, string> = {
     profile: "个人中心",
 };
 
+/* 折叠偏好落在 localStorage 而不是 zustand persist：只有一个布尔值，
+ * 为它建一个 store 反而多一层订阅。键名走统一的 appStorageKey 前缀，
+ * 和 theme_store 等既有的本地状态保持同一命名空间。 */
+const SIDEBAR_EXPANDED_STORAGE_KEY = appStorageKey("sidebar_expanded");
+
 export function AppWorkspaceShell({ children }: { children: ReactNode }) {
     const pathname = usePathname();
     const [mobileNavOpen, setMobileNavOpen] = useState(false);
     const [sidebarExpanded, setSidebarExpanded] = useState(true);
+    /* 壳是持久布局，站内跳转不会丢折叠态；丢的是硬刷新、新开标签、重新登录这些冷启动。
+     * 首帧仍按展开态渲染，保证服务端与客户端首帧一致（不然会报 hydration 不一致），
+     * 挂载之后再把上一次的选择读回来。 */
+    useEffect(() => {
+        let stored: string | null = null;
+        try {
+            stored = window.localStorage.getItem(SIDEBAR_EXPANDED_STORAGE_KEY);
+        } catch {
+            return;
+        }
+        if (stored === "collapsed") setSidebarExpanded(false);
+    }, []);
+
+    const toggleSidebarExpanded = () => {
+        const next = !sidebarExpanded;
+        setSidebarExpanded(next);
+        try {
+            window.localStorage.setItem(SIDEBAR_EXPANDED_STORAGE_KEY, next ? "expanded" : "collapsed");
+        } catch {
+            /* 隐私模式或配额写满：偏好留不住，但不该影响收起这个动作本身 */
+        }
+    };
     const site = usePublicSessionStore((state) => state.payload?.settings?.site) || { title: DEFAULT_SITE_TITLE, logoUrl: "/logo.svg" };
     const siteTitle = resolveSiteTitle(site.title);
     const tool = navigationToolForPathname(pathname);
@@ -64,7 +92,7 @@ export function AppWorkspaceShell({ children }: { children: ReactNode }) {
                             <button
                                 type="button"
                                 className="hidden size-8 shrink-0 items-center justify-center rounded-lg text-[var(--ink-2)] transition-colors hover:bg-[var(--surface-inset)] hover:text-[var(--ink-1)] lg:inline-flex"
-                                onClick={() => setSidebarExpanded((value) => !value)}
+                                onClick={toggleSidebarExpanded}
                                 aria-label={sidebarExpanded ? "收起侧边栏" : "展开侧边栏"}
                                 title={sidebarExpanded ? "收起侧边栏" : "展开侧边栏"}
                                 aria-pressed={sidebarExpanded}
