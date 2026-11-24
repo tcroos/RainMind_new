@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { CompactEmptyState } from "@/components/compact-empty-state";
 import { LazyMediaImage } from "@/components/media/lazy-media-image";
 import { imagePreviewUrl } from "@/lib/media-image-url";
-import { userAvatarFallback } from "@/lib/user-avatar";
+import { userAvatarInitial } from "@/lib/user-avatar";
 import { listCommunityActivity, setPublicCreatorFollow, setPublicUserBlock, setWorkLike, type CommunityActivityPage, type CommunityActivitySummary, type CommunityUser } from "@/services/api/work-community";
 import type { PublicGalleryItem } from "@/services/api/work-governance";
 
@@ -158,8 +158,8 @@ function CommunityUserList({
             {items.map((item) => {
                 const identity = (
                     <>
-                        <span className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-full bg-foreground text-xs font-semibold text-background">
-                            {item.avatarUrl ? <img src={item.avatarUrl} alt="" className="size-full object-cover" loading="lazy" /> : userAvatarFallback(item.displayName || item.username)}
+                        <span className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-full bg-[linear-gradient(135deg,#f6b181_0%,#e2671f_100%)] text-sm font-semibold text-white ring-1 ring-black/5 dark:ring-white/15">
+                            {item.avatarUrl ? <img src={item.avatarUrl} alt="" className="size-full object-cover" loading="lazy" /> : userAvatarInitial(item.displayName || item.username)}
                         </span>
                         <span className="min-w-0 flex-1">
                             <span className="block truncate text-sm font-semibold text-foreground">{item.displayName || item.username}</span>

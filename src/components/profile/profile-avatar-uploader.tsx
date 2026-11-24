@@ -4,7 +4,7 @@ import { App, Button } from "antd";
 import { Camera } from "lucide-react";
 import { useRef, useState } from "react";
 
-import { userAvatarFallback } from "@/lib/user-avatar";
+import { userAvatarInitial } from "@/lib/user-avatar";
 import { type LocalUser, useUserStore } from "@/stores/use-user-store";
 
 export function ProfileAvatarUploader({ onUpdated, variant = "row" }: { onUpdated?: (user: LocalUser) => void; variant?: "row" | "avatar" }) {
@@ -13,7 +13,7 @@ export function ProfileAvatarUploader({ onUpdated, variant = "row" }: { onUpdate
     const [uploading, setUploading] = useState(false);
     const user = useUserStore((state) => state.user);
     const setUser = useUserStore((state) => state.setUser);
-    const fallback = userAvatarFallback(user?.displayName || user?.username || "用户");
+    const fallback = userAvatarInitial(user?.displayName || user?.username || "用户");
 
     const upload = async (file: File) => {
         if (!/^image\/(?:png|jpe?g|webp)$/i.test(file.type)) return message.warning("请选择 PNG、JPG 或 WebP 图片");
@@ -53,7 +53,7 @@ export function ProfileAvatarUploader({ onUpdated, variant = "row" }: { onUpdate
     if (variant === "avatar") {
         return (
             <div className="group relative shrink-0">
-                <span className="grid size-20 place-items-center overflow-hidden rounded-full bg-foreground text-lg font-semibold text-background ring-1 ring-border">
+                <span className="grid size-20 place-items-center overflow-hidden rounded-full bg-[linear-gradient(135deg,#f6b181_0%,#e2671f_100%)] text-2xl font-semibold text-white ring-1 ring-black/5 dark:ring-white/15">
                     {user?.avatarUrl ? <img src={user.avatarUrl} alt="当前头像" className="size-full object-cover" /> : fallback}
                 </span>
                 {fileInput}
@@ -76,7 +76,7 @@ export function ProfileAvatarUploader({ onUpdated, variant = "row" }: { onUpdate
 
     return (
         <div className="flex min-w-0 items-center gap-3 border-b border-border pb-4 sm:gap-4">
-            <span className="grid size-16 shrink-0 place-items-center overflow-hidden rounded-full bg-foreground text-sm font-semibold text-background ring-1 ring-border">
+            <span className="grid size-16 shrink-0 place-items-center overflow-hidden rounded-full bg-[linear-gradient(135deg,#f6b181_0%,#e2671f_100%)] text-xl font-semibold text-white ring-1 ring-black/5 dark:ring-white/15">
                 {user?.avatarUrl ? <img src={user.avatarUrl} alt="当前头像" className="size-full object-cover" /> : fallback}
             </span>
             <div className="min-w-0 flex-1">
