@@ -7,7 +7,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 
 import { SiteLogo } from "@/components/layout/site-logo";
-import { isExternalTool, navigationGroups, navigationToolHref, navigationTools, type NavigationToolSlug } from "@/constant/navigation-tools";
+import { drawerNavItemClass, WorkspaceNavList } from "@/components/layout/workspace-nav-list";
+import { type NavigationToolSlug } from "@/constant/navigation-tools";
 import { userAvatarInitial } from "@/lib/user-avatar";
 import { cn } from "@/lib/utils";
 import { DEFAULT_SITE_TITLE, resolveSiteTitle } from "@/lib/site-brand";
@@ -31,19 +32,10 @@ export function MobileNavDrawer({ open, activeToolSlug, onClose }: MobileNavDraw
     const accountName = user?.displayName || user?.username || "未登录";
     const avatarInitial = userAvatarInitial(accountName);
     const accountActive = pathname.startsWith("/profile");
-    /* 配色与桌面侧栏 AppSidebar 共用同一套令牌，不要在这里写死 hex：
-     * 原先是一整套手抄的灰阶（底色 / 主文字 / 次文字 / 深色态各一份），凑巧和令牌
-     * 数值接近所以看不出，但 global-surfaces.css 里的底色整体提亮过一档，
-     * 手抄值不会跟着变，窄屏就会和桌面脱队。
-     * 注意：这些 text-/bg- 工具类本身压不过 antd 的无层级 a 规则，
+    /* 条目样式统一由 workspace-nav-list 提供，和侧栏同一套令牌与同一份渲染逻辑；
+     * 这些 text-/bg- 工具类本身压不过 antd 的无层级 a 规则，
      * 真正生效的覆盖在 global-surfaces.css 的 .workspace-mobile-nav 段。 */
-    const itemClass = (active: boolean) =>
-        cn(
-            "flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-base transition",
-            active
-                ? "bg-[var(--surface-inset)] font-medium text-[var(--ink-1)]"
-                : "text-[var(--ink-2)] hover:bg-[var(--surface-inset)] hover:text-[var(--ink-1)]",
-        );
+    const itemClass = drawerNavItemClass;
 
     useEffect(() => {
         if (previousPathnameRef.current === pathname) return;
@@ -70,46 +62,7 @@ export function MobileNavDrawer({ open, activeToolSlug, onClose }: MobileNavDraw
             rootClassName="workspace-mobile-nav"
             styles={{ header: { borderBottomColor: "var(--border)", minHeight: 60, padding: "12px 16px" }, body: { padding: "12px 14px 18px" } }}
         >
-            {navigationGroups.map((group, groupIndex) => (
-                <div key={group.id} className={cn(groupIndex > 0 && "mt-5")}>
-                    <div className="mb-1 px-3 text-[13px] font-medium text-[var(--ink-3)]">{group.label}</div>
-                    <div className="space-y-1">
-                        {navigationTools
-                            .filter((tool) => tool.group === group.id)
-                            .map((tool) => {
-                                const Icon = tool.icon;
-                                const active = tool.slug === activeToolSlug;
-                                const external = isExternalTool(tool);
-                                const href = navigationToolHref(tool);
-                                const inner = (
-                                    <>
-                                        <Icon className="size-5 shrink-0" />
-                                        <span className="min-w-0 flex-1 truncate">{tool.label}</span>
-                                        <span className={cn("size-1.5 rounded-full", active ? "bg-current" : "bg-transparent")} />
-                                    </>
-                                );
-                                return external ? (
-                                    <a key={tool.slug} href={href} target="_blank" rel="noreferrer noopener" className={itemClass(false)}>
-                                        {inner}
-                                    </a>
-                                ) : (
-                                    <Link
-                                        key={tool.slug}
-                                        href={href}
-                                        prefetch
-                                        onMouseEnter={() => router.prefetch(href)}
-                                        onFocus={() => router.prefetch(href)}
-                                        onClick={onClose}
-                                        className={itemClass(active)}
-                                        aria-current={active ? "page" : undefined}
-                                    >
-                                        {inner}
-                                    </Link>
-                                );
-                            })}
-                    </div>
-                </div>
-            ))}
+            <WorkspaceNavList variant="drawer" activeToolSlug={activeToolSlug} onNavigate={onClose} />
             <div className="mt-5 space-y-1 border-t border-border pt-4">
                 <Link
                     href="/profile"
