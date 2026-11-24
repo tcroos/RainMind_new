@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { App, Button, Pagination } from "antd";
-import { Check, Download, ListChecks } from "lucide-react";
+import { Check, Download, List } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { CanvasDeleteProjectsDialog } from "./components/canvas-delete-projects-dialog";
@@ -110,8 +110,8 @@ export default function CanvasPage() {
             <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-5 px-5 py-5 sm:px-6 sm:py-6">
                 <header className="flex items-center gap-2.5">
                     <h1 className="truncate text-[20px] font-semibold leading-7 tracking-tight text-[var(--ink-1)] sm:text-[22px]">画布</h1>
-                    {/* 批量操作的入口：和标题同一行、紧贴右侧，比右上角工具区更靠近内容。
-                        尺寸跟着标题走（32px 方块对 22px 标题），原来的 24px 小方块在大标题旁像颗痣。 */}
+                    {/* 批量操作入口：平时只有一个裸图标，不再常驻底色块 —— 22px 标题旁压一块灰方块太抢眼。
+                        悬停才浮出底色；进入多选态后图标转品牌橙，用颜色而不是色块表达「已开启」 */}
                     <button
                         type="button"
                         aria-pressed={selectMode}
@@ -121,11 +121,11 @@ export default function CanvasPage() {
                         className={cn(
                             "grid size-8 shrink-0 place-items-center rounded-lg transition-colors duration-150",
                             selectMode
-                                ? "bg-[var(--brand-500)] text-white hover:bg-[var(--brand-600)]"
-                                : "bg-[var(--surface-soft)] text-[var(--ink-2)] hover:bg-[var(--surface-inset)] hover:text-[var(--ink-1)]",
+                                ? "bg-[var(--surface-soft)] hover:bg-[var(--surface-inset)]"
+                                : "hover:bg-[var(--surface-soft)]",
                         )}
                     >
-                        <ListChecks className="size-4" strokeWidth={1.9} />
+                        <List className="size-4" strokeWidth={1.9} style={{ color: selectMode ? "var(--brand-500)" : "var(--ink-3)" }} />
                     </button>
                 </header>
 
