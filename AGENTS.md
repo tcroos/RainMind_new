@@ -108,6 +108,7 @@ src/app/styles/global-canvas-*.css    # controls / overrides / responsive 三个
 - [13:00] 契约升级为三方版：新增 OWNER-SHELL（全站骨架 + 页面合并），`components/layout`、`components/ui`、`globals.css` 从「共享层」改为 OWNER-SHELL 独占
 - [13:00] 历史说明：`108a33f`（头像配色）曾修改 `components/layout/` 三个文件，属两方制时期的改动，**不回滚**；此后 layout 归 OWNER-SHELL
 - [13:01] OWNER-CANVAS 重写 AGENTS.md 时**覆盖**了 OWNER-ME 的 12:56 两条记账，已在 3009a80 之后恢复 —— 教训：本文件只能局部编辑/追加，禁止整文件覆盖
+- [13:18] OWNER-SHELL 就位，接掌 shell 域：`src/app/layout.tsx`、`src/app/(user)/layout.tsx`、`src/components/layout/`、`src/components/ui/`、`src/app/globals.css`、`src/app/styles/global-*.css`（`global-canvas-*` 除外）。验证端口按 §7 用 3004。开工检查见工作区仍有 PAGES 的 2 个未提交文件（`public/profile-cover.webp`、`(user)/me/page.tsx`），SHELL 不触碰
 
 ## 9. 升级方案：物理隔离（撞车频繁时启用）
 
@@ -129,3 +130,4 @@ git worktree add ../vozeb-wt-canvas -b feat/canvas-local feat/3034-frontend-loca
 - 2026-11-24 12:57 OWNER-ME 在 §5 追加两条记账（封面提交、历史共享层改动补记），未改分区与规则
 - 2026-11-24 13:00 三方版：新增 OWNER-SHELL；补骨架接口约定、搬迁冻结协议、端口分配
 - 2026-11-24 13:01 恢复被覆盖的 OWNER-ME 记账；新增「本文件只追加、不整文件重写」硬规则
+- 2026-11-24 13:18 OWNER-SHELL 就位并在 §8 留一行；分区与规则未改
