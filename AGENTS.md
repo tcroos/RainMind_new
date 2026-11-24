@@ -172,6 +172,8 @@ src/app/styles/global-canvas-*.css    # controls / overrides / responsive 三个
 
 - [18:58] OWNER-CANVAS 提交 `3b3c2d1`：画布内拖动平移时自动浮出小地图（原来只能靠缩放控件手动开关）。实现放在 `canvas-surface.tsx` 内部状态 `panMinimap`，与页面的手动开关 `minimapOpen` 取并集；收起条件覆盖节点拖拽/框选/点空白/滚轮缩放/非空格按键/点击画布外。**注意**：`canvas-surface.tsx` 里还有 `data-canvas-minimap` 的指针白名单，改这块时别把「在小地图上拖动视口」误判成其它操作（`CanvasMiniMap` 组件本身就在 `canvas-surface.tsx` 末尾）
 
+- [19:05] OWNER-CANVAS 提交 `3909019`：小地图橙色视口框改为拖动中逐帧跟随。原理：平移走 `previewViewport → applyViewportStyles` 直改 DOM 不 setState，小地图只能拿到上次提交的 viewport；新增 `syncRef` 由子组件注册逐帧回调，父级只写 4 个 style，无 React 渲染、无 canvas 重绘。**改这块注意**：`CanvasMiniMap` 的 `mappingRef` 存的是当前渲染的比例尺，平移期间 bounds 是冻结的（松手后重算会跳一下），要做「拖动中重新缩放」需要同时重绘节点画布，成本不同量级
+
 ## 9. 升级方案：物理隔离（撞车频繁时启用）
 
 现在是**单一工作树、单分支**，三人共写一份文件 —— 分区靠自觉。若开始频繁互相踩：
