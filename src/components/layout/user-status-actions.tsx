@@ -368,7 +368,7 @@ function AccountMenuPanel({ user, avatarUrl, avatarInitial, onNavigate, onLogout
                     <button
                         type="button"
                         /* 按钮文字色走内联样式：全局有未分层级的 `button { color: inherit }`，
-                           Tailwind 的 text-* 在 @layer 里会被它压掉，黑底黑字就这么来的。 */
+                           Tailwind 的文字颜色类在 @layer 里会被它压掉，黑底黑字就这么来的。 */
                         style={{ color: "var(--surface-panel)" }}
                         className="inline-flex h-7 shrink-0 items-center gap-1 rounded-md bg-[#18181b] px-2.5 text-[11px] font-semibold transition hover:opacity-90 dark:bg-[#ffffff]"
                         onClick={() => onNavigate("/wallet?section=billing")}

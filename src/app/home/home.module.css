@@ -400,7 +400,7 @@
 
 /* ── 联系我们弹窗 ─────────────────────────────────────────────
  * 图片由后台配置，固定 3:4 竖版；弹窗渲染到 body，
- * 因此这里只用 global token（--surface-panel / --ink-* / --hairline）。 */
+ * 因此这里只用 global token（surface-panel / ink / hairline 三组令牌）。 */
 .contactOverlay {
     align-items: center;
     animation: contact-overlay-in 180ms ease-out;

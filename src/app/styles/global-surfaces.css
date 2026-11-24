@@ -472,7 +472,7 @@ html.announcement-bar-dismissed {
 
 /* ── 工作台侧栏的链接色 ───────────────────────────────────────────────
  * antd 给所有 <a> 注入无层级的 color:var(--ant-color-link)，会压过
- * @layer utilities 里的 text-[var(--ink-*)]。浅色态那个值是 #171717，
+ * @layer utilities 里的文本颜色工具类。浅色态那个值是 #171717，
  * 看着还正常；深色态侧栏底色恰好也是 #171717 —— 整排菜单文字隐形，
  * 只剩图标。所以必须放在 @layer 之外，按侧栏自己的 ink 令牌重新指定。
  */
@@ -504,7 +504,7 @@ html.announcement-bar-dismissed {
  *  · antd reset 的 `a { background-color: transparent }` 是无层级的，
  *    会压过 @layer utilities 里的 bg-[var(--surface-inset)]，选中项没有底色；
  *  · antd 的 `a { color: var(--ant-color-link) }` 同理，浅色态整列都是 #171717，
- *    深色态一律取 antd 的链接色 —— 组件里写的 text-[var(--ink-*)] 全是死代码。
+ *    深色态一律取 antd 的链接色 —— 组件里那些颜色类全是死代码。
  * 所以按侧栏的办法，在 @layer 之外按 ink 令牌重新指定一遍。
  */
 .workspace-mobile-nav .ant-drawer-body a {

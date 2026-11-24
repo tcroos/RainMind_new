@@ -2,6 +2,18 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/* 文档不是源码，别参与类名扫描。
+ * 自动扫描会把仓库里所有文本文件都过一遍，于是 AGENTS.md 这种「为说明问题而写下
+ * text-[var(--ink-*)] 字样」的交付日志，也被当成候选类名，编出
+ * `.text-\[var\(--ink-\*\)\] { color: var(--ink-*) }` 这种非法 CSS。
+ * webpack 的 css-loader 会静默跳过，Turbopack 直接 500（Parsing CSS failed: Delim('*')），
+ * 表现就是「切 Turbopack 后整站白屏 500」，且报错指向一个根本不在源码里的类名。
+ * 这里显式排除文档与工具目录，只扫真源码。 */
+@source not "../../AGENTS.md";
+@source not "../../docs";
+@source not "../../.tmp";
+@source not "../../.workbuddy";
+
 @import "./styles/global-surfaces.css";
 @import "./styles/global-create-ambient.css";
 @import "./styles/global-foundation.css";

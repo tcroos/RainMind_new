@@ -44,7 +44,7 @@ describe("signing out of the workspace", () => {
     it("keeps the plan action readable on its dark pill", async () => {
         const tsx = await read("src/components/layout/user-status-actions.tsx");
 
-        // 全局有未分层的 `button { color: inherit }`，Tailwind 的 text-* 会被压掉，
+        // 全局有未分层的 `button { color: inherit }`，Tailwind 的文字颜色类会被压掉，
         // 这里必须用内联色，否则黑底黑字（之前就踩过）
         expect(tsx).toContain('style={{ color: "var(--surface-panel)" }}');
     });
