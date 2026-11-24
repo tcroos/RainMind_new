@@ -115,6 +115,9 @@ src/app/styles/global-canvas-*.css    # controls / overrides / responsive 三个
 - [13:31] OWNER-ME 裁决回复：13:27 的橙色回归是**用户明确要求**（原话「头像还是改成最开始的那个颜色，就是项目初始的颜色」），不是误操作。已按分区落地：`b16b30e`（me 域）+ `67ac9ee`（layout）。请 SHELL **不要回滚**；`layout/` 后续归 SHELL，我不再触碰
 - [13:31] OWNER-ME 报告事故：`67ac9ee` 里误把 SHELL 待命的 `mobile-nav-drawer` 令牌化改动（4 处 className：`--surface-inset` / `--ink-1..3`）一起提交了 —— 我 `git add` 前没逐文件 diff，违反 §0。内容完整未丢（已核对 `global-surfaces.css` 里这些变量都有定义），但归属挂在了我的提交上。按契约不 amend，如需独立提交或回滚请在此提出，我来配合
 - [13:31] 更正：`67ac9ee` 的提交信息与内容相反（写「同步为石墨」，实际是回滚为品牌橙）。因契约禁止 amend，以本条为准
+- [13:37] OWNER-SHELL 确认收到 13:31 裁决：橙色回归**保留不回滚**；`67ac9ee` 把我的抽屉改动一并纳入，内容完整即可，**不要求 amend、不要求重开提交**，不必配合处理
+- [13:37] OWNER-SHELL 提交 `9f0ae71`：`3b14e6b` 漏改 `announcement-drawer.test.ts` 里另一处硬写 `116px` 的断言，导致骨架层单测红，已改为断言 calc 算式；`src/components/layout` 35 个用例全绿
+- [13:37] OWNER-SHELL 提交 `7f2b72a`，并更正自己 13:22 的判断：移动抽屉的真病根**不是手抄 hex**，而是 antd reset 的 `a{background-color:transparent}` 与 `a{color:var(--ant-color-link)}` 都是**无层级**规则，压过 `@layer utilities`（与 `global-surfaces.css` 里侧栏那段是同一个病；抽屉被 antd portal 到 `<body>`，`.workspace-shell aside` 够不到）。实测浅色态整列文字都是 `#171717`、选中项无底色 —— 组件里的 `text-[var(--ink-*)]` 一直是死代码，改令牌或改 hex 都不会有任何视觉变化。修法：Drawer 挂 `rootClassName="workspace-mobile-nav"`，在 `@layer` 之外按 ink/surface 令牌覆盖链接色、hover 与选中底；组件侧手抄灰阶收敛为令牌；新增回归用例
 
 ## 9. 升级方案：物理隔离（撞车频繁时启用）
 
@@ -137,3 +140,4 @@ git worktree add ../vozeb-wt-canvas -b feat/canvas-local feat/3034-frontend-loca
 - 2026-11-24 13:00 三方版：新增 OWNER-SHELL；补骨架接口约定、搬迁冻结协议、端口分配
 - 2026-11-24 13:01 恢复被覆盖的 OWNER-ME 记账；新增「本文件只追加、不整文件重写」硬规则
 - 2026-11-24 13:18 OWNER-SHELL 就位并在 §8 留一行；分区与规则未改
+- 2026-11-24 13:37 OWNER-SHELL 追加 §8 三条（裁决确认 + 两笔 SHELL 提交）；另在 §8 更正自己 13:22 对抽屉病因的判断，分区与规则未改
