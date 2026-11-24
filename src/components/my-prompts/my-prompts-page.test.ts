@@ -17,12 +17,25 @@ describe("my prompts page layout", () => {
         expect(page).toContain("lg:grid-cols-3 xl:grid-cols-4");
     });
 
-    it("keeps search, category chips and a clear action", async () => {
+    it("keeps only search and a clear action, without the category label", async () => {
         const page = await read();
 
         expect(page).toContain("搜索标题或提示词内容");
-        expect(page).toContain("prompt-filter-tag");
         expect(page).toContain("清除筛选");
+        // 用户要删掉「分类」这类多余文字：筛选行、字段和文案都不应再出现
+        expect(page).not.toContain("prompt-filter-tag");
+        expect(page).not.toContain("label=\"分类\"");
+        expect(page).not.toContain("分类筛选");
+    });
+
+    it("opens a populated dialog to edit an existing prompt", async () => {
+        const page = await read();
+
+        expect(page).toContain("updateMyPrompt");
+        expect(page).toContain("editingPrompt ? \"编辑提示词\" : \"添加提示词\"");
+        expect(page).toContain("onClick={() => openEdit(item)}");
+        expect(page).toContain("aria-label={`编辑 ${item.title}`}");
+        expect(page).toContain('onFinish={savePrompt}');
     });
 
     it("uses the showcase empty state with a single create action", async () => {

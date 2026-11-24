@@ -1,16 +1,15 @@
 "use client";
 
-import { FolderPlus, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
+import { FolderPlus, PencilLine, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
 import { useCallback, useDeferredValue, useEffect, useRef, useState } from "react";
-import { App, Button, Form, Input, Modal, Pagination, Popconfirm, Tag } from "antd";
+import { App, Button, Form, Input, Modal, Pagination, Popconfirm, Tooltip } from "antd";
 
 import { LibraryEmptyState, LibraryShowcaseEmptyState } from "@/components/library/library-ui";
 import { PromptCard } from "@/components/prompts/prompt-card";
 import { PromptDetailDialog } from "@/components/prompts/prompt-detail-dialog";
-import { cn } from "@/lib/utils";
 import { useCopyText } from "@/hooks/use-copy-text";
-import { createMyPrompt, deleteMyPrompt, listMyPrompts } from "@/services/api/my-prompts";
-import { ALL_PROMPTS_OPTION, type Prompt } from "@/services/api/prompts";
+import { createMyPrompt, deleteMyPrompt, listMyPrompts, updateMyPrompt } from "@/services/api/my-prompts";
+import { type Prompt } from "@/services/api/prompts";
 import { useAssetStore } from "@/stores/use-asset-store";
 
 const PAGE_SIZE = 12;
@@ -18,7 +17,6 @@ const PAGE_SIZE = 12;
 type PromptFormValue = {
     title: string;
     prompt: string;
-    category?: string;
     tags?: string;
     coverUrl?: string;
     preview?: string;
@@ -29,68 +27,85 @@ export function MyPromptsPage() {
     const [form] = Form.useForm<PromptFormValue>();
     const [items, setItems] = useState<Prompt[]>([]);
     const [total, setTotal] = useState(0);
-    const [categories, setCategories] = useState<string[]>([ALL_PROMPTS_OPTION]);
     const [keyword, setKeyword] = useState("");
-    const [category, setCategory] = useState(ALL_PROMPTS_OPTION);
     const [page, setPage] = useState(1);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [deletingId, setDeletingId] = useState("");
     const [createOpen, setCreateOpen] = useState(false);
+    const [editingPrompt, setEditingPrompt] = useState<Prompt | null>(null);
     const [reloadToken, setReloadToken] = useState(0);
     const [selectedPrompt, setSelectedPrompt] = useState<Prompt | null>(null);
     const [selectedPreviewUrl, setSelectedPreviewUrl] = useState("");
     const copyText = useCopyText();
     const addAsset = useAssetStore((state) => state.addAsset);
     const deferredKeyword = useDeferredValue(keyword.trim());
-    const hasFilters = Boolean(keyword.trim()) || category !== ALL_PROMPTS_OPTION;
+    const hasFilters = Boolean(keyword.trim());
     const requestRevision = useRef(0);
 
     const loadPrompts = useCallback(async () => {
         const revision = ++requestRevision.current;
         setLoading(true);
         try {
-            const payload = await listMyPrompts({ page, pageSize: PAGE_SIZE, keyword: deferredKeyword, category });
+            const payload = await listMyPrompts({ page, pageSize: PAGE_SIZE, keyword: deferredKeyword });
             if (revision !== requestRevision.current) return;
             setItems(payload.items);
             setTotal(payload.total);
-            setCategories([ALL_PROMPTS_OPTION, ...(payload.categories || [])]);
         } catch (error) {
             if (revision === requestRevision.current) message.error(error instanceof Error ? error.message : "获取我的提示词失败");
         } finally {
             if (revision === requestRevision.current) setLoading(false);
         }
-    }, [category, deferredKeyword, message, page]);
+    }, [deferredKeyword, message, page]);
 
     useEffect(() => {
         void loadPrompts();
     }, [loadPrompts, reloadToken]);
 
-    const updateCategory = (value: string) => {
-        setCategory(value);
-        setPage(1);
-    };
-
     const clearFilters = () => {
         setKeyword("");
-        setCategory(ALL_PROMPTS_OPTION);
         setPage(1);
     };
 
-    const createPrompt = async (value: PromptFormValue) => {
+    useEffect(() => {
+        if (!createOpen || !editingPrompt) return;
+        form.setFieldsValue({
+            title: editingPrompt.title,
+            prompt: editingPrompt.prompt,
+            tags: (editingPrompt.tags || []).join(", "),
+            coverUrl: editingPrompt.coverUrl,
+            preview: editingPrompt.preview,
+        });
+    }, [createOpen, editingPrompt, form]);
+
+    const openCreate = () => {
+        setEditingPrompt(null);
+        form.resetFields();
+        setCreateOpen(true);
+    };
+
+    const openEdit = (item: Prompt) => {
+        setEditingPrompt(item);
+        setCreateOpen(true);
+    };
+
+    const savePrompt = async (value: PromptFormValue) => {
+        const editingId = editingPrompt?.id;
         setSubmitting(true);
         try {
-            await createMyPrompt({ ...value, tags: splitTags(value.tags) });
+            const input = { ...value, tags: splitTags(value.tags) };
+            if (editingId) await updateMyPrompt(editingId, input);
+            else await createMyPrompt(input);
             form.resetFields();
             setCreateOpen(false);
-            message.success("提示词已保存");
+            setEditingPrompt(null);
+            message.success(editingId ? "提示词已更新" : "提示词已保存");
             // 新记录可能不满足当前筛选条件，保存后回到第一页看全部
             setKeyword("");
-            setCategory(ALL_PROMPTS_OPTION);
             setPage(1);
             setReloadToken((token) => token + 1);
         } catch (error) {
-            message.error(error instanceof Error ? error.message : "新增提示词失败");
+            message.error(error instanceof Error ? error.message : editingId ? "更新提示词失败" : "新增提示词失败");
         } finally {
             setSubmitting(false);
         }
@@ -151,28 +166,12 @@ export function MyPromptsPage() {
                         {/* 完全空白时只留下方引导区那一个入口，工具栏不再重复；
                             与「我的素材」保持同一套规则。 */}
                         {loading || items.length ? (
-                            <Button type="primary" size="large" icon={<Plus className="size-4" />} className="library-primary" onClick={() => setCreateOpen(true)}>
+                            <Button type="primary" size="large" icon={<Plus className="size-4" />} className="library-primary" onClick={openCreate}>
                                 添加提示词
                             </Button>
                         ) : null}
                     </div>
                 </div>
-
-                {categories.length > 1 ? (
-                    <div className="mt-3 flex min-w-0 items-center gap-2">
-                        <span className="w-8 shrink-0 text-[11px] font-medium text-[var(--ink-3)]">分类</span>
-                        <div className="thin-scrollbar flex min-w-0 flex-1 gap-1.5 overflow-x-auto px-0.5 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                            {categories.map((option) => {
-                                const active = option === category;
-                                return (
-                                    <Tag.CheckableTag key={option} checked={active} className={cn("prompt-filter-tag shrink-0", active && "is-active")} onChange={() => updateCategory(option)}>
-                                        {option}
-                                    </Tag.CheckableTag>
-                                );
-                            })}
-                        </div>
-                    </div>
-                ) : null}
 
                     {/* 首屏不再铺一排假卡片：那 4 张灰色占位会被看成「有内容」，
                         等接口回来再替换成空状态，肉眼就是一次明显闪烁。 */}
@@ -184,14 +183,14 @@ export function MyPromptsPage() {
 
                     {showEmptyState ? (
                         hasFilters ? (
-                            <LibraryEmptyState icon={<Search className="size-5" />} title="没有匹配的提示词" description="换个关键词，或清除分类筛选再看看。" action={<Button icon={<RotateCcw className="size-3.5" />} onClick={clearFilters}>清除筛选</Button>} />
+                            <LibraryEmptyState icon={<Search className="size-5" />} title="没有匹配的提示词" description="换个关键词再看看。" action={<Button icon={<RotateCcw className="size-3.5" />} onClick={clearFilters}>清除筛选</Button>} />
                         ) : (
                             <LibraryShowcaseEmptyState
                                 images={["/library/prompt-empty-banner-back.webp", "/library/prompt-empty-banner.webp"]}
                                 title="还没有提示词"
                                 description="把常用的提示词存进来，创作时一键复用。"
                                 action={
-                                    <Button type="primary" size="large" className="library-primary" icon={<Plus className="size-4" />} onClick={() => setCreateOpen(true)}>
+                                    <Button type="primary" size="large" className="library-primary" icon={<Plus className="size-4" />} onClick={openCreate}>
                                         添加第一个提示词
                                     </Button>
                                 }
@@ -212,6 +211,18 @@ export function MyPromptsPage() {
                                     onCopy={() => copyText(item.prompt, "提示词已复制")}
                                     extraAction={
                                         <div className="flex items-center gap-0.5">
+                                            <Tooltip title="编辑">
+                                                <Button
+                                                    size="small"
+                                                    type="text"
+                                                    shape="circle"
+                                                    className="library-card-action"
+                                                    icon={<PencilLine className="size-3.5" />}
+                                                    aria-label={`编辑 ${item.title}`}
+                                                    title={`编辑 ${item.title}`}
+                                                    onClick={() => openEdit(item)}
+                                                />
+                                            </Tooltip>
                                             <Button
                                                 size="small"
                                                 type="text"
@@ -265,23 +276,23 @@ export function MyPromptsPage() {
 
             <Modal
                 className="prompt-create-modal"
-                title="添加提示词"
+                title={editingPrompt ? "编辑提示词" : "添加提示词"}
                 open={createOpen}
                 footer={null}
                 centered
                 width={680}
                 destroyOnHidden
-                onCancel={() => setCreateOpen(false)}
+                onCancel={() => {
+                    setCreateOpen(false);
+                    setEditingPrompt(null);
+                }}
                 afterClose={() => form.resetFields()}
                 styles={{ header: { borderBottom: 0 }, body: { maxHeight: "calc(100dvh - 200px)", overflowY: "auto", paddingTop: 4 } }}
             >
-                <Form form={form} layout="vertical" onFinish={createPrompt} requiredMark={false} className="prompt-form">
+                <Form form={form} layout="vertical" onFinish={savePrompt} requiredMark={false} className="prompt-form">
                     <div className="grid gap-x-4 sm:grid-cols-2">
                         <Form.Item label="标题" name="title" rules={[{ required: true, message: "请输入标题" }]}>
                             <Input size="large" placeholder="例如：产品摄影主视觉" />
-                        </Form.Item>
-                        <Form.Item label="分类" name="category">
-                            <Input size="large" placeholder="例如：商业海报" />
                         </Form.Item>
                         <Form.Item label="标签" name="tags">
                             <Input size="large" placeholder="摄影, 电商, 写实" />
@@ -301,7 +312,7 @@ export function MyPromptsPage() {
                             取消
                         </Button>
                         <Button className="library-primary" type="primary" htmlType="submit" size="large" loading={submitting} icon={<Plus className="size-4" />}>
-                            保存提示词
+                            {editingPrompt ? "保存修改" : "保存提示词"}
                         </Button>
                     </div>
                 </Form>

@@ -14,8 +14,17 @@ describe("prompt card layout", () => {
 
         expect(card).toContain("aspect-[16/9]");
         expect(card).toContain("var(--brand-soft)");
-        expect(card).toContain("未添加标签");
         expect(card).not.toContain('className="grid size-6 shrink-0 place-items-center rounded-lg bg-[var(--brand-soft)]');
+    });
+
+    it("shows only title, summary and actions without extra labels", async () => {
+        const card = await read();
+
+        expect(card).not.toContain("未添加标签");
+        expect(card).not.toContain("我的提示词");
+        expect(card).not.toContain("公共词库");
+        expect(card).not.toContain("formatPromptDate");
+        expect(card).not.toContain("查看提示词");
     });
 
     it("uses compact circular actions like the asset cards", async () => {

@@ -6,11 +6,11 @@ import { Button, Tooltip } from "antd";
 
 import { imagePreviewUrl } from "@/lib/media-image-url";
 import { cn } from "@/lib/utils";
-import { formatPromptDate, type Prompt } from "@/services/api/prompts";
+import { type Prompt } from "@/services/api/prompts";
 
 /**
- * 词库卡片：封面 + 标题 + 摘要 + 元信息/操作。
- * 一块缩略图撑起卡片，正文只留三行信息，底部用发丝线隔开操作区 —— 一屏能扫过更多条目。
+ * 词库卡片：封面 + 标题 / 摘要 + 操作。
+ * 分类、来源、日期这类没有实际内容的文字一律不显示，卡片高度压到最小。
  */
 export function PromptCard({
     item,
@@ -37,66 +37,44 @@ export function PromptCard({
 
     return (
         <article className="group flex min-w-0 flex-col overflow-hidden rounded-2xl bg-[var(--surface-panel)] text-[var(--ink-1)] shadow-[0_1px_3px_rgba(17,17,19,0.05)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_36px_-24px_rgba(17,17,19,0.38)] dark:shadow-[0_1px_3px_rgba(0,0,0,0.5)]">
-            {/* 统一给每张卡一块 16:9 封面区：有图放图，没图放带引号的柔色文字封面。
-                之前没图时只留一个 24px 小图标 + 分类胶囊，用户新建后看到的就是
-                「00」「1」这种读不懂的碎片，和「我的素材」的文字卡完全不是一个量级。 */}
+            {/* 卡片只保留三层：封面、标题+摘要、操作。分类胶囊、来源行、日期都是
+                用户没要的文字，堆叠起来只会把卡片撑高、让真正有用的内容变小。 */}
             <button type="button" className="relative block w-full overflow-hidden bg-[var(--surface-inset)] text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring" aria-label={`查看 ${item.title}`} onClick={open}>
                 {hasCover ? (
                     <div className="aspect-[16/9] w-full overflow-hidden">
                         <PromptCover url={imagePreviewUrl(item.coverUrl || "", 640)} title={item.title} />
                     </div>
                 ) : (
-                    <div className="relative flex aspect-[16/9] w-full flex-col justify-between overflow-hidden bg-[linear-gradient(135deg,var(--brand-soft)_0%,var(--surface-soft)_58%,var(--surface-inset)_100%)] p-3.5">
-                        <span aria-hidden className="pointer-events-none absolute -right-3 -top-12 font-serif text-[120px] leading-none text-[var(--brand-600)]/20">
+                    <div className="relative flex aspect-[16/9] w-full items-center justify-center overflow-hidden bg-[linear-gradient(135deg,var(--brand-soft)_0%,var(--surface-soft)_58%,var(--surface-inset)_100%)]">
+                        <span aria-hidden className="pointer-events-none font-serif text-[96px] leading-none text-[var(--brand-600)]/25">
                             “
                         </span>
-                        <span className="relative w-fit max-w-full truncate rounded-full bg-[var(--surface-panel)]/85 px-2 py-0.5 text-[10px] font-medium leading-4 text-[var(--ink-2)] backdrop-blur-sm">
-                            {item.category || (item.scope === "user" ? "我的提示词" : "公共词库")}
-                        </span>
-                        <p className="relative line-clamp-3 text-[12.5px] leading-5 text-[var(--ink-2)]">{item.prompt}</p>
                     </div>
                 )}
-                {item.category && hasCover ? (
-                    <span className="pointer-events-none absolute left-2.5 top-2.5 max-w-[calc(100%-1.25rem)] truncate rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-medium leading-4 text-white backdrop-blur-sm">
-                        {item.category}
-                    </span>
-                ) : null}
-                {hasCover ? (
-                    <span className="pointer-events-none absolute inset-x-0 bottom-0 hidden items-center justify-end bg-[linear-gradient(180deg,transparent,rgba(0,0,0,0.42))] px-2.5 pb-2 pt-8 text-[11px] font-medium text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100 sm:flex">
-                        查看提示词
-                    </span>
-                ) : null}
             </button>
 
             <div className="flex min-w-0 flex-1 flex-col p-3 sm:p-3.5">
                 <button type="button" className="block min-w-0 text-left outline-none focus-visible:rounded focus-visible:ring-2 focus-visible:ring-ring" onClick={open}>
                     <h2 className="truncate text-[15px] font-semibold leading-6 text-[var(--ink-1)]">{item.title}</h2>
+                    <p className="mt-0.5 line-clamp-1 text-[11.5px] leading-[18px] text-[var(--ink-2)]">{item.prompt}</p>
                 </button>
-                <p className="mt-1 truncate text-[11px] text-[var(--ink-3)]">{item.scope === "user" ? "我的提示词" : "公共词库"}</p>
 
-                <div className="mt-2 flex min-w-0 items-center gap-1 overflow-hidden">
-                    {metaTags.length ? (
-                        <>
-                            {metaTags.slice(0, 2).map((tag) => (
-                                <span key={tag} className="max-w-24 shrink-0 truncate rounded-full bg-[var(--surface-inset)] px-2 py-0.5 text-[10px] leading-4 text-[var(--ink-2)]">
-                                    {tag}
-                                </span>
-                            ))}
-                            {metaTags.length > 2 ? <span className="shrink-0 text-[10px] leading-4 text-[var(--ink-3)]">+{metaTags.length - 2}</span> : null}
-                        </>
-                    ) : (
-                        <span className="truncate text-[10px] text-[var(--ink-3)]">未添加标签</span>
-                    )}
-                </div>
-
-                <div className="mt-auto flex items-center justify-between gap-2 pt-3">
-                    <span className="shrink-0 text-[11px] text-[var(--ink-3)]">{formatPromptDate(item.updatedAt)}</span>
-                    <div className="flex shrink-0 items-center gap-0.5">
-                        <Tooltip title={actionLabel}>
-                            <Button size="small" type={actionType} shape="circle" icon={actionIcon} aria-label={actionLabel} className="library-card-action" onClick={onCopy} />
-                        </Tooltip>
-                        {extraAction}
+                {metaTags.length ? (
+                    <div className="mt-1.5 flex min-w-0 items-center gap-1 overflow-hidden">
+                        {metaTags.slice(0, 2).map((tag) => (
+                            <span key={tag} className="max-w-24 shrink-0 truncate rounded-full bg-[var(--surface-inset)] px-2 py-0.5 text-[10px] leading-4 text-[var(--ink-2)]">
+                                {tag}
+                            </span>
+                        ))}
+                        {metaTags.length > 2 ? <span className="shrink-0 text-[10px] leading-4 text-[var(--ink-3)]">+{metaTags.length - 2}</span> : null}
                     </div>
+                ) : null}
+
+                <div className="mt-auto flex items-center justify-end gap-0.5 pt-2.5">
+                    <Tooltip title={actionLabel}>
+                        <Button size="small" type={actionType} shape="circle" icon={actionIcon} aria-label={actionLabel} className="library-card-action" onClick={onCopy} />
+                    </Tooltip>
+                    {extraAction}
                 </div>
             </div>
         </article>
@@ -116,7 +94,7 @@ function isModelTag(tag: string) {
  *
  * 这里刻意不用浏览器懒加载：每页只有 16 张缩略图（640px），
  * 首屏懒加载会让下面两行停在 opacity-0 + 呼吸灰，一眼看过去像「有框架没内容」——
- * 用户就为此误以为公共词库是空的。改成首屏直接加载，占位也不再闪烁。
+ * 用户就为此误以为词库是空的。改成首屏直接加载，占位也不再闪烁。
  */
 function PromptCover({ url, title }: { url: string; title: string }) {
     const [status, setStatus] = useState<"loading" | "ready" | "error">(url ? "loading" : "error");
