@@ -127,6 +127,7 @@ src/app/styles/global-canvas-*.css    # controls / overrides / responsive 三个
 - [14:41] 行为变化（有意，需知悉）：未登录访问 `/admin/billing`、`/admin/setup` 原先回跳 `/login?next=/admin/billing|/admin/setup`，收进布局后统一为 `?next=/admin` —— 布局拿不到 pathname，除非让 `src/proxy.ts` 注入路径头，而那是 CSP/安全相关代码，未擅自改。要恢复深链回跳，正解是在 proxy 里加 `x-pathname`
 - [14:41] OWNER-SHELL 提交 `dfdbb7d`：`/admin/billing` 骨架灰阶 stone → zinc（23 处），与 `global-admin-theme.css` 的 zinc 令牌及另两页对齐。纯视觉，结构与尺寸未动；若不满意暖灰/冷灰取向，改 layout + 另两页一起切即可
 - [14:41] 仍未处理（需产品/功能裁决，SHELL 不擅自动）：① `/admin/billing` 全站无任何入口，只能手输 URL，却自带 2237 行实现，与 `/admin` 里 orders/products/promotions/coupons/payments/wallet/cdk 七个 section 功能重叠 —— 是并入 section 还是补入口，待定；② `src/app/admin/marketing/`、`src/app/admin/works/` 只有 components 没有 page，无对应路由
+- [15:00] OWNER-SHELL 提交 `7f346c6`：浅色中性色阶调转 —— `--surface-canvas` #f8f9fa → #ffffff、`--surface-rail` #ffffff → #f4f5f6（用户要求「页面更白、侧栏偏灰」，参考 Lovart）。连带把 `.surface-panel` 内描边 4.5% → 6.5%，因为白底上白卡片明度差为 0，边界只能靠描边+落影。**深色未动**。凡依赖「画布是浅灰、白色卡片浮起」的地方请复查：现在浮起靠描边，不再靠底色差
 
 ## 9. 升级方案：物理隔离（撞车频繁时启用）
 
