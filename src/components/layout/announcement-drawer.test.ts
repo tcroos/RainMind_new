@@ -54,7 +54,8 @@ describe("announcement panels open from the right, like Jimeng's 消息中心", 
         const css = await styles();
 
         // 上边避开顶部渐变通知栏并留空隙、右边和底边同样留白，不再是顶天立地的一竖条
-        expect(css).toContain("--announcement-drawer-top: 116px;");
+        // 顶边由「公告条 + 页头 + 呼吸」三枚令牌算出，不再写死 116px
+        expect(css).toContain("--announcement-drawer-top: calc(var(--announcement-bar-h) + var(--shell-header-h) + var(--shell-gap));");
         expect(css).toContain("--announcement-drawer-right: 16px;");
         expect(css).toContain("--announcement-drawer-bottom: 32px;");
         expect(css).toContain("top: var(--announcement-drawer-top) !important;");
