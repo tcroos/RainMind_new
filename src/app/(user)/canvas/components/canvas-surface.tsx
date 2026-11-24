@@ -214,6 +214,9 @@ export function CanvasSurface({
     const [connection, setConnection] = useState<ConnectionDraft | null>(null);
     const [boxSelection, setBoxSelection] = useState<BoxSelection | null>(null);
     const [temporaryPan, setTemporaryPan] = useState(false);
+    /** 拖动平移时自动浮出的小地图。与页面上的手动开关（minimapOpen）取并集：
+     *  手动开的常驻，自动开的只要出现「拖动以外的操作」就收回。 */
+    const [panMinimap, setPanMinimap] = useState(false);
     const [surfaceInteracting, setSurfaceInteracting] = useState(false);
     const [hoveredConnectionId, setHoveredConnectionId] = useState<string | null>(null);
     const [edgeCut, setEdgeCut] = useState<{ connectionId: string; left: number; top: number } | null>(null);
@@ -592,18 +595,25 @@ export function CanvasSurface({
     const handlePointerDown = useCallback(
         (event: ReactPointerEvent<HTMLDivElement>) => {
             const target = event.target instanceof Element ? event.target : null;
-            if (target?.closest("[data-node-id],[data-connection-id],[data-canvas-minimap],[data-connection-create-menu],[data-canvas-node-create-menu]")) return;
+            // 在小地图里拖动视口，本身就属于「看全局」，不能把它当成其它操作收起小地图
+            if (target?.closest("[data-canvas-minimap]")) return;
+            if (target?.closest("[data-node-id],[data-connection-id],[data-connection-create-menu],[data-canvas-node-create-menu]")) {
+                setPanMinimap(false);
+                return;
+            }
             if (event.pointerType === "touch") {
                 event.currentTarget.setPointerCapture?.(event.pointerId);
                 touchPointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
                 const points = [...touchPointersRef.current.values()];
                 if (points.length >= 2) {
+                    setPanMinimap(false);
                     const [first, second] = points;
                     const midpoint = { x: (first.x + second.x) / 2, y: (first.y + second.y) / 2 };
                     pinchRef.current = { startDistance: Math.max(1, Math.hypot(second.x - first.x, second.y - first.y)), startZoom: displayViewportRef.current.k, world: screenToWorld(midpoint.x, midpoint.y) };
                     onViewportInteractionChange?.(true);
                     interactionRef.current = null;
                 } else {
+                    setPanMinimap(true);
                     interactionRef.current = { kind: "pan", pointerId: event.pointerId, start: { x: event.clientX, y: event.clientY }, viewport: displayViewportRef.current, moved: false };
                 }
                 return;
@@ -622,6 +632,7 @@ export function CanvasSurface({
                     const nodeIds = Array.from(selectedNodeIdsRef.current);
                     const positions = new Map(nodeIds.map((id) => [id, displayNodesRef.current.find((node) => node.id === id)?.position || { x: 0, y: 0 }]));
                     if (positions.size) {
+                        setPanMinimap(false);
                         interactionRef.current = { kind: "drag", pointerId: event.pointerId, start: { x: event.clientX, y: event.clientY }, nodeIds, positions, moved: false };
                         event.currentTarget.setPointerCapture?.(event.pointerId);
                         return;
@@ -633,7 +644,13 @@ export function CanvasSurface({
                     kind === "box"
                         ? { kind, pointerId: event.pointerId, start: world, current: world, initialNodeIds, moved: false }
                         : { kind, pointerId: event.pointerId, start: { x: event.clientX, y: event.clientY }, viewport: displayViewportRef.current, moved: false };
-                if (kind === "pan") onViewportInteractionChange?.(true);
+                if (kind === "pan") {
+                    onViewportInteractionChange?.(true);
+                    setPanMinimap(true);
+                } else {
+                    // 框选、点空白、按住 shift 追加选择 —— 都属于「拖动以外的操作」
+                    setPanMinimap(false);
+                }
                 if (kind === "box") {
                     const next = { start: world, current: world, nodeIds: initialNodeIds };
                     boxSelectionRef.current = next;
@@ -651,6 +668,7 @@ export function CanvasSurface({
             if (!temporaryPanRef.current || event.button !== 0 || event.pointerType === "touch") return;
             event.preventDefault();
             event.stopPropagation();
+            setPanMinimap(true);
             interactionRef.current = { kind: "pan", pointerId: event.pointerId, start: { x: event.clientX, y: event.clientY }, viewport: displayViewportRef.current, moved: false };
             onViewportInteractionChange?.(true);
             event.currentTarget.setPointerCapture?.(event.pointerId);
@@ -858,6 +876,8 @@ export function CanvasSurface({
         (event: WheelEvent) => {
             if (isWheelControlTarget(event.target, event) && !event.ctrlKey && !event.metaKey) return;
             event.preventDefault();
+            // 滚轮缩放属于「拖动以外的操作」
+            setPanMinimap(false);
             onViewportInteractionChange?.(true);
             const pending = wheelFrameRef.current;
             wheelFrameRef.current = {
@@ -927,8 +947,21 @@ export function CanvasSurface({
         [flushFrame, onNodesCommit],
     );
 
+    /* 点画布以外的地方（工具栏、侧栏、面板）也算「拖动以外的操作」，自动收起小地图。
+       画布内部的点击由 handlePointerDown 按交互类型判断，这里只在画布外兜底。 */
+    useEffect(() => {
+        const hideOutside = (event: PointerEvent) => {
+            if (surfaceRef.current?.contains(event.target as Node)) return;
+            setPanMinimap(false);
+        };
+        document.addEventListener("pointerdown", hideOutside, true);
+        return () => document.removeEventListener("pointerdown", hideOutside, true);
+    }, []);
+
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
+            // 空格是「临时平移」的前置键，按下它不该把即将出现的小地图关掉；其它按键都算新操作
+            if (event.code !== "Space") setPanMinimap(false);
             if (event.key === "Escape") cancelTransientInteraction();
             if (event.code !== "Space" || isEditableKeyboardTarget(event.target)) return;
             event.preventDefault();
@@ -1472,7 +1505,7 @@ export function CanvasSurface({
                     <Scissors className="size-5" aria-hidden />
                 </button>
             ) : null}
-            {minimapOpen ? <CanvasMiniMap nodes={visibleNodes} viewport={displayViewport} viewportSize={surfaceSize} theme={theme} onViewportPreview={previewMinimapViewport} onViewportCommit={commitMinimapViewport} /> : null}
+            {minimapOpen || panMinimap ? <CanvasMiniMap nodes={visibleNodes} viewport={displayViewport} viewportSize={surfaceSize} theme={theme} onViewportPreview={previewMinimapViewport} onViewportCommit={commitMinimapViewport} /> : null}
         </div>
     );
 }
