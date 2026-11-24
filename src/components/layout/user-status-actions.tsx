@@ -197,7 +197,7 @@ export function UserStatusActions({ variant = "default", onOpenShortcuts, initia
                             ) : (
                                 <span
                                     aria-hidden="true"
-                                    className="user-avatar-fallback grid size-full place-items-center rounded-full bg-[linear-gradient(140deg,#f9cdb3_0%,#e08a5f_100%)] text-[12px] font-semibold leading-none text-white ring-1 ring-black/5 transition hover:brightness-105 dark:ring-white/15"
+                                    className="user-avatar-fallback grid size-full place-items-center rounded-full bg-[linear-gradient(140deg,#8a94a3_0%,#3f4854_100%)] text-[12px] font-semibold leading-none text-white ring-1 ring-black/5 transition hover:brightness-105 dark:ring-white/15"
                                 >
                                     {avatarInitial}
                                 </span>
@@ -337,7 +337,7 @@ function AccountMenuPanel({ user, avatarUrl, avatarInitial, onNavigate, onLogout
                     {avatarUrl ? (
                         <img src={avatarUrl} alt="" className="size-full object-cover" referrerPolicy="no-referrer" />
                     ) : (
-                        <span className="grid size-full place-items-center bg-[linear-gradient(140deg,#f9cdb3_0%,#e08a5f_100%)] text-[13px] font-semibold text-white">{avatarInitial}</span>
+                        <span className="grid size-full place-items-center bg-[linear-gradient(140deg,#8a94a3_0%,#3f4854_100%)] text-[13px] font-semibold text-white">{avatarInitial}</span>
                     )}
                 </span>
                 <div className="min-w-0 flex-1">
