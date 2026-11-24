@@ -143,7 +143,8 @@ src/app/styles/global-canvas-*.css    # controls / overrides / responsive 三个
 
 - [16:30] OWNER-CANVAS **占用画布列表页精简**：`(user)/canvas/page.tsx`、`canvas/components/{canvas-project-card,canvas-project-create-card,canvas-project-cover,canvas-project-format}.tsx`。目标：按用户给的参考图收敛为「标题 + 卡片网格」，去掉副标题/搜索框/两个按钮/节点数元信息。仅动 canvas 域，不碰 shell。验证走 3001 只读截图
 - [16:35] OWNER-SHELL 提交 `654520b`：取消桌面端顶栏 —— 内容从视口顶部开始，侧栏与内容连成一整块，不再被 64px 横条切断；窄屏保留 56px 极简栏（菜单键 + logo + 消息）。`AnnouncementNotificationCenter` 新增 `variant="row"` 以便嵌进账户菜单（菜单里现在是「消息中心 + 未读右对齐」）；`AccountMenuPanel` 增加 `onDismiss`，点消息时先收起账户弹层。`--shell-header-h` 改为桌面 0px / 窄屏 56px，抽屉顶边算式与既有断言不变
-- [16:35] ⚠️ OWNER-SHELL **记录一次并发事故**：`0eafaef`（他人提交「侧边栏首个入口由 Agent 改为首页」）用整索引提交，把 SHELL 当时已 `git add` 的六个文件一起带走了（`app-sidebar`、`user-status-actions`、`credits`、`navigation-tools`、shell 与测试）—— 内容无误，但提交信息只写了导航改名，追溯时会误判。**约定补一条：`git commit` 必须带明确路径或先 `git status` 确认索引里只有自己的文件；禁止把别人已暂存的改动顺手提交**
+- [16:35] OWNER-SHELL **更正自己 16:35 的判断**：`0eafaef` 那次「整索引提交带走 SHELL 暂存文件」是**用户安排的协同改动**（用户已确认是让另一助手并行调整），不是事故。结论仍然成立且更值得记：并发时 `git commit` 不带路径会把索引里所有人的暂存一起提交，所以约定照旧 —— **自己的改动一次 add + 立即 commit，不跨轮暂存；提交前先看一眼 `git status`**
+- [16:44] OWNER-SHELL 提交 `c3ea485`：① 外观行并入菜单列表（原先单独一段 + 分割线，像另一个分区；现在紧跟「官网首页」，只有退出登录保留分割线）；② 侧栏底部积分单独成胶囊按钮，**悬停**弹出「套餐 + 升级 / 积分 / 每日免费积分（每天重置说明）/ 使用详情」，点头像仍开账户菜单。两个浮层互不遮挡
 - [16:35] 提醒：页面大标题仍是「RainMind 创作 Agent」，导航项已改为「首页」。两者要不要统一，需产品确认（属 `(user)/create` 域，SHELL 不擅动）
 
 - [16:45] OWNER-CANVAS 提交 `692c8ba`：画布列表按参照稿收敛 —— 标题降为单行「画布」、去掉副标题/常驻搜索框/两个文字按钮、卡片只留标题+日期、更多操作移到标题行悬停显形、空封面去点阵、栅格 1080 起 4 列。**行为变化需知悉**：「新建画布」文字按钮已取消，改由首格「+」卡进入；导入改为图标按钮；搜索改为图标点开后展开。`?mode=new|recent` 深链逻辑未动。术语沿用「画布」未改成参照稿的「项目」，若要统一请提出
