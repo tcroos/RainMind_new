@@ -2,9 +2,9 @@
 
 import { createPortal } from "react-dom";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type SyntheticEvent } from "react";
-import { LoaderCircle, Maximize2, Minimize2, Square, X, Music2, ChevronDown } from "lucide-react";
+import { ArrowUp, LoaderCircle, Maximize2, Minimize2, Square, X, Music2, ChevronDown } from "lucide-react";
 import { imagePreviewUrl } from "@/lib/media-image-url";
-import { Button, Modal, Tooltip, Popover } from "antd";
+import { Modal, Tooltip, Popover } from "antd";
 import { CanvasVideoReferenceSettings } from "./canvas-video-reference-settings";
 import { canvasVideoReferenceModeLabel } from "../utils/canvas-video-references";
 
@@ -178,6 +178,10 @@ export function CanvasNodePromptPanel({ node, isRunning, onPromptChange, onConfi
         videoQuality: config.vquality,
         videoSeconds: config.videoSeconds,
     });
+
+    /* 生成键的可用性：有提示词、且参考视频的报价已确认。空提示词时按钮退成灰色（参考创作页发送键） */
+    const quotePending = Boolean(referenceQuote && !referenceQuote.quote);
+    const canRun = Boolean(prompt.trim()) && !quotePending;
 
     const selectVideoTier = (next: string) => {
         storeVideoTier(next);
@@ -378,7 +382,7 @@ export function CanvasNodePromptPanel({ node, isRunning, onPromptChange, onConfi
                 ) : null}
             </div>
 
-            <div className={`${expandedMode ? "mt-2 gap-3 [&_button]:!h-12 [&_button]:!text-sm [&_button_span]:!text-sm" : "mt-auto flex-nowrap gap-2 overflow-x-auto pt-2.5 [scrollbar-width:thin] [&_button]:!text-sm [&_button_span]:!text-sm"} flex min-w-0 items-center ${expandedMode ? "flex-wrap" : ""}`}>
+            <div className={`${expandedMode ? "mt-2 gap-3 [&_button:not(.canvas-send-circle)]:!h-12 [&_button]:!text-sm [&_button_span]:!text-sm" : "mt-auto flex-nowrap gap-2 overflow-x-auto pt-2.5 [scrollbar-width:thin] [&_button:not(.canvas-send-circle)]:!text-sm [&_button_span]:!text-sm"} flex min-w-0 items-center ${expandedMode ? "flex-wrap" : ""}`}>
                 {referenceQuote ? <div className="w-full text-xs" role="status">{referenceQuote.quote ? `输出 ${referenceQuote.quote.outputSeconds} 秒 + 参考 ${referenceQuote.quote.referenceSeconds} 秒 = 计费 ${referenceQuote.quote.totalSeconds} 秒` : referenceQuote.error || "正在核实参考视频计费…"}</div> : null}
                 <div className={`canvas-composer-tools flex min-w-0 flex-1 items-center gap-2 ${expandedMode ? "flex-wrap" : "flex-nowrap"}`}>
                     {mode === "image" ? (
@@ -509,32 +513,31 @@ export function CanvasNodePromptPanel({ node, isRunning, onPromptChange, onConfi
                         <ModelPicker placement="topLeft" showIcon={false} className="min-w-[9rem] flex-1" config={config} value={config.model} onChange={(model) => onConfigChange(node.id, { model })} capability="text" onMissingConfig={() => openConfigDialog(true)} />
                     )}
                 </div>
-                <Button
-                    type="primary"
-                    className="canvas-generate-button !h-8 !min-w-14 !px-2.5 !text-xs shrink-0 !rounded-full"
-                    danger={isRunning}
-                    disabled={!isRunning && (!prompt.trim() || Boolean(referenceQuote && !referenceQuote.quote))}
+                {/* 积分从生成键里拆出来，单独一列放在左侧：和侧栏底部的积分同一套写法（图标 + 数字）。
+                    生成键只负责「生成 / 停止」，不再承载金额，空提示词时也不会出现「灰色按钮里带数字」的怪样子。 */}
+                <span className="inline-flex h-8 shrink-0 items-center gap-1 pl-1 text-xs font-semibold tabular-nums" style={{ color: theme.node.muted }} title="本次生成预计消耗积分">
+                    <CreditSymbol className="text-sm" />
+                    {quotePending ? "待核价" : formatCreditAmount(credits)}
+                </span>
+                {/* 生成键对齐首页输入框：36px 圆形实心键，空提示词是灰底灰箭头，有内容才转品牌橙上箭头；
+                    生成中换成方块停止。积分已经在左边单独一列，按钮里不再塞数字。 */}
+                <button
+                    type="button"
+                    className={`canvas-send-circle grid size-9 shrink-0 place-items-center rounded-full transition-[filter,background-color,color] duration-150 ${canRun || isRunning ? "hover:brightness-95" : "cursor-not-allowed"}`}
+                    style={
+                        isRunning
+                            ? { width: 36, height: 36, background: theme.node.danger, color: theme.node.actionDangerText }
+                            : canRun
+                              ? { width: 36, height: 36, background: "linear-gradient(135deg, var(--brand-500), var(--brand-600))", color: "#ffffff", boxShadow: "0 6px 16px rgba(226,103,31,0.26)" }
+                              : { width: 36, height: 36, background: theme.toolbar.itemHover, color: theme.node.muted }
+                    }
+                    disabled={!isRunning && !canRun}
                     onClick={() => (isRunning ? onStop(node.id) : submit())}
                     aria-label={isRunning ? "停止生成" : "生成"}
+                    title={isRunning ? "停止生成" : "生成"}
                 >
-                    <span className="flex items-center gap-1.5">
-                        {isRunning ? (
-                            <>
-                                <LoaderCircle className="size-4 animate-spin" />
-                                <Square className="size-3.5 fill-current" />
-                                <span className="text-sm font-medium">停止</span>
-                            </>
-                        ) : (
-                            <>
-                                <span className="text-sm font-semibold">生成</span>
-                                <span className="inline-flex items-center gap-1 text-sm font-medium tabular-nums">
-                                    <CreditSymbol />
-                                    {referenceQuote && !referenceQuote.quote ? "待核价" : formatCreditAmount(credits)}
-                                </span>
-                            </>
-                        )}
-                    </span>
-                </Button>
+                    {isRunning ? <Square className="size-3.5 fill-current" aria-hidden /> : <ArrowUp className="size-[18px]" strokeWidth={2.4} aria-hidden />}
+                </button>
             </div>
 
             {!expandedMode ? <div className="contents" onClick={stopCanvasInteraction} onDoubleClick={stopCanvasInteraction} onMouseDown={stopCanvasInteraction} onPointerDown={stopCanvasInteraction} onWheel={stopCanvasInteraction} onContextMenu={stopCanvasInteraction}>
