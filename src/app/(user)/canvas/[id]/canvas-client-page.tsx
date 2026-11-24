@@ -25,6 +25,7 @@ import { CanvasTopBar } from "../components/canvas-top-bar";
 import { CanvasZoomControls } from "../components/canvas-zoom-controls";
 import { CanvasNodeType, type CanvasNodeData, type Position } from "../types";
 import type { CanvasResourceReference } from "../utils/canvas-resource-references";
+import { applyNodeGroup } from "../utils/canvas-node-group";
 
 const CanvasAssistantPanel = dynamic(() => import("../components/canvas-assistant-panel").then((mod) => mod.CanvasAssistantPanel), { ssr: false });
 import { CanvasConnectionMenuErrorBoundary, CanvasRefreshShell, ConnectionCreateMenu, NodeCreateMenu } from "./canvas-page-elements";
@@ -418,6 +419,25 @@ function VozebProCanvasPage() {
     }, []);
     const handleViewImage = useCallback((node: CanvasNodeData) => setPreviewNodeId(node.id), []);
     const handleRemoveReferences = useCallback((ids: string[]) => setConnections((current) => current.filter((connection) => !ids.includes(connection.id))), []);
+    const handleGroupNodes = useCallback(
+        (ids: string[]) => {
+            if (ids.length < 2) return;
+            const nextNodes = applyNodeGroup(nodesRef.current, ids, `group-${crypto.randomUUID()}`);
+            setNodes(nextNodes);
+            updateProject(projectId, { nodes: nextNodes });
+            void flushProjectSave(projectId);
+        },
+        [projectId, setNodes, updateProject, flushProjectSave],
+    );
+    const handleUngroupNodes = useCallback(
+        (ids: string[]) => {
+            const nextNodes = applyNodeGroup(nodesRef.current, ids, null);
+            setNodes(nextNodes);
+            updateProject(projectId, { nodes: nextNodes });
+            void flushProjectSave(projectId);
+        },
+        [projectId, setNodes, updateProject, flushProjectSave],
+    );
     const handleImageSettingsOpenChange = useCallback((open: boolean) => {
         setNodeImageSettingsOpen(open);
         if (open) setToolbarNodeId(null);
@@ -604,6 +624,8 @@ function VozebProCanvasPage() {
                     getNodeViewProps={getCanvasNodeViewProps}
                     renderPanel={renderCanvasPanel}
                     renderNode={renderCanvasNodeContent}
+                    onGroupNodes={handleGroupNodes}
+                    onUngroupNodes={handleUngroupNodes}
                     onNodesCommit={(updates) => {
                         const updatesById = new Map(updates.map((update) => [update.id, update]));
                         const nextNodes = nodesRef.current.map((node) => {

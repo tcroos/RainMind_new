@@ -118,4 +118,14 @@ describe("canvas surface geometry", () => {
         const root = { ...source, metadata: { batchChildIds: ["child-a", "child-b"] } };
         expect(expandCanvasDragNodeIds([root, target], [root.id, target.id])).toEqual([root.id, target.id, "child-a", "child-b"]);
     });
+
+    it("moves the whole manual group when only one member is dragged", () => {
+        const other = { ...source, id: "ungrouped", metadata: {} };
+        const grouped = [
+            { ...source, metadata: { groupId: "g1" } },
+            { ...target, metadata: { groupId: "g1" } },
+            other,
+        ];
+        expect(expandCanvasDragNodeIds(grouped, [source.id]).sort()).toEqual([source.id, target.id]);
+    });
 });

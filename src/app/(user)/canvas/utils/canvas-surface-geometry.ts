@@ -1,4 +1,5 @@
 import { CanvasNodeType, type CanvasNodeData, type Position, type ViewportTransform } from "../types";
+import { expandGroupSelection } from "./canvas-node-group";
 
 const HANDLE_CLEARANCE = 32;
 const FORWARD_GAP = HANDLE_CLEARANCE * 2;
@@ -65,7 +66,8 @@ export function selectNodesInBounds(nodes: CanvasNodeData[], start: Position, en
 }
 
 export function expandCanvasDragNodeIds(nodes: CanvasNodeData[], selectedNodeIds: Iterable<string>) {
-    const dragNodeIds = new Set(selectedNodeIds);
+    // 手动打组的成员作为一个整体拖动：先把选中集扩展到整组，再叠加批量生成的子节点。
+    const dragNodeIds = expandGroupSelection(nodes, selectedNodeIds);
     for (const node of nodes) {
         if (!dragNodeIds.has(node.id)) continue;
         node.metadata?.batchChildIds?.forEach((childId) => dragNodeIds.add(childId));

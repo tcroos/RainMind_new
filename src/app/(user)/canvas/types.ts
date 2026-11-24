@@ -199,6 +199,8 @@ export type CanvasNodeMetadata = {
     batchRootId?: string;
     batchChildIds?: string[];
     batchUsesReferenceImages?: boolean;
+    /* 手动打组：同一 groupId 的节点作为一个整体被选中和拖动（区别于批量生成产生的 batchChildIds） */
+    groupId?: string;
     primaryImageId?: string;
     imageBatchExpanded?: boolean;
     storageKey?: string;

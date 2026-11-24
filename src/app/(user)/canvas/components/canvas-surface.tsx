@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, DragEvent as ReactDragEvent, MouseEvent as ReactMouseEvent, MutableRefObject, PointerEvent as ReactPointerEvent, ReactNode, RefObject } from "react";
 
-import { Plus, Scissors } from "lucide-react";
+import { Group, Plus, Scissors, Ungroup } from "lucide-react";
 
 import { canvasThemes, type CanvasBackgroundMode, type CanvasTheme } from "@/lib/canvas-theme";
 import { useThemeStore } from "@/stores/use-theme-store";
@@ -11,6 +11,7 @@ import { CanvasNode, type CanvasNodeProps } from "./canvas-node";
 import { CanvasNodeType, type CanvasConnection, type CanvasNodeData, type Position, type ViewportTransform } from "../types";
 import { edgePath, expandCanvasDragNodeIds, findConnectionTarget, isBlockedConnectionDrop, isCanvasVideoControlPoint, nodeAnchor, previewPath, samePosition, selectNodesInBounds, worldFromScreen } from "../utils/canvas-surface-geometry";
 import { buildCanvasSpatialIndex, canvasNodeBounds, canvasNodesBounds, type CanvasBounds } from "../utils/canvas-spatial-index";
+import { commonGroupId, expandGroupSelection } from "../utils/canvas-node-group";
 import { canvasMediaLoadBudget, selectCanvasMediaLoadIds } from "../utils/canvas-media-load-budget";
 import { CANVAS_MIN_ZOOM } from "../utils/canvas-zoom";
 
@@ -92,6 +93,8 @@ type CanvasSurfaceProps = {
         node: CanvasNodeData,
     ) => Pick<CanvasNodeProps, "editRequestNonce" | "showPanel" | "showImageInfo" | "resourceLabel" | "mentionReferences" | "batchCount" | "batchExpanded" | "batchClosing" | "batchOpening" | "batchRecovering" | "batchMotion">;
     onNodesCommit: (updates: CanvasNodeUpdate[]) => void;
+    onGroupNodes: (nodeIds: string[]) => void;
+    onUngroupNodes: (nodeIds: string[]) => void;
     onSelectionChange: (nodeIds: Set<string>, connectionId: string | null) => void;
     onViewportCommit: (viewport: ViewportTransform) => void;
     onConnect: (connection: { source: string; target: string }) => void;
@@ -162,6 +165,8 @@ export function CanvasSurface({
     nodeProps,
     getNodeViewProps,
     onNodesCommit,
+    onGroupNodes,
+    onUngroupNodes,
     onSelectionChange,
     onViewportCommit,
     onConnect,
@@ -497,7 +502,8 @@ export function CanvasSurface({
 
     const setSelection = useCallback(
         (nodeIds: Set<string>, connectionId: string | null = null) => {
-            onSelectionChange(nodeIds, connectionId);
+            // 组内成员作为一个整体：选中其中任意一个就把整组纳入选中态
+            onSelectionChange(connectionId ? nodeIds : expandGroupSelection(displayNodesRef.current, nodeIds), connectionId);
         },
         [onSelectionChange],
     );
@@ -1078,6 +1084,10 @@ export function CanvasSurface({
         return canvasNodesBounds(multiSelectionNodes, padding, padding);
     }, [boxSelection, displayViewport.k, multiSelectionNodes]);
     multiSelectionBoundsRef.current = multiSelectionBounds;
+    const selectionGroupId = useMemo(
+        () => (multiSelectionNodes.length >= 2 ? commonGroupId(displayNodesRef.current, multiSelectionNodes.map((node) => node.id)) : null),
+        [multiSelectionNodes],
+    );
     const multiSelectionScale = Math.max(displayViewport.k, 0.01);
     const knobScreenScale = Math.max(0.5, Math.min(1, displayViewport.k));
 
@@ -1435,17 +1445,35 @@ export function CanvasSurface({
                         {multiSelectionBounds ? (
                             <div
                                 data-canvas-multi-selection-count
-                                className="pointer-events-none absolute whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold text-white shadow-lg"
+                                className="pointer-events-none absolute flex items-center gap-1.5 whitespace-nowrap rounded-full py-1 pl-2.5 pr-1 text-[11px] font-semibold text-white shadow-lg"
                                 style={{
                                     left: multiSelectionBounds.left + 12 / multiSelectionScale,
                                     top: multiSelectionBounds.top - 12 / multiSelectionScale,
                                     transform: `translateY(-100%) scale(${1 / multiSelectionScale})`,
                                     transformOrigin: "0 100%",
-                                    background: theme.node.stroke,
+                                    /* 浅色主题的 node.stroke 是浅蓝灰，白字压不住；计数条统一用墨色底 */
+                                    background: themeName === "light" ? "#1c1c20" : theme.node.stroke,
                                     zIndex: 60,
                                 }}
                             >
-                                已选 {multiSelectionNodes.length} 项
+                                <span>已选 {multiSelectionNodes.length} 项</span>
+                                <button
+                                    type="button"
+                                    data-canvas-no-drag
+                                    data-canvas-group-action
+                                    aria-label={selectionGroupId ? "解除编组" : "将选中节点打组"}
+                                    className="pointer-events-auto grid size-6 place-items-center rounded-full bg-white/15 transition-colors hover:bg-white/30"
+                                    onPointerDown={(event) => event.stopPropagation()}
+                                    onMouseDown={(event) => event.stopPropagation()}
+                                    onClick={(event) => {
+                                        event.stopPropagation();
+                                        const ids = multiSelectionNodes.map((node) => node.id);
+                                        if (selectionGroupId) onUngroupNodes(ids);
+                                        else onGroupNodes(ids);
+                                    }}
+                                >
+                                    {selectionGroupId ? <Ungroup className="size-3.5" aria-hidden /> : <Group className="size-3.5" aria-hidden />}
+                                </button>
                             </div>
                         ) : null}
                         {multiSelectionBounds && (!batchHandleHidden || batchConnection) ? (
