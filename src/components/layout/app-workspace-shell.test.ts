@@ -102,6 +102,19 @@ describe("workspace sidebar", () => {
         expect(sidebar).not.toContain("PanelLeftOpen");
     });
 
+    it("gives the composer and panels a visible edge on the white canvas", async () => {
+        const [shellCss, surfacesCss] = await Promise.all([stylesFile("global-app-shell.css"), stylesFile("global-surfaces.css")]);
+
+        // 画布改纯白后，白输入框/白卡片与页面同色（实测输入框内 L=251、页面 L=252），
+        // 边界只能靠描边：输入框用 outline（不动组件自己按聚焦态切换的 box-shadow），
+        // 面板用内描边，6.5% 仍然看不清，已提到 9.5%。
+        expect(shellCss).toContain("outline: 1px solid rgba(17, 17, 19, 0.09);");
+        expect(shellCss).toContain("outline-offset: -1px;");
+        // 深色态黑线等于没有，要换浅色
+        expect(shellCss).toContain("outline-color: rgba(255, 255, 255, 0.08);");
+        expect(surfacesCss).toContain("inset 0 0 0 1px rgba(17, 17, 19, 0.095)");
+    });
+
     it("keeps the content surface lighter than the rail in light mode", async () => {
         const css = await stylesFile("global-surfaces.css");
         const lightBlock = css.slice(css.indexOf(":root {"), css.indexOf(".dark {"));

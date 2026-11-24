@@ -407,6 +407,20 @@
         box-shadow: none !important;
     }
 
+    /* 输入框边界：画布改成纯白之后，这个白色卡面和页面底色完全同色，
+     * 只剩两圈极淡的落影 —— 实测卡内 L=251、页面 L=252，等于没有边界。
+     * 这里补一圈 1px 内描边当边线：用 outline + 负 offset 贴在圆角内侧，
+     * 不改盒模型，也不覆盖组件自己按聚焦态切换的 box-shadow（两者互不干扰）。 */
+    .creative-composer {
+        outline: 1px solid rgba(17, 17, 19, 0.09);
+        outline-offset: -1px;
+    }
+
+    /* 深色态反过来：黑线压在近黑卡面上等于没有，换成一层浅色内描边 */
+    .dark .creative-composer {
+        outline-color: rgba(255, 255, 255, 0.08);
+    }
+
     .dark .app-shell-mobile-nav-link:hover,
     .dark .app-shell-mobile-nav-link.is-active {
         background: rgba(255, 255, 255, 0.12);
