@@ -39,6 +39,17 @@ describe("gallery surfaces", () => {
         expect(sharedView).toContain("galleryFilterHref(basePath");
         expect(sharedView).toContain("发布第一个作品");
         expect(sharedView).not.toContain('<span className="hidden sm:inline">发布作品</span>');
+        /* 无线条语言：分类/筛选/空状态底下都不再压横线，控件不套描边框。
+         * 排序换成原生 select，antd 那圈默认描边也就无从出现。 */
+        expect(sharedView).not.toContain("border-b");
+        expect(sharedView).not.toContain("border-dashed");
+        expect(sharedView).not.toContain("border-border");
+        expect(sharedView).not.toContain("<Select");
+        expect(sharedView).toContain('aria-label="作品排序"');
+        expect(sharedView).toContain('aria-pressed={featuredOnly}');
+        expect(sharedView).toContain("gap-x-4 gap-y-8");
+        expect(publicPage).not.toContain("border-b");
+        expect(publicPage).toContain("max-w-[1440px]");
         expect(publishLink).toContain("state.ready");
         expect(publishLink).toContain("state.payload?.user");
         expect(publishLink).toContain('href="/works"');
@@ -48,9 +59,12 @@ describe("gallery surfaces", () => {
         expect(sharedView).toContain("<PublicWorkPreviewModal");
         expect(galleryCard).toContain("<PublicWorkLikeButton");
         expect(galleryCard).toContain("<LazyMediaImage");
-        expect(galleryCard).toContain("<PublicWorkCardTitle");
         expect(galleryCard).toContain('aria-haspopup="dialog"');
         expect(galleryCard).toContain("<article");
+        /* 标题常显在图片下方，不再靠 hover 才浮出；默认头像与全站品牌橙规范一致。 */
+        expect(galleryCard).toContain("userAvatarInitial");
+        expect(galleryCard).toContain("rounded-2xl");
+        expect(galleryCard).not.toContain("<PublicWorkCardTitle");
         expect(sharedView).not.toContain("Bookmark");
         expect(sharedView).not.toContain("MessageCircle");
         expect(sharedView).not.toContain("<Heart");

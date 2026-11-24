@@ -73,7 +73,7 @@ export function ResponsiveMasonryGrid({ children, className, ariaLabel }: { chil
     }, [children]);
 
     return (
-        <div ref={gridRef} className={cn("grid min-w-0 items-start gap-2 sm:gap-3", measured ? "auto-rows-[4px]" : "auto-rows-auto", className)} aria-label={ariaLabel}>
+        <div ref={gridRef} className={cn("grid min-w-0 items-start gap-x-2 gap-y-4 sm:gap-x-3 sm:gap-y-5", measured ? "auto-rows-[4px]" : "auto-rows-auto", className)} aria-label={ariaLabel}>
             {Children.map(children, (child) => (
                 <div className="min-w-0">
                     <div className="min-w-0">{child}</div>

@@ -1,9 +1,8 @@
 "use client";
 
-import { ArrowRight, GalleryVerticalEnd, Plus, Search, Sparkles } from "lucide-react";
+import { ArrowRight, ChevronDown, Compass, Plus, Search, Sparkles } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { Select } from "antd";
+import { useEffect, useRef, useState } from "react";
 
 import { PublicWorkPreviewModal } from "@/components/works/public-work-preview-modal";
 import { PublicWorkGalleryCard } from "@/components/works/public-work-gallery-card";
@@ -14,29 +13,42 @@ import { cn } from "@/lib/utils";
 import type { GalleryFilters, GalleryResult } from "./gallery-data";
 import { GalleryPublishLink } from "./gallery-publish-link";
 
-const controlClass = "h-10 min-w-0 rounded-md border border-border bg-card px-3 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-foreground/40";
-const primaryLinkClass = "inline-flex h-9 items-center justify-center gap-2 rounded-md !bg-foreground px-4 text-sm font-medium !text-background transition hover:opacity-80";
+/* 广场与素材库共用一套「无线条」语言：不画分隔横线、不套描边输入框、不摆虚线空状态卡。
+ * 层级只由留白、字重、浅底块（--surface-inset）和唯一一处品牌色动作点建立；
+ * 聚焦时给一圈极淡的品牌柔光，而不是硬边框。 */
+const fieldClass = "h-11 w-full min-w-0 appearance-none rounded-xl bg-[var(--surface-inset)] px-4 text-[13px] text-[var(--ink-1)] outline-none transition placeholder:text-[var(--ink-3)] focus:shadow-[0_0_0_2px_var(--brand-soft)]";
+const primaryClass = "inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl !bg-[var(--brand-600)] px-5 text-[13px] font-medium !text-white transition hover:opacity-90";
+const softClass = "inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl !bg-[var(--surface-inset)] px-5 text-[13px] font-medium !text-[var(--ink-1)] transition hover:opacity-75";
 
 export function GalleryView({ filters, gallery, basePath, embedded = false }: { filters: GalleryFilters; gallery: GalleryResult; basePath: string; embedded?: boolean }) {
     const filtered = hasFilters(filters);
     const [previewSlug, setPreviewSlug] = useState("");
     const [creatorUsername, setCreatorUsername] = useState("");
     const [sort, setSort] = useState(filters.sort);
+    const [featuredOnly, setFeaturedOnly] = useState(filters.featured === "1");
+    const formRef = useRef<HTMLFormElement>(null);
 
     useEffect(() => setSort(filters.sort), [filters.sort]);
+    useEffect(() => setFeaturedOnly(filters.featured === "1"), [filters.featured]);
+
     return (
-        <div className={cn("mx-auto w-full max-w-[1600px]", embedded ? "px-2 py-2 sm:px-6 sm:py-6" : "px-3 pb-10 pt-4 sm:px-6 sm:pb-16 sm:pt-6")}>
-            <section className="flex min-w-0 items-center justify-between gap-3 pb-3 sm:pb-4">
-                <h1 className="min-w-0 text-xl font-semibold sm:text-2xl">灵感发现</h1>
+        <div className="mx-auto w-full max-w-[1440px] px-5 pb-20 pt-8 sm:px-9 sm:pb-24 sm:pt-12 lg:px-12">
+            {/* 页头：标题与出口各自成组，留出整段呼吸，不再让按钮贴着标题挤在一条窄带里。 */}
+            <section className="flex min-w-0 flex-wrap items-center justify-between gap-x-6 gap-y-4">
+                <div className="min-w-0">
+                    <h1 className="text-[26px] font-semibold tracking-[-0.02em] text-[var(--ink-1)] sm:text-[32px]">灵感发现</h1>
+                    <p className="mt-2 text-[13px] leading-6 text-[var(--ink-3)]">从社区公开作品里，找到下一个创作的起点</p>
+                </div>
                 {embedded ? (
-                    <Link href="/works" className="inline-flex h-9 w-fit items-center gap-2 rounded-md border border-border bg-card px-3 text-sm font-medium text-foreground transition hover:bg-muted">
+                    <Link href="/me?tab=works" className="inline-flex h-10 shrink-0 items-center gap-2 rounded-xl !bg-[var(--surface-inset)] px-4 text-[13px] font-medium !text-[var(--ink-1)] transition hover:opacity-75">
                         <Plus className="size-4" />
                         管理我的作品
                     </Link>
                 ) : null}
             </section>
 
-            <nav className="flex min-w-0 gap-1 overflow-x-auto border-b border-border pb-2" aria-label="作品分类">
+            {/* 分类：整排浅底药丸，选中靠品牌柔色 + 字重，底下不再压一条横线。 */}
+            <nav className="mt-8 flex min-w-0 gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mt-9" aria-label="作品分类">
                 <Link href={galleryFilterHref(basePath, filters, "")} className={categoryClass(!filters.category)}>
                     全部
                 </Link>
@@ -47,40 +59,57 @@ export function GalleryView({ filters, gallery, basePath, embedded = false }: { 
                 ))}
             </nav>
 
-            <form className="grid min-w-0 grid-cols-2 gap-2 border-b border-border py-2.5 md:grid-cols-[minmax(220px,1fr)_140px_150px_auto_auto]" action={basePath}>
+            {/* 筛选：全部控件都是同一高度的浅底块，桌面一行、窄屏两列；
+                排序改成原生 select（避开 antd 的描边），选完即提交，不用再多点一次。 */}
+            <form ref={formRef} className="mt-5 grid min-w-0 grid-cols-2 gap-2.5 sm:mt-6 sm:gap-3 md:grid-cols-[minmax(240px,1fr)_minmax(140px,0.45fr)_168px_auto_auto]" action={basePath}>
                 <input type="hidden" name="category" value={filters.category} />
                 <label className="relative col-span-2 min-w-0 md:col-span-1">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                    <input name="keyword" defaultValue={filters.keyword} placeholder="搜索标题、说明或提示词" aria-label="搜索作品" className={cn(controlClass, "w-full pl-9 pr-3")} />
+                    <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-[var(--ink-3)]" />
+                    <input name="keyword" defaultValue={filters.keyword} placeholder="搜索标题、说明或提示词" aria-label="搜索作品" className={cn(fieldClass, "pl-11 pr-4")} />
                 </label>
-                <input name="tag" defaultValue={filters.tag} placeholder="标签" aria-label="作品标签" className={controlClass} />
-                <input type="hidden" name="sort" value={sort} />
-                <Select
-                    aria-label="作品排序"
-                    className="w-full"
-                    size="large"
-                    value={sort}
-                    options={[
-                        { value: "random", label: "随机发现" },
-                        { value: "featured", label: "精选优先" },
-                        { value: "latest", label: "最新发布" },
-                        { value: "popular", label: "最多访问" },
-                        { value: "weekly", label: "本周热榜" },
-                        { value: "monthly", label: "本月热榜" },
-                    ]}
-                    onChange={setSort}
-                />
-                <label className="flex h-10 min-w-0 cursor-pointer items-center gap-2 rounded-md border border-border bg-card px-3 text-sm text-foreground transition hover:bg-muted">
-                    <input type="checkbox" name="featured" value="1" defaultChecked={filters.featured === "1"} className="size-4 accent-foreground" />
+                <input name="tag" defaultValue={filters.tag} placeholder="标签" aria-label="作品标签" className={fieldClass} />
+                <label className="relative min-w-0">
+                    <select
+                        name="sort"
+                        aria-label="作品排序"
+                        value={sort}
+                        onChange={(event) => {
+                            setSort(event.target.value);
+                            requestAnimationFrame(() => formRef.current?.requestSubmit());
+                        }}
+                        className={cn(fieldClass, "cursor-pointer pr-9")}
+                    >
+                        <option value="random">随机发现</option>
+                        <option value="featured">精选优先</option>
+                        <option value="latest">最新发布</option>
+                        <option value="popular">最多访问</option>
+                        <option value="weekly">本周热榜</option>
+                        <option value="monthly">本月热榜</option>
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 size-4 -translate-y-1/2 text-[var(--ink-3)]" />
+                </label>
+                <button
+                    type="button"
+                    aria-pressed={featuredOnly}
+                    onClick={() => setFeaturedOnly((value) => !value)}
+                    className={cn(
+                        "col-span-1 inline-flex h-11 min-w-0 items-center justify-center gap-2 rounded-xl px-4 text-[13px] font-medium transition md:col-span-1",
+                        featuredOnly ? "!bg-[var(--brand-soft)] !text-[var(--brand-600)]" : "!bg-[var(--surface-inset)] !text-[var(--ink-2)] hover:opacity-75",
+                    )}
+                >
+                    <span className={cn("size-2 shrink-0 rounded-full", featuredOnly ? "bg-[var(--brand-600)]" : "bg-[var(--ink-3)]/45")} />
                     只看精选
-                </label>
-                <div className="col-span-2 flex min-w-0 items-center justify-end gap-2 md:col-span-1">
+                </button>
+                {featuredOnly ? <input type="hidden" name="featured" value="1" /> : null}
+                {/* 窄屏时「只看精选」与「筛选」并成最后一行，不再留一个半宽的空格子；
+                    清除是次要动作，移动端交给空状态里的「清除筛选」，避免挤窄主按钮。 */}
+                <div className="col-span-1 flex min-w-0 items-center justify-end gap-4 md:col-span-1">
                     {filtered ? (
-                        <Link href={basePath} className="inline-flex h-10 items-center justify-center rounded-md border border-border bg-card px-3 text-sm text-foreground transition hover:bg-muted">
+                        <Link href={basePath} className="hidden shrink-0 text-[13px] font-medium !text-[var(--ink-3)] transition hover:!text-[var(--ink-1)] md:inline-flex">
                             清除
                         </Link>
                     ) : null}
-                    <button className="inline-flex h-10 min-w-0 flex-1 items-center justify-center gap-2 rounded-md !bg-foreground px-4 text-sm font-medium !text-background transition hover:opacity-80 md:flex-none" type="submit">
+                    <button className={cn(primaryClass, "w-full")} type="submit">
                         <Search className="size-4" />
                         筛选
                     </button>
@@ -88,46 +117,41 @@ export function GalleryView({ filters, gallery, basePath, embedded = false }: { 
             </form>
 
             {gallery.error ? (
-                <section className="grid min-h-48 place-items-center border-b border-dashed border-border px-4 text-center">
-                    <div>
-                        <p className="text-sm font-medium">作品广场暂时不可用</p>
-                        <p className="mt-1 text-xs text-muted-foreground">{gallery.error}</p>
-                    </div>
-                </section>
+                <EmptyState
+                    title="作品广场暂时不可用"
+                    description={gallery.error}
+                />
             ) : gallery.items.length ? (
-                <ResponsiveMasonryGrid className="grid-cols-2 py-3 sm:grid-cols-3 sm:py-4 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6" ariaLabel="作品列表">
+                <ResponsiveMasonryGrid className="grid-cols-2 gap-x-4 gap-y-8 pt-8 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-10 sm:pt-10 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6" ariaLabel="作品列表">
                     {gallery.items.map((item) => (
                         <PublicWorkGalleryCard key={item.slug} item={item} nextPath={basePath} onOpen={() => setPreviewSlug(item.slug)} onOpenAuthor={setCreatorUsername} />
                     ))}
                 </ResponsiveMasonryGrid>
             ) : (
-                <section className="flex min-h-64 flex-col items-center justify-center border-b border-dashed border-border px-4 py-10 text-center sm:min-h-80">
-                    <span className="grid size-11 place-items-center rounded-lg bg-card text-muted-foreground ring-1 ring-border">
-                        <GalleryVerticalEnd className="size-5" />
-                    </span>
-                    <h2 className="mt-4 text-base font-semibold">{filtered ? "没有匹配的公开作品" : "还没有公开作品"}</h2>
-                    <p className="mt-1.5 max-w-sm text-sm leading-6 text-muted-foreground">{filtered ? "调整筛选条件后再查看。" : "审核通过并公开发布的作品会出现在这里。"}</p>
-                    <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
-                        {filtered ? (
-                            <Link href={basePath} className={primaryLinkClass}>
+                <EmptyState
+                    title={filtered ? "没有匹配的公开作品" : "还没有公开作品"}
+                    description={filtered ? "换个关键词或分类，再看看别的创作。" : "审核通过并公开发布的作品会出现在这里。"}
+                    action={
+                        filtered ? (
+                            <Link href={basePath} className={primaryClass}>
                                 清除筛选
                             </Link>
                         ) : (
                             <>
-                                <GalleryPublishLink className={primaryLinkClass} label="发布第一个作品" />
-                                <Link href="/create" className="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-card px-4 text-sm font-medium text-foreground transition hover:bg-muted">
+                                <GalleryPublishLink className={primaryClass} label="发布第一个作品" />
+                                <Link href="/create" className={softClass}>
                                     <Sparkles className="size-4" />
                                     开始创作
                                 </Link>
                             </>
-                        )}
-                    </div>
-                </section>
+                        )
+                    }
+                />
             )}
 
             {gallery.nextCursor ? (
-                <div className="flex justify-center pt-2 sm:pt-4">
-                    <Link href={nextPageHref(basePath, filters, gallery.nextCursor)} className="inline-flex h-10 items-center gap-2 rounded-md border border-border bg-card px-4 text-sm font-medium text-foreground transition hover:bg-muted">
+                <div className="flex justify-center pt-10 sm:pt-14">
+                    <Link href={nextPageHref(basePath, filters, gallery.nextCursor)} className="inline-flex h-11 items-center gap-2 rounded-xl !bg-[var(--surface-inset)] px-6 text-[13px] font-medium !text-[var(--ink-1)] transition hover:opacity-75">
                         查看更多
                         <ArrowRight className="size-4" />
                     </Link>
@@ -139,14 +163,21 @@ export function GalleryView({ filters, gallery, basePath, embedded = false }: { 
     );
 }
 
-function MediaPlaceholder({ icon, label }: { icon: React.ReactNode; label: string }) {
+/* 空状态 / 错误态：不套虚线框，也不让一条横线把页面切成上下两半。
+ * 只有一枚浅底图标、一句标题、一行说明和一个动作，靠上下大留白把视线收在中间。 */
+function EmptyState({ title, description, action }: { title: string; description: string; action?: React.ReactNode }) {
     return (
-        <div className="grid size-full place-items-center text-muted-foreground">
-            <div className="flex flex-col items-center gap-2 text-xs">
-                {icon}
-                {label}
+        <section className="flex min-h-[320px] flex-col items-center justify-center px-6 py-16 text-center sm:min-h-[400px] sm:py-24">
+            <span className="grid size-14 place-items-center rounded-2xl bg-[var(--surface-inset)] text-[var(--ink-3)]">
+                <Compass className="size-6" />
+            </span>
+            {/* h2 的 margin 被 antd 重置，上边距交给包裹层承载。 */}
+            <div className="mt-6">
+                <h2 className="text-[17px] font-semibold tracking-[-0.01em] text-[var(--ink-1)]">{title}</h2>
             </div>
-        </div>
+            <p className="mt-2 max-w-sm text-[13px] leading-6 text-[var(--ink-3)]">{description}</p>
+            {action ? <div className="mt-7 flex flex-wrap items-center justify-center gap-3">{action}</div> : null}
+        </section>
     );
 }
 
@@ -155,7 +186,12 @@ function hasFilters(filters: GalleryFilters) {
 }
 
 function categoryClass(active: boolean) {
-    return cn("inline-flex h-9 shrink-0 items-center rounded-md px-3 text-sm transition", active ? "bg-muted font-medium text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground");
+    return cn(
+        "inline-flex h-9 shrink-0 items-center rounded-full px-4 text-[13px] transition",
+        active
+            ? "!bg-[var(--brand-soft)] font-semibold !text-[var(--brand-600)]"
+            : "font-medium !text-[var(--ink-3)] hover:!bg-[var(--surface-inset)] hover:!text-[var(--ink-1)]",
+    );
 }
 
 function galleryFilterHref(basePath: string, filters: GalleryFilters, category: string) {
