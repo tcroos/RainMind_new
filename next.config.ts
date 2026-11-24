@@ -47,6 +47,12 @@ export default function nextConfig(phase: string): NextConfig {
         experimental: {
             ...(Number.isSafeInteger(configuredBuildCpus) && configuredBuildCpus > 0 ? { cpus: configuredBuildCpus } : {}),
             proxyClientMaxBodySize: "220mb",
+            /* antd 是桶导入：仓库里 176 个文件写着 `import { Button, Input } from "antd"`，
+             * 打包器必须把整包的入口图解析一遍才知道每个符号在哪个文件。按需导入把它换成
+             * 直指组件路径的 import，webpack / Turbopack 都能省掉这一大块解析与常驻内存。
+             * Next 的默认优化清单里已经有 lucide-react，但没有 antd，所以这里要显式加。
+             * （本仓库没用到 @ant-design/icons，就不加无用项。） */
+            optimizePackageImports: ["antd"],
         },
         async rewrites() {
             return {
