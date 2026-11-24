@@ -344,7 +344,7 @@ function AccountMenuPanel({ user, avatarUrl, avatarInitial, onNavigate, onLogout
         { key: "site", label: "官网首页", icon: Globe, href: "/" },
     ];
     return (
-        <div className="w-[min(18.5rem,calc(100vw-2rem))] text-[var(--ink-1)]">
+        <div className="w-[min(16.5rem,calc(100vw-2rem))] text-[var(--ink-1)]">
             <div className="flex items-center gap-2.5 px-0.5">
                 <span className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-full ring-1 ring-black/5 dark:ring-white/15">
                     {avatarUrl ? (
@@ -446,7 +446,7 @@ function PointsQuickPanel({ user, onNavigate }: { user: LocalUser; onNavigate: (
     const planActionLabel = user.hasActivePlan ? "续费" : "升级";
     const dailyPoints = user.dailyPointsBalance || 0;
     return (
-        <div className="w-[min(17rem,calc(100vw-2rem))] text-[var(--ink-1)]">
+        <div className="w-[min(15rem,calc(100vw-2rem))] text-[var(--ink-1)]">
             <div className="flex items-center justify-between gap-2 px-1">
                 <span className="min-w-0 truncate text-[13px] font-semibold">{planLabel}</span>
                 <button
@@ -596,7 +596,9 @@ export function AccountRailBar({ expanded }: { expanded: boolean }) {
                     type="button"
                     aria-label="积分与套餐"
                     title="积分与套餐"
-                    className="inline-flex h-7 shrink-0 items-center gap-1 rounded-full bg-[var(--surface-inset)] px-2 text-[12px] font-semibold tabular-nums text-[var(--ink-1)] transition-colors hover:bg-[var(--surface-hover)]"
+                    /* 不加胶囊底色：和左边的名字同属一行文字信息，
+                     * 一有底色就会被读成「按钮压在账号行上」，破坏整行的干净。 */
+                    className="inline-flex h-7 shrink-0 items-center gap-1 rounded-full px-1 text-[12px] font-semibold tabular-nums text-[var(--ink-2)] transition-colors hover:text-[var(--ink-1)]"
                 >
                     <CreditSymbol className="text-[13px] text-[var(--brand-600)]" />
                     {formatCreditAmount(user.pointsBalance)}
