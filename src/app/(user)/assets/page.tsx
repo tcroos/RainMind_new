@@ -1,16 +1,16 @@
 "use client";
 
-import { FileAudio, FileDown, FileUp, Film, Plus, Search, Upload } from "lucide-react";
+import { FileAudio, FileDown, FileUp, Film, Inbox, Plus, RotateCcw, Search, Upload } from "lucide-react";
 import { useRef, useState, type DragEvent as ReactDragEvent } from "react";
 import { App, Button, Form, Input, Modal, Pagination, Segmented, Select, Space, Spin, Tag, Tooltip, Typography } from "antd";
 import { saveAs } from "file-saver";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
+import { LibraryEmptyState, LibraryTabs, type LibraryTabItem } from "@/components/library/library-ui";
 import { MyPromptsPage } from "@/components/my-prompts/my-prompts-page";
+import { PublicPromptsPanel } from "@/components/prompts/public-prompts-panel";
 
 import { useCopyText } from "@/hooks/use-copy-text";
-import { CompactEmptyState } from "@/components/compact-empty-state";
 import { droppedFiles, leftDropTarget, preventFileDragEvent } from "@/lib/file-drop";
 import { formatBytes } from "@/lib/image-utils";
 import { mediaDownloadFileName } from "@/lib/media-file";
@@ -53,7 +53,10 @@ export default function AssetsPage() {
     /* 素材与提示词合并成一个页面，靠 ?tab 切换。
      * 侧栏的二级菜单和页面内的 tab 都指向同一组 URL，两边状态永远一致。 */
     const searchParams = useSearchParams();
-    const tab: "assets" | "prompts" = searchParams.get("tab") === "prompts" ? "prompts" : "assets";
+    /* 三段内容共用同一外壳：素材 / 我的提示词 / 公共词库。
+     * ?tab=prompts 是上一版「我的提示词」的旧参数，继续认它，旧链接不会突然跳到公共词库。 */
+    const rawTab = searchParams.get("tab");
+    const tab: LibraryTabKey = rawTab === "mine" || rawTab === "prompts" ? "mine" : rawTab === "public" ? "public" : "assets";
     const copyText = useCopyText();
     const [form] = Form.useForm<AssetFormValues>();
     const coverInputRef = useRef<HTMLInputElement>(null);
@@ -268,116 +271,131 @@ export default function AssetsPage() {
         <div className="h-full min-h-0 overflow-hidden bg-background text-foreground">
             <main className="h-full min-h-0 overflow-y-auto px-3 py-3 sm:px-6 sm:py-6">
                 <div className="mx-auto max-w-[1560px]">
-                    {/* 统一外框：标题 + 二级 tab。
-                        素材和提示词以前是两条侧栏入口、两套页头、两个滚动容器，
-                        合到一个页面后必须共用这一套外框（一条分割线、一个滚动容器、一个 max-width），
-                        否则就是「两个应用上下摞着」。面板只负责自己的工具行与内容。 */}
-                    <header className="border-b border-border">
+                    {/* 统一外框：一个标题、一组 tab、一个滚动容器。
+                        三段内容（素材 / 我的提示词 / 公共词库）共用这里，面板不再自带页头与滚动。
+                        没有分割线、没有描边卡：层级靠留白、字重与浅底药丸表达。 */}
+                    <header>
                         <div className="flex flex-wrap items-end justify-between gap-3">
                             <div className="min-w-0">
-                                <h1 className="text-lg font-semibold sm:text-xl">素材库</h1>
-                                <p className="mt-0.5 text-xs text-muted-foreground">
-                                    {tab === "prompts" ? "把常用提示词存成自己的库，随时复制或加入素材" : total ? `${total} 项素材` : "集中管理创作中复用的内容"}
+                                <h1 className="text-xl font-semibold tracking-[-0.01em] text-[var(--ink-1)] sm:text-2xl">素材库</h1>
+                                <p className="mt-1 text-xs text-[var(--ink-3)] sm:text-[13px]">
+                                    {tab === "public"
+                                        ? "发现公共提示词，一键收进自己的素材"
+                                        : tab === "mine"
+                                          ? "把调好的提示词存成自己的库，随时复制复用"
+                                          : total
+                                            ? `${total} 项素材 · 集中管理创作中复用的内容`
+                                            : "集中管理创作中复用的内容"}
                                 </p>
                             </div>
+                            {tab === "assets" ? (
+                                <Button type="primary" className="library-primary" icon={<Plus className="size-4" />} disabled={!ready} onClick={openCreate}>
+                                    新增素材
+                                </Button>
+                            ) : null}
                         </div>
-                        <nav role="tablist" aria-label="素材库内容" className="mt-3 flex items-center gap-5">
-                            <LibraryTab active={tab === "assets"} href="/assets" label="素材" />
-                            <LibraryTab active={tab === "prompts"} href="/assets?tab=prompts" label="提示词" />
-                        </nav>
+                        <LibraryTabs tabs={LIBRARY_TABS} active={tab} />
                     </header>
 
-                    {tab === "prompts" ? (
+                    {tab === "public" ? (
+                        <PublicPromptsPanel />
+                    ) : tab === "mine" ? (
                         <MyPromptsPage />
                     ) : (
                         <>
-                    <div className="flex flex-wrap items-center justify-between gap-2 pt-3 sm:pt-4">
-                        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-                            <Input.Search
-                                className="min-w-[180px] flex-1 sm:max-w-sm"
-                                size="middle"
-                                allowClear
-                                prefix={<Search className="size-4 text-stone-400" />}
-                                value={keyword}
-                                placeholder="搜索标题、内容、标签或来源"
-                                onChange={(event) => {
-                                    setPage(1);
-                                    setKeyword(event.target.value);
-                                }}
-                                onSearch={(value) => {
-                                    setPage(1);
-                                    setKeyword(value);
-                                }}
-                            />
-                            <div className="min-w-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                                <Segmented
-                                    value={kindFilter}
-                                    options={kindOptions}
-                                    onChange={(value) => {
-                                        setPage(1);
-                                        setKindFilter(value as AssetKind | "all");
-                                    }}
-                                />
+                            <div className="flex flex-wrap items-center justify-between gap-2 pt-5">
+                                <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                                    {/* 普通 Input 而不是 Input.Search：已经是实时筛选，
+                                        再挂一个独立搜索按钮只会多出一块方角，与无线条语言冲突。 */}
+                                    <Input
+                                        className="library-input min-w-[180px] flex-1 sm:max-w-sm"
+                                        size="middle"
+                                        allowClear
+                                        prefix={<Search className="size-4 text-[var(--ink-3)]" />}
+                                        value={keyword}
+                                        placeholder="搜索标题、内容、标签或来源"
+                                        onChange={(event) => {
+                                            setPage(1);
+                                            setKeyword(event.target.value);
+                                        }}
+                                    />
+                                    <div className="min-w-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                                        <Segmented
+                                            className="library-segmented"
+                                            value={kindFilter}
+                                            options={kindOptions}
+                                            onChange={(value) => {
+                                                setPage(1);
+                                                setKindFilter(value as AssetKind | "all");
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="flex shrink-0 items-center gap-1">
+                                    <Tooltip title="导出全部素材">
+                                        <Button type="text" className="library-tool" icon={<FileDown className="size-4" />} onClick={() => void exportAllAssets()}>
+                                            导出
+                                        </Button>
+                                    </Tooltip>
+                                    <Tooltip title={importing ? "正在导入" : "从压缩包导入"}>
+                                        <Button type="text" className="library-tool" icon={<FileUp className="size-4" />} disabled={!ready || importing} loading={importing} onClick={() => assetInputRef.current?.click()}>
+                                            导入
+                                        </Button>
+                                    </Tooltip>
+                                </div>
                             </div>
-                        </div>
-                        <div className="flex shrink-0 items-center gap-1">
-                            <Tooltip title="导出素材">
-                                <Button type="text" shape="circle" icon={<FileDown className="size-4" />} aria-label="导出素材" onClick={() => void exportAllAssets()} />
-                            </Tooltip>
-                            <Tooltip title={importing ? "正在导入" : "导入素材"}>
-                                <Button type="text" shape="circle" icon={<FileUp className="size-4" />} aria-label="导入素材" disabled={!ready || importing} loading={importing} onClick={() => assetInputRef.current?.click()} />
-                            </Tooltip>
-                            <Tooltip title="新增素材">
-                                <Button type="primary" shape="circle" icon={<Plus className="size-4" />} aria-label="新增素材" disabled={!ready} onClick={openCreate} />
-                            </Tooltip>
-                        </div>
-                    </div>
 
-                    <div className="flex flex-col gap-3 pt-3 sm:gap-5 sm:pt-5">
-                        <div className={cn("grid grid-cols-1 gap-3 transition-opacity sm:grid-cols-[repeat(auto-fill,minmax(240px,280px))] sm:justify-start", loading && assets.length && "opacity-60")} aria-busy={loading}>
-                            {assets.map((asset) => (
-                                <AssetCard
-                                    key={asset.id}
-                                    asset={asset}
-                                    onOpen={() => setPreviewAsset(asset)}
-                                    onEdit={() => openEdit(asset)}
-                                    onCopy={copyAssetText}
-                                    onDownload={downloadImage}
-                                    onDelete={() => setDeletingAsset(asset)}
-                                    onPublish={asset.kind === "text" ? undefined : () => router.push(`/works?sourceType=media&sourceId=${encodeURIComponent(asset.id)}`)}
-                                />
-                            ))}
-                        </div>
+                            <div className="pt-4 sm:pt-5">
+                                <div className={cn("grid grid-cols-1 gap-4 transition-opacity sm:grid-cols-[repeat(auto-fill,minmax(240px,280px))] sm:justify-start", loading && assets.length && "opacity-60")} aria-busy={loading}>
+                                    {assets.map((asset) => (
+                                        <AssetCard
+                                            key={asset.id}
+                                            asset={asset}
+                                            onOpen={() => setPreviewAsset(asset)}
+                                            onEdit={() => openEdit(asset)}
+                                            onCopy={copyAssetText}
+                                            onDownload={downloadImage}
+                                            onDelete={() => setDeletingAsset(asset)}
+                                            onPublish={asset.kind === "text" ? undefined : () => router.push(`/works?sourceType=media&sourceId=${encodeURIComponent(asset.id)}`)}
+                                        />
+                                    ))}
+                                </div>
 
-                        {loading && !assets.length ? (
-                            <section className="flex min-h-32 items-center justify-center sm:min-h-56">
-                                <Spin description="正在加载素材" />
-                            </section>
-                        ) : error ? (
-                            <section className="flex min-h-32 flex-col items-center justify-center gap-3 border-y border-border px-4 text-center sm:min-h-56">
-                                <p className="text-sm text-stone-500 dark:text-stone-400">{error}</p>
-                                <Button size="small" onClick={reload}>
-                                    重新加载
-                                </Button>
-                            </section>
-                        ) : !assets.length ? (
-                            <CompactEmptyState title="没有找到素材" description="调整筛选条件，或新增一条常用素材。" />
-                        ) : null}
+                                {loading && !assets.length ? (
+                                    <section className="flex min-h-40 items-center justify-center">
+                                        <Spin description="正在加载素材" />
+                                    </section>
+                                ) : error ? (
+                                    <LibraryEmptyState icon={<RotateCcw className="size-5" />} title="素材加载失败" description={error} action={<Button onClick={reload}>重新加载</Button>} />
+                                ) : !assets.length ? (
+                                    <LibraryEmptyState
+                                        icon={<Inbox className="size-5" />}
+                                        title="还没有素材"
+                                        description="把常用的图片、文本与视频存进来，下次创作时直接复用。"
+                                        action={
+                                            <Button type="primary" className="library-primary" icon={<Plus className="size-4" />} disabled={!ready} onClick={openCreate}>
+                                                新增第一条素材
+                                            </Button>
+                                        }
+                                    />
+                                ) : null}
 
-                        <div className="flex justify-center overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                            <Pagination
-                                current={page}
-                                pageSize={pageSize}
-                                total={total}
-                                showSizeChanger
-                                pageSizeOptions={[10, 20, 50, 100]}
-                                onChange={(nextPage, nextPageSize) => {
-                                    setPage(nextPage);
-                                    setPageSize(nextPageSize);
-                                }}
-                            />
-                        </div>
-                    </div>
+                                {!loading && assets.length > 0 && total > pageSize ? (
+                                    <div className="flex justify-center pt-5">
+                                        <Pagination
+                                            current={page}
+                                            pageSize={pageSize}
+                                            total={total}
+                                            showSizeChanger
+                                            pageSizeOptions={[10, 20, 50, 100]}
+                                            onChange={(nextPage, nextPageSize) => {
+                                                setPage(nextPage);
+                                                setPageSize(nextPageSize);
+                                            }}
+                                        />
+                                    </div>
+                                ) : null}
+                            </div>
                         </>
                     )}
                 </div>
@@ -533,18 +551,12 @@ export default function AssetsPage() {
     );
 }
 
-/* 二级 tab：和主页（已发布 / 我的喜欢 / 作品管理）用同一套下划线样式，
- * 让「切换内容」在全站读起来是同一种控件，而不是每个页面各发明一套。 */
-function LibraryTab({ active, href, label }: { active: boolean; href: string; label: string }) {
-    return (
-        <Link
-            href={href}
-            role="tab"
-            aria-selected={active}
-            className={`relative inline-flex h-10 items-center text-sm font-medium transition-colors ${active ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}
-        >
-            {label}
-            {active ? <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-foreground" /> : null}
-        </Link>
-    );
-}
+/* 三段内容共用的 tab 定义。URL 是唯一状态源：可分享、可返回、刷新不丢。
+ * 下划线 tab 已弃用 —— 那条横线既违和「不要线条」，窄屏又会被挤成等宽小字。 */
+type LibraryTabKey = "assets" | "mine" | "public";
+
+const LIBRARY_TABS: readonly LibraryTabItem[] = [
+    { key: "assets", label: "素材", href: "/assets" },
+    { key: "mine", label: "我的提示词", href: "/assets?tab=mine" },
+    { key: "public", label: "公共词库", href: "/assets?tab=public" },
+];

@@ -1,0 +1,134 @@
+/* 素材库：无线条控件层。
+ *
+ * antd 的 Input / Select / Segmented / Tag 默认用一圈浅灰描边表达边界。
+ * 在纯色平背景上，这些描边和卡片、分隔线叠在一起会读成「到处都是线」。
+ * 这里统一改成浅底块（--surface-inset）+ 字重，选中态用品牌柔色，
+ * 只在聚焦时给一圈极淡的柔光，不画硬边框。
+ */
+
+.library-input.ant-input-affix-wrapper,
+.library-input.ant-input {
+    background: var(--surface-inset) !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    border-radius: 12px !important;
+    color: var(--ink-1) !important;
+}
+.library-input.ant-input-affix-wrapper input.ant-input {
+    background: transparent !important;
+}
+.library-input.ant-input-affix-wrapper .ant-input-prefix {
+    color: var(--ink-3) !important;
+    margin-right: 8px !important;
+}
+.library-input.ant-input::placeholder,
+.library-input input::placeholder {
+    color: var(--ink-3) !important;
+}
+.library-input.ant-input-affix-wrapper:focus-within,
+.library-input.ant-input:focus {
+    box-shadow: 0 0 0 2px var(--brand-soft) !important;
+}
+
+.library-select.ant-select .ant-select-selector {
+    background: var(--surface-inset) !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    border-radius: 12px !important;
+}
+.library-select.ant-select-focused .ant-select-selector {
+    box-shadow: 0 0 0 2px var(--brand-soft) !important;
+}
+.library-select .ant-select-selection-item,
+.library-select .ant-select-selection-placeholder,
+.library-select .ant-select-arrow {
+    color: var(--ink-2) !important;
+}
+
+.library-segmented.ant-segmented {
+    background: var(--surface-inset) !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    border-radius: 12px !important;
+    padding: 3px !important;
+}
+.library-segmented .ant-segmented-item,
+.library-segmented .ant-segmented-item-label {
+    color: var(--ink-3) !important;
+    border-radius: 9px !important;
+}
+.library-segmented .ant-segmented-item-selected,
+.library-segmented .ant-segmented-item-selected .ant-segmented-item-label,
+.library-segmented .ant-segmented-thumb {
+    background: var(--surface-panel) !important;
+    color: var(--ink-1) !important;
+    border-radius: 9px !important;
+    box-shadow: 0 1px 3px rgba(17, 17, 19, 0.08) !important;
+}
+
+.library-tool.ant-btn {
+    background: var(--surface-inset) !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    color: var(--ink-2) !important;
+    border-radius: 12px !important;
+}
+.library-tool.ant-btn:not(:disabled):hover {
+    background: var(--surface-hover) !important;
+    color: var(--ink-1) !important;
+}
+
+/* 主按钮是全页唯一的橙色动作点：仍不加描边，靠实色块本身成立。 */
+.library-primary.ant-btn-primary {
+    background: var(--brand-600) !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    border-radius: 12px !important;
+    color: #fff !important;
+}
+.library-primary.ant-btn-primary:not(:disabled):hover {
+    background: var(--brand-500) !important;
+}
+
+.library-card-action.ant-btn {
+    color: var(--ink-3) !important;
+    border-radius: 8px !important;
+}
+.library-card-action.ant-btn:hover {
+    color: var(--brand-600) !important;
+    background: var(--brand-soft) !important;
+}
+
+/* 分类胶囊：antd CheckableTag 选中态默认是蓝底描边，这里接管成品牌柔色。 */
+.prompt-filter-tag.ant-tag {
+    margin: 0 !important;
+    padding: 5px 12px !important;
+    border-radius: 999px !important;
+    border-color: transparent !important;
+    background: transparent !important;
+    color: var(--ink-3) !important;
+    font-size: 12px !important;
+}
+.prompt-filter-tag.ant-tag.is-active,
+.prompt-filter-tag.ant-tag-checkable-checked {
+    background: var(--brand-soft) !important;
+    border-color: transparent !important;
+    color: var(--brand-600) !important;
+    font-weight: 600;
+}
+
+/* 移动端抽屉：选中态不用「整块灰底 + 圆点」，只把图标与文字染成品牌色并加粗。
+ * global-surfaces.css 有一条同特异性规则给选中项刷灰底，这里在它之后加载并覆盖；
+ * 不动那个文件是因为它正被别的助手占用。 */
+.workspace-mobile-nav .ant-drawer-header {
+    border-bottom: 0 !important;
+}
+.workspace-mobile-nav .ant-drawer-body a[aria-current="page"] {
+    background-color: transparent !important;
+    color: var(--brand-600) !important;
+    font-weight: 600 !important;
+}
+.workspace-mobile-nav .ant-drawer-body a:not([aria-current="page"]):hover {
+    background-color: var(--surface-inset) !important;
+    color: var(--ink-1) !important;
+}

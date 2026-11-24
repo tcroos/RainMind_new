@@ -4,6 +4,7 @@ import { BookMarked, FolderPlus, Plus, RotateCcw, Search, Trash2 } from "lucide-
 import { useCallback, useDeferredValue, useEffect, useRef, useState } from "react";
 import { App, Button, Form, Input, Modal, Pagination, Popconfirm, Tag } from "antd";
 
+import { LibraryEmptyState } from "@/components/library/library-ui";
 import { PromptCard } from "@/components/prompts/prompt-card";
 import { PromptDetailDialog } from "@/components/prompts/prompt-detail-dialog";
 import { cn } from "@/lib/utils";
@@ -127,87 +128,74 @@ export function MyPromptsPage() {
          * 自己再套一层 <main> + overflow 会变成页内第二条滚动条，也是「硬塞」的来源。 */
         <div className="bg-background">
             <div className="w-full">
-                <header className="flex flex-wrap items-start justify-between gap-3 pt-3 sm:pt-4">
-                        <div className="flex shrink-0 items-center gap-2">
-                            <span className="hidden h-7 items-center gap-1.5 rounded-full border border-[var(--hairline)] bg-card px-2.5 text-[11px] tabular-nums text-[var(--ink-3)] sm:inline-flex sm:text-[12px]">
-                                共 <span className="font-semibold text-[var(--ink-1)]">{total}</span> 条
-                            </span>
-                            <Button type="primary" icon={<Plus className="size-4" />} className="!h-9 !rounded-xl" onClick={() => setCreateOpen(true)}>
-                                添加提示词
+                <header className="flex flex-wrap items-center justify-between gap-2 pt-5">
+                    <span className="text-[12px] tabular-nums text-[var(--ink-3)]">
+                        共 <span className="font-semibold text-[var(--ink-1)]">{total}</span> 条
+                    </span>
+                    <Button type="primary" icon={<Plus className="size-4" />} className="library-primary" onClick={() => setCreateOpen(true)}>
+                        添加提示词
+                    </Button>
+                </header>
+
+                {!showEmptyState || hasFilters ? (
+                    <>
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                            <Input
+                                allowClear
+                                size="large"
+                                className="library-input min-w-[180px] flex-1 sm:max-w-sm"
+                                prefix={<Search className="size-4 text-[var(--ink-3)]" />}
+                                value={keyword}
+                                placeholder="搜索标题或提示词内容"
+                                onChange={(event) => {
+                                    setKeyword(event.target.value);
+                                    setPage(1);
+                                }}
+                            />
+                            <Button size="large" className="library-tool" icon={<RotateCcw className="size-3.5" />} aria-label="清除筛选" disabled={!hasFilters} onClick={clearFilters}>
+                                清除
                             </Button>
                         </div>
-                    </header>
 
-                    {!showEmptyState || hasFilters ? (
-                        <section className="mt-3 rounded-2xl border border-[var(--hairline)] bg-card p-2.5 sm:mt-5 sm:p-4">
-                            <div className="flex min-w-0 items-center gap-2">
-                                <Input
-                                    allowClear
-                                    size="large"
-                                    className="!h-10 min-w-0 flex-1"
-                                    prefix={<Search className="size-4 text-[var(--ink-3)]" />}
-                                    value={keyword}
-                                    placeholder="搜索标题或提示词内容"
-                                    onChange={(event) => {
-                                        setKeyword(event.target.value);
-                                        setPage(1);
-                                    }}
-                                />
-                                <Button size="large" className="!h-10 shrink-0 !rounded-xl" icon={<RotateCcw className="size-3.5" />} aria-label="清除筛选" disabled={!hasFilters} onClick={clearFilters}>
-                                    <span className="hidden sm:inline">清除</span>
-                                </Button>
-                            </div>
-
-                            {categories.length > 1 ? (
-                                <div className="mt-2.5 border-t border-[var(--hairline)] pt-2.5 sm:mt-3 sm:pt-3">
-                                    <div className="flex min-w-0 items-start gap-2 sm:items-center">
-                                        <span className="mt-2 w-7 shrink-0 text-[11px] font-medium text-[var(--ink-3)] sm:mt-0 sm:w-8">分类</span>
-                                        <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto px-1 py-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                                            {categories.map((option) => {
-                                                const active = option === category;
-                                                return (
-                                                    <Tag.CheckableTag key={option} checked={active} className={cn("prompt-filter-tag shrink-0", active && "is-active")} onChange={() => updateCategory(option)}>
-                                                        {option}
-                                                    </Tag.CheckableTag>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
+                        {categories.length > 1 ? (
+                            <div className="mt-3 flex min-w-0 items-center gap-2">
+                                <span className="w-8 shrink-0 text-[11px] font-medium text-[var(--ink-3)]">分类</span>
+                                <div className="thin-scrollbar flex min-w-0 flex-1 gap-1.5 overflow-x-auto px-0.5 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                                    {categories.map((option) => {
+                                        const active = option === category;
+                                        return (
+                                            <Tag.CheckableTag key={option} checked={active} className={cn("prompt-filter-tag shrink-0", active && "is-active")} onChange={() => updateCategory(option)}>
+                                                {option}
+                                            </Tag.CheckableTag>
+                                        );
+                                    })}
                                 </div>
-                            ) : null}
-                        </section>
-                    ) : null}
+                            </div>
+                        ) : null}
+                    </>
+                ) : null}
 
                     {loading ? <MyPromptGridSkeleton /> : null}
 
                     {showEmptyState ? (
                         hasFilters ? (
-                            <div className="mt-5 flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--hairline)] bg-card px-6 py-16 text-center sm:mt-6">
-                                <span className="grid size-10 place-items-center rounded-xl bg-[var(--surface-inset)] text-[var(--ink-3)]">
-                                    <Search className="size-5" aria-hidden />
-                                </span>
-                                <h2 className="mt-3 text-[14px] font-semibold text-[var(--ink-1)]">没有匹配的提示词</h2>
-                                <p className="mt-1 max-w-[320px] text-[12.5px] leading-5 text-[var(--ink-3)]">换个关键词，或清除分类筛选再看看。</p>
-                                <Button className="mt-4 !rounded-xl" icon={<RotateCcw className="size-3.5" />} onClick={clearFilters}>
-                                    清除筛选
-                                </Button>
-                            </div>
+                            <LibraryEmptyState icon={<Search className="size-5" />} title="没有匹配的提示词" description="换个关键词，或清除分类筛选再看看。" action={<Button icon={<RotateCcw className="size-3.5" />} onClick={clearFilters}>清除筛选</Button>} />
                         ) : (
-                            <div className="mt-5 flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--hairline)] bg-card px-6 py-16 text-center sm:mt-6">
-                                <span className="grid size-10 place-items-center rounded-xl bg-[var(--brand-soft)] text-[var(--brand-600)]">
-                                    <BookMarked className="size-5" aria-hidden />
-                                </span>
-                                <h2 className="mt-3 text-[14px] font-semibold text-[var(--ink-1)]">还没有保存提示词</h2>
-                                <p className="mt-1 max-w-[340px] text-[12.5px] leading-5 text-[var(--ink-3)]">把调好的提示词存进来，下次直接复制使用，也可以一键加入我的素材。</p>
-                                <Button type="primary" className="mt-4 !rounded-xl" icon={<Plus className="size-4" />} onClick={() => setCreateOpen(true)}>
-                                    添加第一个提示词
-                                </Button>
-                            </div>
+                            <LibraryEmptyState
+                                icon={<BookMarked className="size-5" />}
+                                title="还没有保存提示词"
+                                description="把调好的提示词存进来，下次直接复制使用，也可以一键加入我的素材。"
+                                action={
+                                    <Button type="primary" className="library-primary" icon={<Plus className="size-4" />} onClick={() => setCreateOpen(true)}>
+                                        添加第一个提示词
+                                    </Button>
+                                }
+                            />
                         )
                     ) : null}
 
                     {!loading && items.length ? (
-                        <div className="mt-3 grid gap-2.5 sm:mt-5 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 2xl:grid-cols-4">
+                        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                             {items.map((item) => (
                                 <PromptCard
                                     key={item.id}
@@ -315,18 +303,14 @@ export function MyPromptsPage() {
 
 function MyPromptGridSkeleton() {
     return (
-        <div className="mt-3 grid gap-2.5 sm:mt-5 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 2xl:grid-cols-4" aria-hidden>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" aria-hidden>
             {Array.from({ length: 4 }).map((_, index) => (
-                <div key={index} className="overflow-hidden rounded-2xl border border-[var(--hairline)] bg-card">
-                    <div className="aspect-[16/10] w-full animate-pulse bg-[var(--surface-inset)]" />
-                    <div className="space-y-2 p-3 sm:p-3.5">
-                        <div className="h-3.5 w-2/3 animate-pulse rounded bg-[var(--surface-inset)]" />
-                        <div className="h-3 w-full animate-pulse rounded bg-[var(--surface-inset)]" />
-                        <div className="h-3 w-4/5 animate-pulse rounded bg-[var(--surface-inset)]" />
-                        <div className="flex items-center justify-between pt-2">
-                            <div className="h-3 w-16 animate-pulse rounded bg-[var(--surface-inset)]" />
-                            <div className="h-6 w-20 animate-pulse rounded-lg bg-[var(--surface-inset)]" />
-                        </div>
+                <div key={index} className="overflow-hidden rounded-2xl bg-[var(--surface-panel)] p-3 shadow-[0_1px_2px_rgba(17,17,19,0.04)]">
+                    <div className="aspect-[16/10] w-full rounded-xl bg-[var(--surface-inset)]" />
+                    <div className="space-y-2 px-0.5 pt-3">
+                        <div className="h-3.5 w-2/3 rounded bg-[var(--surface-inset)]" />
+                        <div className="h-3 w-full rounded bg-[var(--surface-inset)]" />
+                        <div className="h-3 w-4/5 rounded bg-[var(--surface-inset)]" />
                     </div>
                 </div>
             ))}

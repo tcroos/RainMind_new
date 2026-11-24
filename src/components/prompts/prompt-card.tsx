@@ -1,7 +1,7 @@
 "use client";
 
 import { Copy, Quote } from "lucide-react";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Button } from "antd";
 
 import { imagePreviewUrl } from "@/lib/media-image-url";
@@ -35,7 +35,7 @@ export function PromptCard({
     const hasCover = Boolean(item.coverUrl);
 
     return (
-        <article className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-[var(--hairline)] bg-card text-[var(--ink-1)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_20px_44px_-28px_rgba(17,17,19,0.35)]">
+        <article className="group flex min-w-0 flex-col overflow-hidden rounded-2xl bg-[var(--surface-panel)] text-[var(--ink-1)] shadow-[0_1px_3px_rgba(17,17,19,0.05)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_36px_-24px_rgba(17,17,19,0.38)] dark:shadow-[0_1px_3px_rgba(0,0,0,0.5)]">
             {/* 没有配图的提示词不占一块 16:10 的空白封面：改成纯文字卡，
                 「我的提示词」里几乎都是这种情况，一排灰框会让页面看起来像加载失败。 */}
             {hasCover ? (
@@ -79,7 +79,7 @@ export function PromptCard({
                     {metaTags.length > 2 ? <span className="shrink-0 text-[10.5px] leading-4 text-[var(--ink-3)]">+{metaTags.length - 2}</span> : null}
                 </div>
 
-                <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-[var(--hairline)] pt-2.5">
+                <div className="mt-3 flex items-center justify-between gap-2">
                     <span className="shrink-0 text-[11px] text-[var(--ink-3)]">{formatPromptDate(item.updatedAt)}</span>
                     <div className="flex min-w-0 items-center gap-1">
                         <Button size="small" type={actionType} icon={actionIcon} className="!rounded-lg" onClick={onCopy}>
@@ -94,40 +94,50 @@ export function PromptCard({
 }
 
 /**
- * 封面：加载时是一块安静的呼吸灰，失败时退成标题文字。
+ * 封面：加载时是一块安静的浅底，失败时退成标题文字。
  * 不走全局 LazyMediaImage 的品牌 Logo 占位 —— 词库里不少条目没有配图，
  * 一排 Logo 水印会读成"图片全挂了"。
+ *
+ * 这里刻意不用浏览器懒加载：每页只有 16 张缩略图（640px），
+ * 首屏懒加载会让下面两行停在 opacity-0 + 呼吸灰，一眼看过去像「有框架没内容」——
+ * 用户就为此误以为公共词库是空的。改成首屏直接加载，占位也不再闪烁。
  */
 function PromptCover({ url, title }: { url: string; title: string }) {
     const [status, setStatus] = useState<"loading" | "ready" | "error">(url ? "loading" : "error");
+    const imgRef = useRef<HTMLImageElement>(null);
 
-    useEffect(() => setStatus(url ? "loading" : "error"), [url]);
+    useEffect(() => {
+        setStatus(url ? "loading" : "error");
+        /* 图片可能在 hydration 之前就已完成，onLoad 不会补发；这里兜一次，
+         * 否则那几张会永远停在占位层上，看起来像「图片挂了」。 */
+        const img = imgRef.current;
+        if (img?.complete) setStatus(img.naturalWidth > 0 ? "ready" : "error");
+    }, [url]);
 
     return (
-        <div className="relative size-full overflow-hidden bg-[var(--surface-inset)]">
+        <div className="relative size-full overflow-hidden bg-[var(--surface-soft)]">
+            {/* 加载中与失败都直接显示标题：即使某张图慢，卡片也读得出内容，
+                不会变成一块「有框架没内容」的灰砖。图片就绪后淡入盖住这层。 */}
             {status !== "ready" ? (
                 <div
                     aria-hidden
                     className={cn(
-                        "absolute inset-0 bg-[linear-gradient(120deg,var(--surface-soft)_0%,var(--surface-inset)_52%,var(--surface-soft)_100%)]",
-                        status === "loading" && "animate-pulse",
+                        "absolute inset-0 flex flex-col items-center justify-center gap-1.5 px-4",
+                        status === "error" ? "bg-[linear-gradient(135deg,var(--brand-soft)_0%,var(--surface-soft)_56%,var(--surface-inset)_100%)]" : "bg-[var(--surface-soft)]",
                     )}
-                />
-            ) : null}
-            {status === "error" ? (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-[linear-gradient(135deg,var(--brand-soft)_0%,var(--surface-soft)_56%,var(--surface-inset)_100%)] px-4">
-                    <Quote className="size-3.5 text-[var(--brand-600)] opacity-60" aria-hidden />
+                >
+                    <Quote className={cn("size-3.5 text-[var(--brand-600)]", status === "loading" && "opacity-40")} aria-hidden />
                     <span className="line-clamp-3 text-center text-[12px] font-medium leading-5 text-[var(--ink-2)]">{title}</span>
                 </div>
             ) : null}
             {url ? (
                 // eslint-disable-next-line @next/next/no-img-element -- 素材域名来自用户上传与模型产物，不走 next/image 白名单
                 <img
+                    ref={imgRef}
                     src={url}
                     alt={title}
-                    loading="lazy"
                     decoding="async"
-                    className={cn("relative size-full object-cover transition-[opacity,transform] duration-500 group-hover:scale-[1.03]", status === "ready" ? "opacity-100" : "opacity-0")}
+                    className={cn("relative size-full object-cover transition-[opacity,transform] duration-300 group-hover:scale-[1.03]", status === "ready" ? "opacity-100" : "opacity-0")}
                     onLoad={() => setStatus("ready")}
                     onError={() => setStatus("error")}
                 />

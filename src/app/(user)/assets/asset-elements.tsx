@@ -28,17 +28,17 @@ export function AssetCard({
     const summary = assetSummary(asset);
     const action = (label: string) => `${label} ${asset.title}`;
     return (
-        <article className="group min-w-0 overflow-hidden rounded-xl border border-border bg-card transition-[border-color,transform] duration-200 hover:-translate-y-0.5 hover:border-foreground/30">
+        <article className="group min-w-0 overflow-hidden rounded-2xl bg-[var(--surface-panel)] shadow-[0_1px_3px_rgba(17,17,19,0.05)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_36px_-24px_rgba(17,17,19,0.38)] dark:shadow-[0_1px_3px_rgba(0,0,0,0.5)]">
             <button type="button" aria-label={`查看 ${asset.title}`} className="relative block w-full overflow-hidden bg-muted text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring" onClick={onOpen}>
                 {cover ? (
                     <img src={imagePreviewUrl(cover, 800)} alt={asset.title} className="aspect-[16/10] w-full object-cover transition-transform duration-300 group-hover:scale-[1.025]" />
                 ) : (
                     <span className="flex aspect-[16/10] flex-col items-center justify-center gap-2 p-4 text-center text-xs leading-5 text-muted-foreground sm:p-6">
-                        <span className="grid size-9 place-items-center rounded-full border border-border bg-background/80 text-foreground">{assetKindIcon(asset.kind)}</span>
+                        <span className="grid size-9 place-items-center rounded-xl bg-[var(--surface-inset)] text-[var(--ink-2)]">{assetKindIcon(asset.kind)}</span>
                         <span className="line-clamp-3">{asset.kind === "text" ? asset.data.content : "暂无封面"}</span>
                     </span>
                 )}
-                <span className="absolute bottom-2.5 left-2.5 inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-black/65 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur-sm">
+                <span className="absolute bottom-2.5 left-2.5 inline-flex items-center gap-1.5 rounded-full bg-black/60 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur-sm">
                     {assetKindIcon(asset.kind)} {assetKindLabel(asset.kind)}
                 </span>
             </button>
@@ -48,7 +48,7 @@ export function AssetCard({
                 </button>
                 <p className="mt-1 truncate text-[11px] text-muted-foreground">{asset.source || assetKindLabel(asset.kind)}</p>
                 <p className="mt-2 truncate text-xs text-muted-foreground">{summary}</p>
-                <div className="mt-3 flex min-w-0 items-center justify-between gap-2 border-t border-border pt-2.5">
+                <div className="mt-3 flex min-w-0 items-center justify-between gap-2">
                     <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
                         {(asset.tags || []).slice(0, 2).map((tag) => (
                             <span key={tag} className="max-w-24 truncate rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
