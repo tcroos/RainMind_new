@@ -191,3 +191,6 @@ git worktree add ../vozeb-wt-canvas -b feat/canvas-local feat/3034-frontend-loca
 - 2026-11-24 14:00 OWNER-SHELL 追加 §8 五条（三笔提交 + 导航文件位置变更提醒 + vitest 失败原因说明）；分区与规则未改
 - 2026-11-24 14:41 OWNER-SHELL 追加 §8 五条（admin 骨架占用与落地、登录回跳行为变化、灰阶对齐、两项待裁决）；分区表中 `/admin/*` 的归属仍待正式写入 §1
 - [16:58] OWNER-SHELL **占用「主页 + 作品」整合**（用户指定选项 A）：`(user)/me/page.tsx`、`(user)/works/page.tsx`（改为重定向）、新增 `works/components/works-manager.tsx`、`constant/navigation-tools.ts` 去掉「作品」入口。做法：把作品管理整块抽成 `WorksManager`，作为主页第三个 tab「作品管理」；`/works` 永久重定向到 `/me?tab=works` 并透传 query（保住 sourceType/sourceId 深链）。**不动** works 的业务逻辑与 `work-publication-*` 文件，只搬位置。OWNER-PAGES 如正在改这两页请立刻提出
+- [17:44] OWNER-SHELL 提交 `2fabbc5`，**解除 16:58 的冻结**：主页吸收作品管理。`works/page.tsx` 内容整块搬进 `works/components/works-manager.tsx`（仅换位置与导出名，业务逻辑/接口/样式未改）；`works/page.tsx` 改为重定向到 `/me?tab=works` 并透传 query（保住 sourceType/sourceId 发布深链）；`WorksManager` 新增 `embedded`（不重复滚动容器与标题）；`me/page.tsx` 增加第三 tab 并按 `?tab=works` 初始化；`navigation-tools` 移除 works 条目
+- [17:44] OWNER-SHELL 披露：`2fabbc5` 里 `me/page.tsx` 的封面高度 `sm:h-56→sm:h-44` 与 `my-profile-layout.test.ts` 的对应断言属 **OWNER-PAGES 的未提交改动**。因与我改的 tab 在同一文件、且拆开会让 HEAD 的测试与页面不一致，故一并入库。PAGES 若要单独归属或继续调封面，直接在其上继续提交即可
+- [17:44] 提醒后续：`/works` 已不是页面，任何新代码不要直接渲染它（只有 redirect）。作品相关入口统一走 `/me?tab=works`
