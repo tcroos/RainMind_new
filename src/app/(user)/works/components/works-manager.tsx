@@ -192,71 +192,84 @@ export function WorksManager({ embedded = false }: { embedded?: boolean } = {}) 
         }
     };
 
+    const filters = (
+        <>
+            <div className="hidden shrink-0 sm:block">
+                <Segmented
+                    value={status}
+                    options={WORK_STATUS_OPTIONS}
+                    onChange={(value) => {
+                        setStatus(value as typeof status);
+                        setPage(1);
+                    }}
+                />
+            </div>
+            <div className="w-28 shrink-0 sm:hidden">
+                <Select
+                    className="w-full"
+                    value={status}
+                    options={WORK_STATUS_OPTIONS}
+                    onChange={(value) => {
+                        setStatus(value);
+                        setPage(1);
+                    }}
+                />
+            </div>
+            <Input
+                className="min-w-0 flex-1 sm:max-w-xs"
+                allowClear
+                prefix={<Search className="size-4 text-stone-400" />}
+                placeholder="搜索标题或作品链接"
+                value={keyword}
+                onChange={(event) => {
+                    setKeyword(event.target.value);
+                    setPage(1);
+                }}
+            />
+        </>
+    );
+
+    const actions = (
+        <>
+            <Button className="!size-9 !p-0 sm:!size-auto sm:!h-8 sm:!px-3" href="/community" icon={<Compass className="size-4" />} aria-label="浏览作品广场">
+                <span className="hidden sm:inline">作品广场</span>
+            </Button>
+            <Button className="!size-9 !p-0 sm:!size-auto sm:!h-8 sm:!px-3" icon={<RefreshCw className="size-4" />} loading={loading} onClick={() => void load()} aria-label="刷新作品列表" />
+            <Button className="!h-9 !px-3 sm:!h-8" type="primary" icon={<Plus className="size-4" />} onClick={openCreate}>
+                发布作品
+            </Button>
+        </>
+    );
+
     return (
         <div className={embedded ? "text-foreground" : "h-full min-h-0 overflow-y-auto bg-background text-foreground"}>
             <div className={embedded ? "w-full" : "mx-auto w-full max-w-7xl px-2 py-2 sm:px-6 sm:py-8"}>
-                <header
-                    className={
-                        embedded
-                            ? "flex items-center justify-end gap-2 pb-1"
-                            : "flex flex-col gap-3 border-b border-border pb-3 sm:flex-row sm:items-end sm:justify-between sm:gap-5 sm:pb-6"
-                    }
-                >
-                    {embedded ? null : (
-                        <div className="min-w-0">
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <GalleryVerticalEnd className="size-4" />
-                                发布中心
+                {embedded ? (
+                    /* 嵌在主页 tab 里时：不再单起一行标题，也不再画第二条分割线 ——
+                     * 上面 tab 行本身已有下边框，这里再画一条就成了「三道横线」，
+                     * 画面上像两个界面摞在一起。筛选、搜索、操作并到同一行，
+                     * 窄屏靠 flex-wrap 自然折行，不挤在一起。 */
+                    <section className="flex flex-wrap items-center gap-2 pt-3">
+                        {filters}
+                        <div className="ml-auto flex items-center gap-2">{actions}</div>
+                    </section>
+                ) : (
+                    <>
+                        <header className="flex flex-col gap-3 border-b border-border pb-3 sm:flex-row sm:items-end sm:justify-between sm:gap-5 sm:pb-6">
+                            <div className="min-w-0">
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                    <GalleryVerticalEnd className="size-4" />
+                                    发布中心
+                                </div>
+                                <h1 className="mt-1.5 text-xl font-semibold sm:mt-2 sm:text-2xl">作品管理</h1>
+                                <p className="mt-1.5 text-xs leading-5 text-muted-foreground sm:mt-2 sm:text-sm">管理草稿、审核状态和当前公开版本</p>
                             </div>
-                            <h1 className="mt-1.5 text-xl font-semibold sm:mt-2 sm:text-2xl">作品管理</h1>
-                            <p className="mt-1.5 text-xs leading-5 text-muted-foreground sm:mt-2 sm:text-sm">管理草稿、审核状态和当前公开版本</p>
-                        </div>
-                    )}
-                    <div className="flex items-center justify-end gap-2">
-                        <Button className="!size-9 !p-0 sm:!size-auto sm:!h-8 sm:!px-3" href="/community" icon={<Compass className="size-4" />} aria-label="浏览作品广场">
-                            <span className="hidden sm:inline">作品广场</span>
-                        </Button>
-                        <Button className="!size-9 !p-0 sm:!size-auto sm:!h-8 sm:!px-3" icon={<RefreshCw className="size-4" />} loading={loading} onClick={() => void load()} aria-label="刷新作品列表" />
-                        <Button className="!h-9 !px-3 sm:!h-8" type="primary" icon={<Plus className="size-4" />} onClick={openCreate}>
-                            发布作品
-                        </Button>
-                    </div>
-                </header>
+                            <div className="flex items-center justify-end gap-2">{actions}</div>
+                        </header>
 
-                <section className="flex min-w-0 flex-row items-center gap-2 border-b border-border py-3 sm:justify-between sm:gap-3 sm:py-4">
-                    <div className="hidden shrink-0 sm:block">
-                        <Segmented
-                            value={status}
-                            options={WORK_STATUS_OPTIONS}
-                            onChange={(value) => {
-                                setStatus(value as typeof status);
-                                setPage(1);
-                            }}
-                        />
-                    </div>
-                    <div className="w-28 shrink-0 sm:hidden">
-                        <Select
-                            className="w-full"
-                            value={status}
-                            options={WORK_STATUS_OPTIONS}
-                            onChange={(value) => {
-                                setStatus(value);
-                                setPage(1);
-                            }}
-                        />
-                    </div>
-                    <Input
-                        className="min-w-0 flex-1 sm:max-w-sm"
-                        allowClear
-                        prefix={<Search className="size-4 text-stone-400" />}
-                        placeholder="搜索标题或作品链接"
-                        value={keyword}
-                        onChange={(event) => {
-                            setKeyword(event.target.value);
-                            setPage(1);
-                        }}
-                    />
-                </section>
+                        <section className="flex min-w-0 flex-row items-center gap-2 border-b border-border py-3 sm:justify-between sm:gap-3 sm:py-4">{filters}</section>
+                    </>
+                )}
 
                 {error ? (
                     <section className="mt-4 flex min-h-40 flex-col items-center justify-center gap-3 border-y border-rose-200 px-4 text-center dark:border-rose-900/70">
