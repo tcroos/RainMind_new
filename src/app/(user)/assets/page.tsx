@@ -4,7 +4,10 @@ import { FileAudio, FileDown, FileUp, Film, Plus, Search, Upload } from "lucide-
 import { useRef, useState, type DragEvent as ReactDragEvent } from "react";
 import { App, Button, Form, Input, Modal, Pagination, Segmented, Select, Space, Spin, Tag, Tooltip, Typography } from "antd";
 import { saveAs } from "file-saver";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+
+import { MyPromptsPage } from "@/components/my-prompts/my-prompts-page";
 
 import { useCopyText } from "@/hooks/use-copy-text";
 import { CompactEmptyState } from "@/components/compact-empty-state";
@@ -47,6 +50,10 @@ import { useAssetPage } from "./use-asset-page";
 export default function AssetsPage() {
     const { message } = App.useApp();
     const router = useRouter();
+    /* 素材与提示词合并成一个页面，靠 ?tab 切换。
+     * 侧栏的二级菜单和页面内的 tab 都指向同一组 URL，两边状态永远一致。 */
+    const searchParams = useSearchParams();
+    const tab: "assets" | "prompts" = searchParams.get("tab") === "prompts" ? "prompts" : "assets";
     const copyText = useCopyText();
     const [form] = Form.useForm<AssetFormValues>();
     const coverInputRef = useRef<HTMLInputElement>(null);
@@ -261,28 +268,33 @@ export default function AssetsPage() {
         <div className="h-full min-h-0 overflow-hidden bg-background text-foreground">
             <main className="h-full min-h-0 overflow-y-auto px-3 py-3 sm:px-6 sm:py-6">
                 <div className="mx-auto max-w-[1560px]">
-                    <header className="border-b border-border pb-3 sm:pb-4">
-                        <div className="flex items-start justify-between gap-3">
+                    {/* 统一外框：标题 + 二级 tab。
+                        素材和提示词以前是两条侧栏入口、两套页头、两个滚动容器，
+                        合到一个页面后必须共用这一套外框（一条分割线、一个滚动容器、一个 max-width），
+                        否则就是「两个应用上下摞着」。面板只负责自己的工具行与内容。 */}
+                    <header className="border-b border-border">
+                        <div className="flex flex-wrap items-end justify-between gap-3">
                             <div className="min-w-0">
-                                <h1 className="text-lg font-semibold sm:text-xl">我的素材</h1>
-                                <p className="mt-0.5 text-xs text-muted-foreground">{total ? `${total} 项素材` : "集中管理创作中复用的内容"}</p>
-                            </div>
-                            <div className="flex shrink-0 items-center gap-1">
-                                <Tooltip title="导出素材">
-                                    <Button type="text" shape="circle" icon={<FileDown className="size-4" />} aria-label="导出素材" onClick={() => void exportAllAssets()} />
-                                </Tooltip>
-                                <Tooltip title={importing ? "正在导入" : "导入素材"}>
-                                    <Button type="text" shape="circle" icon={<FileUp className="size-4" />} aria-label="导入素材" disabled={!ready || importing} loading={importing} onClick={() => assetInputRef.current?.click()} />
-                                </Tooltip>
-                                <Tooltip title="新增素材">
-                                    <Button type="primary" shape="circle" icon={<Plus className="size-4" />} aria-label="新增素材" disabled={!ready} onClick={openCreate} />
-                                </Tooltip>
+                                <h1 className="text-lg font-semibold sm:text-xl">素材库</h1>
+                                <p className="mt-0.5 text-xs text-muted-foreground">
+                                    {tab === "prompts" ? "把常用提示词存成自己的库，随时复制或加入素材" : total ? `${total} 项素材` : "集中管理创作中复用的内容"}
+                                </p>
                             </div>
                         </div>
+                        <nav role="tablist" aria-label="素材库内容" className="mt-3 flex items-center gap-5">
+                            <LibraryTab active={tab === "assets"} href="/assets" label="素材" />
+                            <LibraryTab active={tab === "prompts"} href="/assets?tab=prompts" label="提示词" />
+                        </nav>
+                    </header>
 
-                        <div className="mt-3 grid gap-2 lg:grid-cols-[minmax(260px,520px)_auto] lg:items-center lg:justify-between">
+                    {tab === "prompts" ? (
+                        <MyPromptsPage />
+                    ) : (
+                        <>
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-3 sm:pt-4">
+                        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
                             <Input.Search
-                                className="w-full"
+                                className="min-w-[180px] flex-1 sm:max-w-sm"
                                 size="middle"
                                 allowClear
                                 prefix={<Search className="size-4 text-stone-400" />}
@@ -299,7 +311,6 @@ export default function AssetsPage() {
                             />
                             <div className="min-w-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                                 <Segmented
-                                    block
                                     value={kindFilter}
                                     options={kindOptions}
                                     onChange={(value) => {
@@ -309,7 +320,18 @@ export default function AssetsPage() {
                                 />
                             </div>
                         </div>
-                    </header>
+                        <div className="flex shrink-0 items-center gap-1">
+                            <Tooltip title="导出素材">
+                                <Button type="text" shape="circle" icon={<FileDown className="size-4" />} aria-label="导出素材" onClick={() => void exportAllAssets()} />
+                            </Tooltip>
+                            <Tooltip title={importing ? "正在导入" : "导入素材"}>
+                                <Button type="text" shape="circle" icon={<FileUp className="size-4" />} aria-label="导入素材" disabled={!ready || importing} loading={importing} onClick={() => assetInputRef.current?.click()} />
+                            </Tooltip>
+                            <Tooltip title="新增素材">
+                                <Button type="primary" shape="circle" icon={<Plus className="size-4" />} aria-label="新增素材" disabled={!ready} onClick={openCreate} />
+                            </Tooltip>
+                        </div>
+                    </div>
 
                     <div className="flex flex-col gap-3 pt-3 sm:gap-5 sm:pt-5">
                         <div className={cn("grid grid-cols-1 gap-3 transition-opacity sm:grid-cols-[repeat(auto-fill,minmax(240px,280px))] sm:justify-start", loading && assets.length && "opacity-60")} aria-busy={loading}>
@@ -356,6 +378,8 @@ export default function AssetsPage() {
                             />
                         </div>
                     </div>
+                        </>
+                    )}
                 </div>
             </main>
 
@@ -506,5 +530,21 @@ export default function AssetsPage() {
                 确定删除「{deletingAsset?.title}」吗？删除后会从我的素材中移除。
             </Modal>
         </div>
+    );
+}
+
+/* 二级 tab：和主页（已发布 / 我的喜欢 / 作品管理）用同一套下划线样式，
+ * 让「切换内容」在全站读起来是同一种控件，而不是每个页面各发明一套。 */
+function LibraryTab({ active, href, label }: { active: boolean; href: string; label: string }) {
+    return (
+        <Link
+            href={href}
+            role="tab"
+            aria-selected={active}
+            className={`relative inline-flex h-10 items-center text-sm font-medium transition-colors ${active ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+        >
+            {label}
+            {active ? <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-foreground" /> : null}
+        </Link>
     );
 }

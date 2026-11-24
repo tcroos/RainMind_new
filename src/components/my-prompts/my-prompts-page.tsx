@@ -122,14 +122,12 @@ export function MyPromptsPage() {
     const showEmptyState = !loading && items.length === 0;
 
     return (
-        <div className="flex h-full flex-col overflow-hidden bg-background">
-            <main className="min-h-0 flex-1 overflow-y-auto bg-background">
-                <div className="mx-auto w-full max-w-[1440px] px-3 py-4 sm:px-6 sm:py-7">
-                    <header className="flex flex-wrap items-start justify-between gap-3">
-                        <div className="min-w-0">
-                            <h1 className="text-[20px] font-semibold tracking-[-0.01em] text-[var(--ink-1)] sm:text-[24px]">我的提示词</h1>
-                            <p className="mt-1 text-[12px] leading-5 text-[var(--ink-3)] sm:mt-1.5 sm:text-[13px]">把常用的提示词存成自己的库，随时复制、加入素材或继续沉淀。</p>
-                        </div>
+        /* 只作为「素材库」的提示词面板存在：不自带 h1、不自带滚动容器，
+         * 外框（标题 / tab / 滚动 / max-width）统一由 assets 页面提供。
+         * 自己再套一层 <main> + overflow 会变成页内第二条滚动条，也是「硬塞」的来源。 */
+        <div className="bg-background">
+            <div className="w-full">
+                <header className="flex flex-wrap items-start justify-between gap-3 pt-3 sm:pt-4">
                         <div className="flex shrink-0 items-center gap-2">
                             <span className="hidden h-7 items-center gap-1.5 rounded-full border border-[var(--hairline)] bg-card px-2.5 text-[11px] tabular-nums text-[var(--ink-3)] sm:inline-flex sm:text-[12px]">
                                 共 <span className="font-semibold text-[var(--ink-1)]">{total}</span> 条
@@ -258,7 +256,6 @@ export function MyPromptsPage() {
                         </div>
                     ) : null}
                 </div>
-            </main>
 
             <PromptDetailDialog
                 prompt={selectedPrompt}
