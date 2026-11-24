@@ -18,14 +18,25 @@ describe("asset library shell", () => {
         expect(page).not.toContain("<LibraryTab ");
     });
 
-    it("exposes three tabs in one URL-driven state", async () => {
+    it("exposes three tabs in the agreed order and defaults to the public library", async () => {
         const page = await read("src/app/(user)/assets/page.tsx");
 
-        for (const label of ['label: "素材"', 'label: "我的提示词"', 'label: "公共词库"']) {
-            expect(page).toContain(label);
-        }
+        const order = ['label: "公共词库"', 'label: "我的提示词"', 'label: "我的素材"'].map((label) => page.indexOf(label));
+        expect(order.every((index) => index >= 0)).toBe(true);
+        expect([...order].sort((a, b) => a - b)).toEqual(order);
+
         expect(page).toContain('rawTab === "mine" || rawTab === "prompts"');
-        expect(page).toContain('rawTab === "public"');
+        expect(page).toContain('rawTab === "assets" ? "assets" : "public"');
+    });
+
+    it("keeps the toolbar clean: import/export gone, new asset button stays in the toolbar", async () => {
+        const page = await read("src/app/(user)/assets/page.tsx");
+
+        expect(page).not.toContain("导出全部素材");
+        expect(page).not.toContain("从压缩包导入");
+        expect(page).not.toContain("importAssetZip");
+        expect(page).not.toContain("exportAllAssets");
+        expect(page).toContain("新增素材");
     });
 
     it("does not show pagination on an empty library", async () => {

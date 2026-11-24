@@ -50,4 +50,18 @@ describe("prompt library layout", () => {
         expect(panel).toContain("PromptGridSkeleton");
         expect(panel).not.toContain("h-32 items-center justify-center");
     });
+
+    it("renders the detail dialog as one borderless sheet with shared library buttons", async () => {
+        const dialog = await read("src/components/prompts/prompt-detail-dialog.tsx");
+
+        // 详情弹窗里不再有 header / 分栏 / footer 三条分隔线，也不再有 antd 描边 Tag
+        expect(dialog).not.toContain("border-b");
+        expect(dialog).not.toContain("border-t");
+        expect(dialog).not.toContain("border-r");
+        expect(dialog).not.toContain("<Tag");
+        // 操作按钮和素材库用同一套浅底/橙色控件，不再出现 antd 默认黑按钮
+        expect(dialog).toContain("library-primary");
+        expect(dialog).toContain("library-tool");
+        expect(dialog).toContain("width={1080}");
+    });
 });

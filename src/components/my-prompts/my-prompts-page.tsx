@@ -128,51 +128,46 @@ export function MyPromptsPage() {
          * 自己再套一层 <main> + overflow 会变成页内第二条滚动条，也是「硬塞」的来源。 */
         <div className="bg-background">
             <div className="w-full">
-                <header className="flex flex-wrap items-center justify-between gap-2 pt-5">
-                    <span className="text-[12px] tabular-nums text-[var(--ink-3)]">
-                        共 <span className="font-semibold text-[var(--ink-1)]">{total}</span> 条
-                    </span>
-                    <Button type="primary" icon={<Plus className="size-4" />} className="library-primary" onClick={() => setCreateOpen(true)}>
-                        添加提示词
+                {/* 新增按钮与搜索框同一行：不再单独占一条页头，
+                    这也是「我的提示词」和另外两个 tab 保持 toolbar 语言一致的地方。 */}
+                <div className="flex flex-wrap items-center gap-2 pt-5">
+                    <Input
+                        allowClear
+                        size="large"
+                        className="library-input min-w-[180px] flex-1 sm:max-w-sm"
+                        prefix={<Search className="size-4 text-[var(--ink-3)]" />}
+                        value={keyword}
+                        placeholder="搜索标题或提示词内容"
+                        onChange={(event) => {
+                            setKeyword(event.target.value);
+                            setPage(1);
+                        }}
+                    />
+                    <Button size="large" className="library-tool" icon={<RotateCcw className="size-3.5" />} aria-label="清除筛选" disabled={!hasFilters} onClick={clearFilters}>
+                        清除
                     </Button>
-                </header>
+                    <div className="ml-auto flex shrink-0 items-center gap-2.5">
+                        <span className="hidden text-[12px] tabular-nums text-[var(--ink-3)] sm:inline">共 {total} 条</span>
+                        <Button type="primary" size="large" icon={<Plus className="size-4" />} className="library-primary" onClick={() => setCreateOpen(true)}>
+                            添加提示词
+                        </Button>
+                    </div>
+                </div>
 
-                {!showEmptyState || hasFilters ? (
-                    <>
-                        <div className="mt-3 flex flex-wrap items-center gap-2">
-                            <Input
-                                allowClear
-                                size="large"
-                                className="library-input min-w-[180px] flex-1 sm:max-w-sm"
-                                prefix={<Search className="size-4 text-[var(--ink-3)]" />}
-                                value={keyword}
-                                placeholder="搜索标题或提示词内容"
-                                onChange={(event) => {
-                                    setKeyword(event.target.value);
-                                    setPage(1);
-                                }}
-                            />
-                            <Button size="large" className="library-tool" icon={<RotateCcw className="size-3.5" />} aria-label="清除筛选" disabled={!hasFilters} onClick={clearFilters}>
-                                清除
-                            </Button>
+                {categories.length > 1 ? (
+                    <div className="mt-3 flex min-w-0 items-center gap-2">
+                        <span className="w-8 shrink-0 text-[11px] font-medium text-[var(--ink-3)]">分类</span>
+                        <div className="thin-scrollbar flex min-w-0 flex-1 gap-1.5 overflow-x-auto px-0.5 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                            {categories.map((option) => {
+                                const active = option === category;
+                                return (
+                                    <Tag.CheckableTag key={option} checked={active} className={cn("prompt-filter-tag shrink-0", active && "is-active")} onChange={() => updateCategory(option)}>
+                                        {option}
+                                    </Tag.CheckableTag>
+                                );
+                            })}
                         </div>
-
-                        {categories.length > 1 ? (
-                            <div className="mt-3 flex min-w-0 items-center gap-2">
-                                <span className="w-8 shrink-0 text-[11px] font-medium text-[var(--ink-3)]">分类</span>
-                                <div className="thin-scrollbar flex min-w-0 flex-1 gap-1.5 overflow-x-auto px-0.5 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                                    {categories.map((option) => {
-                                        const active = option === category;
-                                        return (
-                                            <Tag.CheckableTag key={option} checked={active} className={cn("prompt-filter-tag shrink-0", active && "is-active")} onChange={() => updateCategory(option)}>
-                                                {option}
-                                            </Tag.CheckableTag>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        ) : null}
-                    </>
+                    </div>
                 ) : null}
 
                     {loading ? <MyPromptGridSkeleton /> : null}

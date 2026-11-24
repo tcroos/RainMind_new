@@ -1,8 +1,8 @@
 "use client";
 
-import { FileAudio, FileDown, FileUp, Film, Inbox, Plus, RotateCcw, Search, Upload } from "lucide-react";
+import { FileAudio, Film, Inbox, Plus, RotateCcw, Search, Upload } from "lucide-react";
 import { useRef, useState, type DragEvent as ReactDragEvent } from "react";
-import { App, Button, Form, Input, Modal, Pagination, Segmented, Select, Space, Spin, Tag, Tooltip, Typography } from "antd";
+import { App, Button, Form, Input, Modal, Pagination, Segmented, Select, Space, Spin, Tag, Typography } from "antd";
 import { saveAs } from "file-saver";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -18,11 +18,9 @@ import { imagePreviewUrl, originalImageDownloadUrl, originalImageExtension, orig
 import { uploadImage } from "@/services/image-storage";
 import { uploadMediaFile } from "@/services/file-storage";
 import { isPermanentServerMedia, serverMediaUrl } from "@/services/server-media-storage";
-import { listAllLibraryAssets } from "@/services/api/library-assets";
 import { cn } from "@/lib/utils";
 import { useAssetStore, type Asset, type AssetKind, type AudioAsset, type ImageAsset, type VideoAsset } from "@/stores/use-asset-store";
 import { useUserStore } from "@/stores/use-user-store";
-import { exportAssets, readAssetPackage } from "./asset-transfer";
 
 type AssetFormValues = {
     kind: AssetKind;
@@ -53,15 +51,15 @@ export default function AssetsPage() {
     /* 素材与提示词合并成一个页面，靠 ?tab 切换。
      * 侧栏的二级菜单和页面内的 tab 都指向同一组 URL，两边状态永远一致。 */
     const searchParams = useSearchParams();
-    /* 三段内容共用同一外壳：素材 / 我的提示词 / 公共词库。
-     * ?tab=prompts 是上一版「我的提示词」的旧参数，继续认它，旧链接不会突然跳到公共词库。 */
+    /* 三段内容共用同一外壳：公共词库 / 我的提示词 / 我的素材。
+     * 默认落在公共词库（内容最丰富的一页）；旧参数 ?tab=prompts 仍认作我的提示词，
+     * ?tab=assets 仍认作我的素材，旧链接不会跳错。 */
     const rawTab = searchParams.get("tab");
-    const tab: LibraryTabKey = rawTab === "mine" || rawTab === "prompts" ? "mine" : rawTab === "public" ? "public" : "assets";
+    const tab: LibraryTabKey = rawTab === "mine" || rawTab === "prompts" ? "mine" : rawTab === "assets" ? "assets" : "public";
     const copyText = useCopyText();
     const [form] = Form.useForm<AssetFormValues>();
     const coverInputRef = useRef<HTMLInputElement>(null);
     const imageInputRef = useRef<HTMLInputElement>(null);
-    const assetInputRef = useRef<HTMLInputElement>(null);
     const userId = useUserStore((state) => state.user?.id || "");
     const addAsset = useAssetStore((state) => state.addAsset);
     const updateAsset = useAssetStore((state) => state.updateAsset);
@@ -80,7 +78,6 @@ export default function AssetsPage() {
     const [mediaDraft, setMediaDraft] = useState<MediaDraft>(null);
     const [saving, setSaving] = useState(false);
     const [deleting, setDeleting] = useState(false);
-    const [importing, setImporting] = useState(false);
     const coverUrl = Form.useWatch("coverUrl", form) || "";
     const title = Form.useWatch("title", form) || "";
     const tags = Form.useWatch("tags", form) || [];
@@ -214,43 +211,6 @@ export default function AssetsPage() {
         saveAs(url, mediaDownloadFileName(asset.id, media.mimeType, media.storageKey || media.serverUrl || mediaUrl));
     };
 
-    const exportAllAssets = async () => {
-        try {
-            const exportable = await listAllLibraryAssets();
-            if (!exportable.length) {
-                message.warning("暂无素材可导出");
-                return;
-            }
-            await exportAssets(exportable);
-        } catch (error) {
-            message.error(error instanceof Error ? error.message : "素材导出失败");
-        }
-    };
-
-    const importAssetZip = async (file?: File) => {
-        if (!file) return;
-        setImporting(true);
-        try {
-            const importedAssets = await readAssetPackage(file);
-            await Promise.all(
-                importedAssets.map((asset) => {
-                    const payload = { ...asset } as Record<string, unknown>;
-                    delete payload.id;
-                    delete payload.createdAt;
-                    delete payload.updatedAt;
-                    return addAsset(payload as Parameters<typeof addAsset>[0]);
-                }),
-            );
-            message.success(`已导入 ${importedAssets.length} 个素材`);
-            reload();
-        } catch {
-            message.error("导入失败，请选择有效的素材压缩包");
-        } finally {
-            setImporting(false);
-            if (assetInputRef.current) assetInputRef.current.value = "";
-        }
-    };
-
     const confirmDelete = async () => {
         if (!deletingAsset) return;
         setDeleting(true);
@@ -288,11 +248,6 @@ export default function AssetsPage() {
                                             : "集中管理创作中复用的内容"}
                                 </p>
                             </div>
-                            {tab === "assets" ? (
-                                <Button type="primary" className="library-primary" icon={<Plus className="size-4" />} disabled={!ready} onClick={openCreate}>
-                                    新增素材
-                                </Button>
-                            ) : null}
                         </div>
                         <LibraryTabs tabs={LIBRARY_TABS} active={tab} />
                     </header>
@@ -331,18 +286,10 @@ export default function AssetsPage() {
                                         />
                                     </div>
                                 </div>
-                                <div className="flex shrink-0 items-center gap-1">
-                                    <Tooltip title="导出全部素材">
-                                        <Button type="text" className="library-tool" icon={<FileDown className="size-4" />} onClick={() => void exportAllAssets()}>
-                                            导出
-                                        </Button>
-                                    </Tooltip>
-                                    <Tooltip title={importing ? "正在导入" : "从压缩包导入"}>
-                                        <Button type="text" className="library-tool" icon={<FileUp className="size-4" />} disabled={!ready || importing} loading={importing} onClick={() => assetInputRef.current?.click()}>
-                                            导入
-                                        </Button>
-                                    </Tooltip>
-                                </div>
+                                {/* 新增按钮与搜索框同一行、贴近右边缘；导出/导入已从工具栏移除。 */}
+                                <Button type="primary" className="library-primary" icon={<Plus className="size-4" />} disabled={!ready} onClick={openCreate}>
+                                    新增素材
+                                </Button>
                             </div>
 
                             <div className="pt-4 sm:pt-5">
@@ -542,8 +489,6 @@ export default function AssetsPage() {
 
             <AssetPreviewModal asset={previewAsset} onClose={() => setPreviewAsset(null)} onCopy={copyAssetText} onDownload={downloadImage} />
 
-            <input ref={assetInputRef} type="file" accept="application/zip,.zip" className="hidden" onChange={(event) => void importAssetZip(event.target.files?.[0])} />
-
             <Modal title="删除素材" open={Boolean(deletingAsset)} onCancel={() => setDeletingAsset(null)} onOk={() => void confirmDelete()} confirmLoading={deleting} okText="删除" okButtonProps={{ danger: true }} cancelText="取消">
                 确定删除「{deletingAsset?.title}」吗？删除后会从我的素材中移除。
             </Modal>
@@ -552,11 +497,12 @@ export default function AssetsPage() {
 }
 
 /* 三段内容共用的 tab 定义。URL 是唯一状态源：可分享、可返回、刷新不丢。
+ * 顺序按用户习惯：公共词库 → 我的提示词 → 我的素材；裸 /assets 默认进公共词库。
  * 下划线 tab 已弃用 —— 那条横线既违和「不要线条」，窄屏又会被挤成等宽小字。 */
 type LibraryTabKey = "assets" | "mine" | "public";
 
 const LIBRARY_TABS: readonly LibraryTabItem[] = [
-    { key: "assets", label: "素材", href: "/assets" },
-    { key: "mine", label: "我的提示词", href: "/assets?tab=mine" },
     { key: "public", label: "公共词库", href: "/assets?tab=public" },
+    { key: "mine", label: "我的提示词", href: "/assets?tab=mine" },
+    { key: "assets", label: "我的素材", href: "/assets?tab=assets" },
 ];
