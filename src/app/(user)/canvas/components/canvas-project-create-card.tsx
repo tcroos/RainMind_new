@@ -11,10 +11,14 @@ import { Loader2, Plus } from "lucide-react";
 export function CanvasCreateCard({ onCreate, loading = false }: { onCreate: () => void; loading?: boolean }) {
     return (
         <button type="button" onClick={onCreate} disabled={loading} className="group/create flex min-w-0 cursor-pointer flex-col text-left disabled:cursor-progress">
-            <span className="flex aspect-[16/10] w-full items-center justify-center rounded-xl border border-dashed border-[rgba(17,17,19,0.16)] bg-[var(--surface-soft)] text-[var(--ink-3)] transition-colors duration-200 group-hover/create:border-[rgba(17,17,19,0.32)] group-hover/create:text-[var(--ink-1)] dark:border-[rgba(255,255,255,0.14)] dark:group-hover/create:border-[rgba(255,255,255,0.3)]">
+            {/* 底色与项目卡的空白封面用同一个令牌（--surface-inset）：两格并排时必须是同一块灰，
+                之前一个 soft 一个 inset，深浅两套主题下都能看出色差。
+                过渡只给 border-color / color：background 也参与过渡的话，切主题那一瞬间会从浅色底
+                渐变到深色底，看起来就是「新建画布闪一下白光」。 */}
+            <span className="flex aspect-[16/10] w-full items-center justify-center rounded-xl border border-dashed border-[rgba(17,17,19,0.16)] bg-[var(--surface-inset)] text-[var(--ink-3)] transition-[border-color,color] duration-200 group-hover/create:border-[rgba(17,17,19,0.32)] group-hover/create:text-[var(--ink-1)] dark:border-[rgba(255,255,255,0.14)] dark:group-hover/create:border-[rgba(255,255,255,0.3)]">
                 {loading ? <Loader2 className="size-5 animate-spin" /> : <Plus className="size-5" strokeWidth={1.75} />}
             </span>
-            <span className="mt-2 block truncate px-0.5 text-[13px] font-medium leading-5 text-[var(--ink-1)]">{loading ? "正在创建…" : "新建画布"}</span>
+            <span className="mt-2 block truncate px-0.5 text-[14px] font-medium leading-5 text-[var(--ink-1)]">{loading ? "正在创建…" : "新建画布"}</span>
             <span aria-hidden className="mt-0.5 block h-4" />
         </button>
     );

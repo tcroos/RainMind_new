@@ -108,9 +108,10 @@ export default function CanvasPage() {
     return (
         <main className="h-full overflow-auto bg-background pb-24 text-[var(--ink-1)]">
             <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-5 px-5 py-5 sm:px-6 sm:py-6">
-                <header className="flex items-center gap-1.5">
-                    <h1 className="truncate text-[15px] font-medium leading-6 tracking-tight text-[var(--ink-1)]">画布</h1>
-                    {/* 批量操作的入口：和标题同一行、紧贴右侧，比右上角工具区更靠近内容 */}
+                <header className="flex items-center gap-2.5">
+                    <h1 className="truncate text-[20px] font-semibold leading-7 tracking-tight text-[var(--ink-1)] sm:text-[22px]">画布</h1>
+                    {/* 批量操作的入口：和标题同一行、紧贴右侧，比右上角工具区更靠近内容。
+                        尺寸跟着标题走（32px 方块对 22px 标题），原来的 24px 小方块在大标题旁像颗痣。 */}
                     <button
                         type="button"
                         aria-pressed={selectMode}
@@ -118,13 +119,13 @@ export default function CanvasPage() {
                         title={selectMode ? "退出多选" : "多选"}
                         onClick={() => (selectMode ? exitSelectMode() : setSelectMode(true))}
                         className={cn(
-                            "grid size-6 shrink-0 place-items-center rounded-md transition-colors duration-150",
+                            "grid size-8 shrink-0 place-items-center rounded-lg transition-colors duration-150",
                             selectMode
                                 ? "bg-[var(--brand-500)] text-white hover:bg-[var(--brand-600)]"
                                 : "bg-[var(--surface-soft)] text-[var(--ink-2)] hover:bg-[var(--surface-inset)] hover:text-[var(--ink-1)]",
                         )}
                     >
-                        <ListChecks className="size-[14px]" strokeWidth={1.9} />
+                        <ListChecks className="size-4" strokeWidth={1.9} />
                     </button>
                 </header>
 

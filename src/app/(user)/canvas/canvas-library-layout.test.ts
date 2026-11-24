@@ -76,6 +76,21 @@ describe("canvas library layout", () => {
         expect(page).not.toContain('aria-label="导入画布"');
     });
 
+    it("keeps the create tile and an empty canvas on the same surface token", async () => {
+        const [createCard, cover] = await Promise.all([
+            read("src/app/(user)/canvas/components/canvas-project-create-card.tsx"),
+            read("src/app/(user)/canvas/components/canvas-project-cover.tsx"),
+        ]);
+
+        // 两格并排必须是同一块灰：之前一个 surface-soft 一个 surface-inset，深浅两套主题下都看得出色差
+        expect(createCard).toContain("bg-[var(--surface-inset)]");
+        expect(cover).toContain("bg-[var(--surface-inset)]");
+        // 底色不能参与过渡。切主题时 background-color 会被插值，这张大卡从浅灰渐变到深灰，
+        // 中间那几帧就是用户看到的「闪一下白光」；项目卡封面没有 transition 所以从不闪。
+        expect(createCard).not.toContain("transition-colors");
+        expect(createCard).toContain("transition-[border-color,color]");
+    });
+
     it("floats the batch bar at the bottom with select-all and cancel", async () => {
         const page = await read("src/app/(user)/canvas/page.tsx");
         expect(page).toContain("pointer-events-none fixed inset-x-0 bottom-6");

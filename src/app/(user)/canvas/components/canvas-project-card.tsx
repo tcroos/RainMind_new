@@ -84,7 +84,7 @@ export function CanvasProjectCard({ project, selectable = false }: { project: Ca
             {/* 卡片本体保持静止，只让边框与投影轻微加深：列表里一排卡片同时上浮会显得吵 */}
             <div
                 className={cn(
-                    "relative aspect-[16/10] overflow-hidden rounded-xl border border-[var(--hairline)] bg-[var(--surface-soft)] transition-[border-color,box-shadow] duration-200",
+                    "relative aspect-[16/10] overflow-hidden rounded-xl border border-[var(--hairline)] bg-[var(--surface-inset)] transition-[border-color,box-shadow] duration-200",
                     "group-hover/card:border-[rgba(17,17,19,0.16)] group-hover/card:shadow-[0_6px_18px_-14px_rgba(17,17,19,0.3)]",
                     "dark:border-transparent dark:group-hover/card:border-[rgba(255,255,255,0.1)] dark:group-hover/card:shadow-none",
                     // 用 outline 而不是 shadow 画选中框，免得和落影互相覆盖；1.5px 够辨认又不喧宾夺主
@@ -137,7 +137,7 @@ export function CanvasProjectCard({ project, selectable = false }: { project: Ca
                 ) : (
                     <>
                         <button type="button" onPointerEnter={preload} onClick={open} className="min-w-0 flex-1 cursor-pointer text-left">
-                            <h2 className="truncate text-[13px] font-medium leading-5 text-[var(--ink-1)]">{project.title}</h2>
+                            <h2 className="truncate text-[14px] font-medium leading-5 text-[var(--ink-1)]">{project.title}</h2>
                         </button>
                         {/* 多选态下只留勾选，收起更多操作，避免两个入口抢同一块区域 */}
                         {selectable ? null : (
