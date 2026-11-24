@@ -1,11 +1,10 @@
 "use client";
 
 import { App, Button, Input, Modal, Pagination, Spin } from "antd";
-import { ExternalLink, Grid3X3, Heart, ImageIcon, Share2, UserPlus, UserRoundPen, Users } from "lucide-react";
+import { ExternalLink, Grid3X3, Heart, ImageIcon, Share2, UserRoundPen } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
-import { SiteLogo } from "@/components/layout/site-logo";
 import { ProfileAvatarUploader } from "@/components/profile/profile-avatar-uploader";
 import { PublicWorkGalleryCard } from "@/components/works/public-work-gallery-card";
 import { ResponsiveMasonryGrid } from "@/components/works/responsive-masonry-grid";
@@ -167,47 +166,74 @@ export default function MyCreatorPage() {
     return (
         <main className="h-full min-h-0 overflow-y-auto bg-background text-foreground">
             <div className="mx-auto w-full max-w-[1280px] px-3 pb-12 sm:px-6 sm:pb-16 lg:px-8">
-                <section className="flex min-w-0 flex-col items-center pb-5 pt-6 text-center sm:pb-7 sm:pt-8" aria-labelledby="my-profile-name">
-                    <span className="grid size-24 place-items-center overflow-hidden rounded-full bg-foreground text-xl font-semibold text-background ring-1 ring-border sm:size-28 sm:text-2xl" aria-hidden="true">
-                        {avatarUrl ? <img src={avatarUrl} alt="" className="size-full object-cover" /> : userAvatarFallback(profileDisplayName)}
-                    </span>
-                    <div className="relative mt-3 grid w-fit max-w-full grid-cols-[1.5rem_minmax(0,1fr)_1.5rem] items-center gap-1.5">
-                        <span aria-hidden="true" />
-                        <h1 id="my-profile-name" className="truncate text-3xl font-semibold sm:text-4xl">
-                            {profileDisplayName}
-                        </h1>
-                        {/* 操作组溢出第三列向右悬挂：昵称仍严格居中，且不占用统计行下方的垂直空间。
-                            antd 的 button 重置会把 margin 压成 0，所以间距一律用 flex gap 而不是 ml-*。 */}
-                        <div className="flex -translate-y-1.5 items-center gap-2">
-                            <button
-                                type="button"
-                                className="grid size-6 shrink-0 place-items-center text-muted-foreground transition hover:text-foreground focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                                aria-label="编辑个人资料"
-                                title="编辑个人资料"
-                                aria-haspopup="dialog"
-                                onClick={() => setEditOpen(true)}
-                            >
-                                <UserRoundPen className="size-3.5" />
-                            </button>
-                            <button
-                                type="button"
-                                className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full border border-border bg-card px-2.5 text-xs font-medium text-foreground shadow-sm transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-55 sm:px-3"
-                                disabled={!summary?.publicProfileAvailable}
-                                onClick={shareProfile}
-                                title={summary?.publicProfileAvailable ? "复制公开主页链接" : "使用资料身份发布作品后可分享主页"}
-                                aria-label={summary?.publicProfileAvailable ? "复制公开主页链接" : "主页尚未公开"}
-                            >
-                                <Share2 className="size-3.5 shrink-0" />
-                                <span className="hidden whitespace-nowrap sm:inline">{summary?.publicProfileAvailable ? "分享主页" : "主页未公开"}</span>
-                            </button>
-                        </div>
+                <section className="relative min-w-0 pb-5 pt-4 sm:pb-6 sm:pt-6" aria-labelledby="my-profile-name">
+                    {/* 封面横幅：用户资料暂无封面上传，先用品牌渐变占位 */}
+                    <div className="relative h-24 overflow-hidden rounded-xl ring-1 ring-black/5 ring-inset sm:h-36 sm:rounded-2xl dark:ring-white/10">
+                        <span
+                            aria-hidden="true"
+                            className="absolute inset-0 bg-[linear-gradient(112deg,#075985_0%,#0e7490_44%,#4338ca_100%)]"
+                        />
+                        <span
+                            aria-hidden="true"
+                            className="absolute inset-0 bg-[radial-gradient(85%_150%_at_12%_-25%,rgba(255,255,255,0.42),transparent_58%)]"
+                        />
+                        <span
+                            aria-hidden="true"
+                            className="absolute inset-0 bg-[radial-gradient(75%_130%_at_88%_130%,rgba(2,6,23,0.5),transparent_62%)]"
+                        />
+                        <span aria-hidden="true" className="absolute inset-0 bg-black/5 dark:bg-black/20" />
                     </div>
-                    {bio ? <p className="mt-2 max-w-xl whitespace-pre-wrap break-words text-sm leading-6 text-muted-foreground">{bio}</p> : null}
-                    <div className="mt-4 grid w-full max-w-md grid-cols-4 divide-x divide-border" role="group" aria-label="主页统计">
-                        <ProfileMetric label="作品" value={metrics.published} />
-                        <ProfileMetric label="获赞" value={metrics.liked} onClick={() => setActivityView("likes")} />
-                        <ProfileMetric label="关注" value={metrics.following} onClick={() => setActivityView("following")} />
-                        <ProfileMetric label="粉丝" value={metrics.followers} onClick={() => setActivityView("followers")} />
+
+                    <div className="px-2 sm:px-4">
+                        <span
+                            className="relative z-10 -mt-9 grid size-18 place-items-center overflow-hidden rounded-full bg-foreground text-lg font-semibold text-background ring-4 ring-background sm:-mt-11 sm:size-24 sm:text-2xl"
+                            aria-hidden="true"
+                        >
+                            {avatarUrl ? <img src={avatarUrl} alt="" className="size-full object-cover" /> : userAvatarFallback(profileDisplayName)}
+                        </span>
+
+                        <div className="mt-3 sm:mt-4">
+                            {/* 昵称行：左昵称、右操作。统计放独立一行，避免窄屏被按钮挤到换行 */}
+                            <div className="flex items-start justify-between gap-3">
+                                <h1 id="my-profile-name" className="min-w-0 truncate text-2xl font-semibold sm:text-3xl">
+                                    {profileDisplayName}
+                                </h1>
+                                {/* antd 的 button 重置会把 margin 压成 0，间距一律交给 flex gap */}
+                                <div className="flex shrink-0 items-center gap-2 pt-0.5">
+                                    <button
+                                        type="button"
+                                        className="grid size-9 place-items-center rounded-lg border border-border bg-card text-muted-foreground shadow-xs transition hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-45"
+                                        disabled={!summary?.publicProfileAvailable}
+                                        onClick={shareProfile}
+                                        title={summary?.publicProfileAvailable ? "复制公开主页链接" : "使用资料身份发布作品后可分享主页"}
+                                        aria-label={summary?.publicProfileAvailable ? "复制公开主页链接" : "主页尚未公开"}
+                                    >
+                                        <Share2 className="size-4" />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-card px-3 text-sm font-medium text-foreground shadow-xs transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                        aria-label="编辑资料"
+                                        title="编辑资料"
+                                        aria-haspopup="dialog"
+                                        onClick={() => setEditOpen(true)}
+                                    >
+                                        <UserRoundPen className="size-4" />
+                                        <span className="whitespace-nowrap">编辑资料</span>
+                                    </button>
+                                </div>
+                            </div>
+                            {bio ? <p className="mt-1.5 max-w-2xl whitespace-pre-wrap break-words text-sm leading-6 text-muted-foreground">{bio}</p> : null}
+                            <div className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1" role="group" aria-label="主页统计">
+                                <ProfileMetric label="作品" value={metrics.published} />
+                                <ProfileMetricDivider />
+                                <ProfileMetric label="获赞" value={metrics.liked} onClick={() => setActivityView("likes")} />
+                                <ProfileMetricDivider />
+                                <ProfileMetric label="关注" value={metrics.following} onClick={() => setActivityView("following")} />
+                                <ProfileMetricDivider />
+                                <ProfileMetric label="粉丝" value={metrics.followers} onClick={() => setActivityView("followers")} />
+                            </div>
+                        </div>
                     </div>
                 </section>
 
@@ -224,7 +250,7 @@ export default function MyCreatorPage() {
                             emptyTitle="暂未发布公开作品"
                             emptyDescription="使用资料身份发布并通过审核后，作品会显示在这里。"
                             emptyAction={
-                                <Link href="/works" className="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-card px-3 text-sm font-medium transition hover:bg-muted">
+                                <Link href="/works" className="inline-flex h-9 items-center gap-2 rounded-md !bg-foreground px-3.5 text-sm font-medium !text-background transition hover:opacity-90">
                                     <ImageIcon className="size-4" /> 发布作品
                                 </Link>
                             }
@@ -238,7 +264,7 @@ export default function MyCreatorPage() {
                             emptyTitle="暂未喜欢作品"
                             emptyDescription="你在作品广场点赞的公开作品会显示在这里，仅自己可见。"
                             emptyAction={
-                                <Link href="/community" className="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-card px-3 text-sm font-medium transition hover:bg-muted">
+                                <Link href="/community" className="inline-flex h-9 items-center gap-2 rounded-md !bg-foreground px-3.5 text-sm font-medium !text-background transition hover:opacity-90">
                                     <ExternalLink className="size-4" /> 浏览作品广场
                                 </Link>
                             }
@@ -290,21 +316,18 @@ export default function MyCreatorPage() {
 }
 
 function ProfileMetric({ label, value, onClick }: { label: string; value: number; onClick?: () => void }) {
-    const Icon = label === "作品" ? ImageIcon : label === "获赞" ? Heart : label === "粉丝" ? Users : UserPlus;
     const content = (
         <>
-            <span className="block text-sm font-semibold tabular-nums sm:text-base">{value}</span>
-            <span className="mt-1 flex items-center justify-center gap-1 truncate text-[10px] text-muted-foreground sm:text-xs">
-                <Icon className="size-3.5 shrink-0" aria-hidden="true" />
-                {label}
-            </span>
+            <span className="font-semibold tabular-nums text-foreground">{value}</span>
+            <span className="truncate">{label}</span>
         </>
     );
+    const className = "inline-flex min-w-0 items-center gap-1 text-xs text-muted-foreground";
     if (onClick) {
         return (
             <button
                 type="button"
-                className="w-full min-w-0 rounded-md px-1.5 py-1 transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:px-3"
+                className={`${className} rounded-md transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
                 onClick={onClick}
                 aria-haspopup="dialog"
             >
@@ -312,7 +335,15 @@ function ProfileMetric({ label, value, onClick }: { label: string; value: number
             </button>
         );
     }
-    return <div className="min-w-0 px-1.5 py-1 sm:px-3">{content}</div>;
+    return <div className={className}>{content}</div>;
+}
+
+function ProfileMetricDivider() {
+    return (
+        <span aria-hidden="true" className="text-xs text-muted-foreground/40">
+            ·
+        </span>
+    );
 }
 
 function ProfileTabButton({ active, icon, label, count, onClick }: { active: boolean; icon: React.ReactNode; label: string; count: number; onClick: () => void }) {
@@ -358,8 +389,10 @@ function WorkCollection({
     }
     if (!items.length) {
         return (
-            <div className="flex min-h-52 flex-col items-center justify-center px-4 text-center">
-                <SiteLogo logoUrl="/logo.svg" className="size-9 opacity-35" />
+            <div className="flex min-h-64 flex-col items-center justify-center px-4 text-center">
+                <span className="grid size-14 place-items-center rounded-xl border border-border bg-muted text-muted-foreground/70">
+                    <ImageIcon className="size-6" aria-hidden="true" />
+                </span>
                 <h2 className="mt-3 text-sm font-semibold">{emptyTitle}</h2>
                 <p className="mt-1 max-w-sm text-xs leading-5 text-muted-foreground">{emptyDescription}</p>
                 <div className="mt-4">{emptyAction}</div>
