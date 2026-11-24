@@ -174,6 +174,8 @@ src/app/styles/global-canvas-*.css    # controls / overrides / responsive 三个
 
 - [19:05] OWNER-CANVAS 提交 `3909019`：小地图橙色视口框改为拖动中逐帧跟随。原理：平移走 `previewViewport → applyViewportStyles` 直改 DOM 不 setState，小地图只能拿到上次提交的 viewport；新增 `syncRef` 由子组件注册逐帧回调，父级只写 4 个 style，无 React 渲染、无 canvas 重绘。**改这块注意**：`CanvasMiniMap` 的 `mappingRef` 存的是当前渲染的比例尺，平移期间 bounds 是冻结的（松手后重算会跳一下），要做「拖动中重新缩放」需要同时重绘节点画布，成本不同量级
 
+- [19:12] OWNER-CANVAS 提交 `1cb4afc`：小地图重绘改为命令式 `drawMap(viewport)`（按任意视口重算包围盒/比例尺并重画点阵+节点），**滚轮缩放不再收起小地图**、改为和平移一样浮出，橙色视口框随缩放变大小（实测 30% → 95×59、40% → 67×42）。首帧用 `useLayoutEffect` 避免闪位。注意：用户已收回「除拖动外一律收起」的说法，缩放属于需要小地图的操作；真正会收起的只剩节点拖拽/框选/点空白/按键/点画布外
+
 ## 9. 升级方案：物理隔离（撞车频繁时启用）
 
 现在是**单一工作树、单分支**，三人共写一份文件 —— 分区靠自觉。若开始频繁互相踩：
