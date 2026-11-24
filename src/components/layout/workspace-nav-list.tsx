@@ -1,31 +1,28 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Check } from "lucide-react";
-import { Popover } from "antd";
+import { useRouter } from "next/navigation";
 
 import { isExternalTool, navigationGroups, navigationToolHref, navigationTools, type NavigationToolSlug } from "@/constant/navigation-tools";
 import { cn } from "@/lib/utils";
 
 /*
  * 桌面侧栏（rail）与移动抽屉（drawer）的导航，数据源、分组顺序、外链判定完全一致，
- * 差别只在「怎么排」：侧栏能收起到只剩图标，抽屉永远带文字、触控目标更宽松，
- * 并且用一个圆点标出当前页（触屏没有 hover 可借力）。
+ * 差别只在「怎么排」：侧栏能收起到只剩图标，抽屉永远带文字、触控目标更宽松。
  *
  * 以前这段在两个文件里各写一遍，加一个导航项要改两处，而且已经各长各的：
  * 分组间距 mt-4 / mt-5、字号 font-normal / font-medium、条目间距 space-y-0.5 / space-y-1、
  * 选中指示「只有底色」/「底色 + 圆点」。现在两种外观的差异集中写在 VARIANTS 里，
  * 渲染逻辑只有一份 —— 差异是有意的就留在表里，是笔误就改一处。
+ *
+ * 素材库曾在这里挂过 hover 浮层（「素材 / 我的提示词 / 公共词库」），已移除：
+ * 浮层是给人看的「菜单」，但这三项其实是同一页的内容切换，应该在页面内用 tab 完成。
+ * 侧栏保留一个入口，桌面/收起态/抽屉三种形态从此完全一致。
  */
 
 type NavVariant = "rail" | "drawer";
 
-const NAV_ITEM_STATE = {
-    active: "bg-[var(--surface-inset)] text-[var(--ink-1)]",
-    idle: "text-[var(--ink-2)] hover:bg-[var(--surface-inset)] hover:text-[var(--ink-1)]",
-} as const;
-
+const RAIL_ITEM_BASE = "group relative flex h-11 items-center rounded-lg px-2 text-base font-medium transition-colors duration-150";
 const DRAWER_ITEM_BASE = "flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-base transition";
 
 const VARIANTS = {
@@ -34,10 +31,10 @@ const VARIANTS = {
         group: "mt-4",
         groupLabel: "mb-1 px-2 text-[13px] font-normal text-[var(--ink-3)]",
         items: "space-y-0.5",
-        item: (expanded: boolean) => cn("group relative flex h-11 items-center rounded-lg px-2 text-base font-medium transition-colors duration-150", expanded ? "justify-start gap-3 px-3" : "justify-center"),
-        activeItem: NAV_ITEM_STATE.active,
-        idleItem: NAV_ITEM_STATE.idle,
-        activeDot: false,
+        item: (expanded: boolean) => cn(RAIL_ITEM_BASE, expanded ? "justify-start gap-3 px-3" : "justify-center"),
+        /* 侧栏选中态只用一层极浅底 + 字重，不再加圆点或色条 */
+        activeItem: "bg-[var(--surface-inset)] text-[var(--ink-1)]",
+        idleItem: "text-[var(--ink-2)] hover:bg-[var(--surface-inset)] hover:text-[var(--ink-1)]",
     },
     drawer: {
         nav: () => undefined,
@@ -45,9 +42,10 @@ const VARIANTS = {
         groupLabel: "mb-1 px-3 text-[13px] font-medium text-[var(--ink-3)]",
         items: "space-y-1",
         item: () => DRAWER_ITEM_BASE,
-        activeItem: cn(NAV_ITEM_STATE.active, "font-medium"),
-        idleItem: NAV_ITEM_STATE.idle,
-        activeDot: true,
+        /* 抽屉选中态更轻：只把图标和文字染成品牌色并加粗，去掉整块灰底与右侧圆点 ——
+         * 触屏上「灰底 + 圆点」读起来像一个待办勾选项，不像导航。 */
+        activeItem: "font-semibold text-[var(--brand-600)]",
+        idleItem: "text-[var(--ink-2)] hover:bg-[var(--surface-inset)] hover:text-[var(--ink-1)]",
     },
 } as const;
 
@@ -65,56 +63,8 @@ type WorkspaceNavListProps = {
     onNavigate?: () => void;
 };
 
-type NavChild = { slug: string; label: string; description: string; href: string; icon: typeof navigationTools[number]["icon"] };
-
-function toolChildren(tool: (typeof navigationTools)[number]): readonly NavChild[] | undefined {
-    return "children" in tool ? (tool.children as readonly NavChild[]) : undefined;
-}
-
-/* 二级条目是否命中：先比路径，再比 ?tab。
- * 目的不只是高亮 —— 侧栏和页面内的 tab 共用同一组 URL，两边状态天然一致。 */
-function isChildActive(href: string, pathname: string, tab: string | null) {
-    const [path, query] = href.split("?");
-    if (path !== pathname) return false;
-    return new URLSearchParams(query ?? "").get("tab") === tab;
-}
-
-/** 二级面板：素材 / 提示词这类「同一件事的不同形态」，在侧栏就地切换。 */
-function NavFlyout({ items, pathname, tab, onNavigate }: { items: readonly NavChild[]; pathname: string; tab: string | null; onNavigate?: () => void }) {
-    return (
-        <div className="w-60">
-            {items.map((item) => {
-                const Icon = item.icon;
-                const active = isChildActive(item.href, pathname, tab);
-                return (
-                    <Link
-                        key={item.slug}
-                        href={item.href}
-                        prefetch
-                        onClick={onNavigate}
-                        aria-current={active ? "page" : undefined}
-                        className={cn(
-                            "flex items-start gap-2.5 rounded-lg px-2 py-2 transition-colors",
-                            active ? "bg-[var(--surface-inset)]" : "hover:bg-[var(--surface-inset)]",
-                        )}
-                    >
-                        <Icon className="mt-0.5 size-4 shrink-0 text-[var(--ink-3)]" />
-                        <span className="min-w-0 flex-1">
-                            <span className={cn("block truncate text-[13px] leading-5 text-[var(--ink-1)]", active && "font-semibold")}>{item.label}</span>
-                            <span className="block truncate text-[11px] leading-4 text-[var(--ink-3)]">{item.description}</span>
-                        </span>
-                        {active ? <Check className="mt-0.5 size-3.5 shrink-0 text-[var(--brand-600)]" /> : null}
-                    </Link>
-                );
-            })}
-        </div>
-    );
-}
-
 export function WorkspaceNavList({ variant, activeToolSlug, expanded = true, onNavigate }: WorkspaceNavListProps) {
     const router = useRouter();
-    const pathname = usePathname();
-    const tab = useSearchParams().get("tab");
     const styles = VARIANTS[variant];
     const isRail = variant === "rail";
     /* 侧栏收起时只留图标，靠 title 和 aria-label 兜住可读性；抽屉永远带文字 */
@@ -140,15 +90,16 @@ export function WorkspaceNavList({ variant, activeToolSlug, expanded = true, onN
                                     <>
                                         <Icon className={cn("size-5 shrink-0", isRail && active && "text-[var(--ink-1)]")} />
                                         {showLabel ? <span className="min-w-0 flex-1 truncate">{tool.label}</span> : null}
-                                        {styles.activeDot ? <span className={cn("size-1.5 rounded-full", active ? "bg-current" : "bg-transparent")} aria-hidden /> : null}
                                     </>
                                 );
-                                const children = toolChildren(tool);
-                                const item = external ? (
-                                    <a key={tool.slug} href={href} target="_blank" rel="noreferrer noopener" title={hint} className={className}>
-                                        {content}
-                                    </a>
-                                ) : (
+                                if (external) {
+                                    return (
+                                        <a key={tool.slug} href={href} target="_blank" rel="noreferrer noopener" title={hint} className={className}>
+                                            {content}
+                                        </a>
+                                    );
+                                }
+                                return (
                                     <Link
                                         key={tool.slug}
                                         href={href}
@@ -162,55 +113,6 @@ export function WorkspaceNavList({ variant, activeToolSlug, expanded = true, onN
                                     >
                                         {content}
                                     </Link>
-                                );
-
-                                if (!children?.length) return item;
-
-                                /* 抽屉是触屏语境，没有 hover 可借力：直接平铺子项，父项不渲染 ——
-                                 * 否则「素材 / 素材 / 提示词」连着三行，父项和第一个子项完全重复。 */
-                                if (!isRail) {
-                                    return (
-                                        <div key={tool.slug} className="space-y-0.5">
-                                            {children.map((child) => {
-                                                const ChildIcon = child.icon;
-                                                const childActive = isChildActive(child.href, pathname, tab);
-                                                return (
-                                                    <Link
-                                                        key={child.slug}
-                                                        href={child.href}
-                                                        prefetch
-                                                        onClick={onNavigate}
-                                                        aria-current={childActive ? "page" : undefined}
-                                                        className={cn(DRAWER_ITEM_BASE, childActive ? VARIANTS.drawer.activeItem : VARIANTS.drawer.idleItem)}
-                                                    >
-                                                        <ChildIcon className="size-5 shrink-0" />
-                                                        <span className="min-w-0 flex-1 truncate">{child.label}</span>
-                                                        <span className={cn("size-1.5 rounded-full", childActive ? "bg-current" : "bg-transparent")} aria-hidden />
-                                                    </Link>
-                                                );
-                                            })}
-                                        </div>
-                                    );
-                                }
-
-                                /* 桌面侧栏：悬停展开二级面板，点父项仍直接进默认子项 ——
-                                 * 常用路径（看素材）不需要多一次点击，切提示词才走面板。 */
-                                return (
-                                    <Popover
-                                        key={tool.slug}
-                                        trigger={["hover", "focus"]}
-                                        placement="rightTop"
-                                        arrow={false}
-                                        /* antd 默认会把面板压在触发元素上，往右让出 10px，
-                                         * 侧栏条目本身才不会被盖住（收起态 72px 时尤其明显） */
-                                        align={{ offset: [10, 0] }}
-                                        mouseEnterDelay={0.1}
-                                        mouseLeaveDelay={0.16}
-                                        rootClassName="nav-flyout-popover"
-                                        content={<NavFlyout items={children} pathname={pathname} tab={tab} onNavigate={onNavigate} />}
-                                    >
-                                        {item}
-                                    </Popover>
                                 );
                             })}
                         </div>

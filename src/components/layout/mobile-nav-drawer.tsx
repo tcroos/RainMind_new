@@ -10,7 +10,6 @@ import { SiteLogo } from "@/components/layout/site-logo";
 import { drawerNavItemClass, WorkspaceNavList } from "@/components/layout/workspace-nav-list";
 import { type NavigationToolSlug } from "@/constant/navigation-tools";
 import { userAvatarInitial } from "@/lib/user-avatar";
-import { cn } from "@/lib/utils";
 import { DEFAULT_SITE_TITLE, resolveSiteTitle } from "@/lib/site-brand";
 import { usePublicSessionStore } from "@/stores/use-public-session-store";
 import { useUserStore } from "@/stores/use-user-store";
@@ -60,10 +59,11 @@ export function MobileNavDrawer({ open, activeToolSlug, onClose }: MobileNavDraw
              * 所以吃不到侧栏那条无层级覆盖规则。挂一个稳定的根类，
              * 让 global-surfaces.css 能按同样的方式压住 antd 的 reset。 */
             rootClassName="workspace-mobile-nav"
-            styles={{ header: { borderBottomColor: "var(--border)", minHeight: 60, padding: "12px 16px" }, body: { padding: "12px 14px 18px" } }}
+            /* 去掉抽屉标题下的横线：层级靠留白与字重区分，不靠分割线 */
+            styles={{ header: { borderBottomColor: "transparent", minHeight: 60, padding: "12px 16px" }, body: { padding: "12px 14px 18px" } }}
         >
             <WorkspaceNavList variant="drawer" activeToolSlug={activeToolSlug} onNavigate={onClose} />
-            <div className="mt-5 space-y-1 border-t border-border pt-4">
+            <div className="mt-3 space-y-1">
                 <Link
                     href="/profile"
                     prefetch
@@ -77,7 +77,6 @@ export function MobileNavDrawer({ open, activeToolSlug, onClose }: MobileNavDraw
                         {avatarUrl ? <img src={avatarUrl} alt="" className="size-full object-cover" referrerPolicy="no-referrer" /> : avatarInitial}
                     </span>
                     <span className="min-w-0 flex-1 truncate">个人中心</span>
-                    <span className={cn("size-1.5 rounded-full", accountActive ? "bg-current" : "bg-transparent")} />
                 </Link>
                 <Link
                     href="/"
@@ -89,7 +88,6 @@ export function MobileNavDrawer({ open, activeToolSlug, onClose }: MobileNavDraw
                 >
                     <Globe className="size-5 shrink-0" />
                     <span className="min-w-0 flex-1 truncate">官网首页</span>
-                    <span className="size-1.5 rounded-full bg-transparent" />
                 </Link>
             </div>
         </Drawer>

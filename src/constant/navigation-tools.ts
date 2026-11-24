@@ -1,4 +1,4 @@
-import { BookMarked, Braces, Clapperboard, Compass, FileText, GalleryVerticalEnd, House, Images, Maximize2, MessageSquareText, UserRound, Wallet } from "lucide-react";
+import { Braces, Clapperboard, Compass, House, Images, Maximize2, MessageSquareText, UserRound, Wallet } from "lucide-react";
 
 import { FEEDBACK_FORM_URL } from "./site-links";
 
@@ -46,19 +46,15 @@ export const navigationTools = [
         icon: Clapperboard,
     },
     {
-        /* 素材与提示词合并成一个入口：二级面板里切换「素材 / 提示词」。
-         * 两者是同一件事的两面 —— 一个存媒体、一个存文本，各占一格侧栏只会让人来回跳。
-         * /my-prompts 保留为到 /assets?tab=prompts 的重定向，旧链接不断。 */
+        /* 素材、我的提示词、公共词库统一成一个「素材库」入口。
+         * 不再做 hover 浮层：那是在用「菜单」伪装「切换内容」，与全站极简语言冲突，
+         * 用户也反馈过弹窗突兀。切换全部发生在页面内的三个 tab，侧栏只保留一个入口。
+         * /prompts 与 /my-prompts 保留为重定向，旧链接与代码里的深链不断。 */
         slug: "assets",
-        label: "素材",
-        description: "素材与提示词",
+        label: "素材库",
+        description: "素材、提示词与词库",
         group: "assets",
         icon: Images,
-        children: [
-            { slug: "assets", label: "素材", description: "图片、视频与音频", href: "/assets", icon: Images },
-            { slug: "prompts-mine", label: "我的提示词", description: "个人提示词库", href: "/assets?tab=prompts", icon: BookMarked },
-            { slug: "prompts", label: "公共词库", description: "发现与复用优质提示词", href: "/prompts", icon: FileText },
-        ],
     },
     {
         slug: "community",
@@ -114,9 +110,7 @@ export function isExternalTool(tool: (typeof navigationTools)[number]) {
 
 export function navigationToolForPathname(pathname: string) {
     const slug = pathname.split("/").filter(Boolean)[0];
-    /* 二级面板的子项路径（如 /prompts）没有自己的顶层导航项，
-     * 命中父项才能让侧栏保持高亮；子项自身的勾选由 NavFlyout 按 href 判断。 */
-    const direct = navigationTools.find((tool) => tool.slug === slug);
-    if (direct) return direct;
-    return navigationTools.find((tool) => "children" in tool && tool.children?.some((child) => child.href?.split("?")[0] === `/${slug}`));
+    /* 合并前的旧路由在重定向发生前也要保持「素材库」高亮，避免侧栏闪一下无选中。 */
+    if (slug === "prompts" || slug === "my-prompts") return navigationTools.find((tool) => tool.slug === "assets");
+    return navigationTools.find((tool) => tool.slug === slug);
 }
