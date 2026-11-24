@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, DragEvent as ReactDragEvent, MouseEvent as ReactMouseEvent, MutableRefObject, PointerEvent as ReactPointerEvent, ReactNode, RefObject } from "react";
 
-import { Group, Plus, Scissors, Ungroup } from "lucide-react";
+import { Plus, Scissors } from "lucide-react";
 
 import { canvasThemes, type CanvasBackgroundMode, type CanvasTheme } from "@/lib/canvas-theme";
 import { useThemeStore } from "@/stores/use-theme-store";
@@ -11,7 +11,8 @@ import { CanvasNode, type CanvasNodeProps } from "./canvas-node";
 import { CanvasNodeType, type CanvasConnection, type CanvasNodeData, type Position, type ViewportTransform } from "../types";
 import { edgePath, expandCanvasDragNodeIds, findConnectionTarget, isBlockedConnectionDrop, isCanvasVideoControlPoint, nodeAnchor, previewPath, samePosition, selectNodesInBounds, worldFromScreen } from "../utils/canvas-surface-geometry";
 import { buildCanvasSpatialIndex, canvasNodeBounds, canvasNodesBounds, type CanvasBounds } from "../utils/canvas-spatial-index";
-import { commonGroupId, expandGroupSelection } from "../utils/canvas-node-group";
+import { commonGroupId, expandGroupSelection, groupMemberIds } from "../utils/canvas-node-group";
+import { CanvasSelectionToolbar, type CanvasSelectionActions } from "./canvas-selection-toolbar";
 import { canvasMediaLoadBudget, selectCanvasMediaLoadIds } from "../utils/canvas-media-load-budget";
 import { CANVAS_MIN_ZOOM } from "../utils/canvas-zoom";
 
@@ -95,6 +96,10 @@ type CanvasSurfaceProps = {
     onNodesCommit: (updates: CanvasNodeUpdate[]) => void;
     onGroupNodes: (nodeIds: string[]) => void;
     onUngroupNodes: (nodeIds: string[]) => void;
+    /** 编组显示名：groupId -> Group N，由页面层按创建顺序生成 */
+    groupLabels?: ReadonlyMap<string, string>;
+    /** 多选悬浮工具栏的其余操作 */
+    selectionActions: CanvasSelectionActions;
     onSelectionChange: (nodeIds: Set<string>, connectionId: string | null) => void;
     onViewportCommit: (viewport: ViewportTransform) => void;
     onConnect: (connection: { source: string; target: string }) => void;
@@ -167,6 +172,8 @@ export function CanvasSurface({
     onNodesCommit,
     onGroupNodes,
     onUngroupNodes,
+    groupLabels,
+    selectionActions,
     onSelectionChange,
     onViewportCommit,
     onConnect,
@@ -1088,6 +1095,19 @@ export function CanvasSurface({
         () => (multiSelectionNodes.length >= 2 ? commonGroupId(displayNodesRef.current, multiSelectionNodes.map((node) => node.id)) : null),
         [multiSelectionNodes],
     );
+    /* 每个组一圈边框 + 左上角 Group N 标签；只画成员都在视口附近的组，避免远景下满屏描边 */
+    const groupFrames = useMemo(() => {
+        const ids = new Set(displayNodesRef.current.map((node) => node.metadata?.groupId).filter((value): value is string => Boolean(value)));
+        const frames: { groupId: string; label: string; bounds: CanvasBounds }[] = [];
+        ids.forEach((groupId) => {
+            const members = groupMemberIds(visibleNodes, groupId)
+                .map((id) => getDisplayNode(id))
+                .filter((node): node is CanvasNodeData => Boolean(node));
+            if (members.length < 2) return;
+            frames.push({ groupId, label: groupLabels?.get(groupId) || "Group", bounds: canvasNodesBounds(members, 18 / Math.max(displayViewport.k, 0.01), 22 / Math.max(displayViewport.k, 0.01)) });
+        });
+        return frames;
+    }, [displayViewport.k, getDisplayNode, groupLabels, visibleNodes]);
     const multiSelectionScale = Math.max(displayViewport.k, 0.01);
     const knobScreenScale = Math.max(0.5, Math.min(1, displayViewport.k));
 
@@ -1394,6 +1414,37 @@ export function CanvasSurface({
                             : null}
                     </svg>
                     <div className="pointer-events-none absolute inset-0 overflow-visible">
+                        {groupFrames.map((frame) => (
+                            <div
+                                key={frame.groupId}
+                                data-canvas-group-frame={frame.groupId}
+                                className="pointer-events-none absolute"
+                                style={{
+                                    left: frame.bounds.left,
+                                    top: frame.bounds.top,
+                                    width: Math.max(0, frame.bounds.right - frame.bounds.left),
+                                    height: Math.max(0, frame.bounds.bottom - frame.bounds.top),
+                                    border: `${1.5 / multiSelectionScale}px solid ${selectionGroupId === frame.groupId ? theme.node.activeStroke : themeName === "light" ? "rgba(17,17,19,0.16)" : "rgba(255,255,255,0.16)"}`,
+                                    borderRadius: 20 / multiSelectionScale,
+                                    /* 组框走中性灰，不带画布点阵的青蓝色调 */
+                                    background: themeName === "light" ? "rgba(17,17,19,0.025)" : "rgba(255,255,255,0.035)",
+                                    zIndex: 40,
+                                }}
+                            >
+                                <span
+                                    className="absolute whitespace-nowrap font-semibold"
+                                    style={{
+                                        left: 10 / multiSelectionScale,
+                                        top: -20 / multiSelectionScale,
+                                        fontSize: `${11 / multiSelectionScale}px`,
+                                        lineHeight: 1.2,
+                                        color: theme.node.muted,
+                                    }}
+                                >
+                                    {frame.label}
+                                </span>
+                            </div>
+                        ))}
                         {renderedNodes.map((node) => {
                             const viewProps = getNodeViewProps(node);
                             const loadImage = mediaLoadIds.has(node.id) || lowZoomVideoLoadIds.has(node.id);
@@ -1436,45 +1487,26 @@ export function CanvasSurface({
                                     height: Math.max(0, multiSelectionBounds.bottom - multiSelectionBounds.top),
                                     border: `${1.5 / multiSelectionScale}px dashed ${EDGE_ACTIVE_COLOR}`,
                                     borderRadius: 18 / multiSelectionScale,
-                                    background: theme.canvas.selectionFill,
+                                    /* 选区底走中性灰，不用 canvas.selectionFill（浅色下是青蓝色） */
+                                    background: themeName === "light" ? "rgba(17,17,19,0.04)" : "rgba(255,255,255,0.06)",
                                     boxShadow: `0 0 0 ${1 / multiSelectionScale}px rgba(255,255,255,.08)`,
                                     zIndex: 46,
                                 }}
                             />
                         ) : null}
                         {multiSelectionBounds ? (
-                            <div
-                                data-canvas-multi-selection-count
-                                className="pointer-events-none absolute flex items-center gap-1.5 whitespace-nowrap rounded-full py-1 pl-2.5 pr-1 text-[11px] font-semibold text-white shadow-lg"
-                                style={{
-                                    left: multiSelectionBounds.left + 12 / multiSelectionScale,
-                                    top: multiSelectionBounds.top - 12 / multiSelectionScale,
-                                    transform: `translateY(-100%) scale(${1 / multiSelectionScale})`,
-                                    transformOrigin: "0 100%",
-                                    /* 浅色主题的 node.stroke 是浅蓝灰，白字压不住；计数条统一用墨色底 */
-                                    background: themeName === "light" ? "#1c1c20" : theme.node.stroke,
-                                    zIndex: 60,
-                                }}
-                            >
-                                <span>已选 {multiSelectionNodes.length} 项</span>
-                                <button
-                                    type="button"
-                                    data-canvas-no-drag
-                                    data-canvas-group-action
-                                    aria-label={selectionGroupId ? "解除编组" : "将选中节点打组"}
-                                    className="pointer-events-auto grid size-6 place-items-center rounded-full bg-white/15 transition-colors hover:bg-white/30"
-                                    onPointerDown={(event) => event.stopPropagation()}
-                                    onMouseDown={(event) => event.stopPropagation()}
-                                    onClick={(event) => {
-                                        event.stopPropagation();
-                                        const ids = multiSelectionNodes.map((node) => node.id);
-                                        if (selectionGroupId) onUngroupNodes(ids);
-                                        else onGroupNodes(ids);
-                                    }}
-                                >
-                                    {selectionGroupId ? <Ungroup className="size-3.5" aria-hidden /> : <Group className="size-3.5" aria-hidden />}
-                                </button>
-                            </div>
+                            <CanvasSelectionToolbar
+                                anchor={{ left: multiSelectionBounds.left, top: multiSelectionBounds.top, width: multiSelectionBounds.right - multiSelectionBounds.left }}
+                                scale={multiSelectionScale}
+                                theme={theme}
+                                themeName={themeName}
+                                nodeIds={multiSelectionNodes.map((node) => node.id)}
+                                groupId={selectionGroupId}
+                                groupLabel={selectionGroupId ? groupLabels?.get(selectionGroupId) || null : null}
+                                onGroup={onGroupNodes}
+                                onUngroup={onUngroupNodes}
+                                actions={selectionActions}
+                            />
                         ) : null}
                         {multiSelectionBounds && (!batchHandleHidden || batchConnection) ? (
                             <button

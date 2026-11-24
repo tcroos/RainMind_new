@@ -22,6 +22,17 @@ export function commonGroupId(nodes: CanvasNodeData[], ids: Iterable<string>): s
     return count > 0 ? shared : null;
 }
 
+/** 按节点里首次出现的顺序给每个组编号：groupId -> "Group 1"、"Group 2"… */
+export function buildGroupLabels(nodes: CanvasNodeData[]): Map<string, string> {
+    const labels = new Map<string, string>();
+    for (const node of nodes) {
+        const groupId = node.metadata?.groupId;
+        if (!groupId || labels.has(groupId)) continue;
+        labels.set(groupId, `Group ${labels.size + 1}`);
+    }
+    return labels;
+}
+
 /** 取某个组的全部成员 id（保持 nodes 中的顺序）。 */
 export function groupMemberIds(nodes: CanvasNodeData[], groupId: string): string[] {
     return nodes.filter((node) => node.metadata?.groupId === groupId).map((node) => node.id);

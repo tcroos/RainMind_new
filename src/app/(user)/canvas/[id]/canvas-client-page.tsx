@@ -25,7 +25,8 @@ import { CanvasTopBar } from "../components/canvas-top-bar";
 import { CanvasZoomControls } from "../components/canvas-zoom-controls";
 import { CanvasNodeType, type CanvasNodeData, type Position } from "../types";
 import type { CanvasResourceReference } from "../utils/canvas-resource-references";
-import { applyNodeGroup } from "../utils/canvas-node-group";
+import { applyNodeGroup, buildGroupLabels } from "../utils/canvas-node-group";
+import { arrangeCanvasNodes, type CanvasArrangeMode } from "../utils/canvas-node-arrange";
 
 const CanvasAssistantPanel = dynamic(() => import("../components/canvas-assistant-panel").then((mod) => mod.CanvasAssistantPanel), { ssr: false });
 import { CanvasConnectionMenuErrorBoundary, CanvasRefreshShell, ConnectionCreateMenu, NodeCreateMenu } from "./canvas-page-elements";
@@ -438,6 +439,102 @@ function VozebProCanvasPage() {
         },
         [projectId, setNodes, updateProject, flushProjectSave],
     );
+
+    /* 多选悬浮工具栏的动作 —— 与底部工具栏复用同一批页面层回调 */
+    const handleSaveAssets = useCallback(
+        (ids: string[]) => {
+            const byId = new Map(nodesRef.current.map((node) => [node.id, node]));
+            const targets = ids.map((id) => byId.get(id)).filter((node): node is CanvasNodeData => Boolean(node));
+            void Promise.allSettled(targets.map((node) => saveNodeAsset(node))).then((results) => {
+                const failed = results.filter((result) => result.status === "rejected").length;
+                if (failed) message.warning(`${failed} 项保存失败，其余已加入素材`);
+            });
+        },
+        [message, nodesRef, saveNodeAsset],
+    );
+
+    const handleDuplicateSelection = useCallback(
+        (ids: string[]) => {
+            const idSet = new Set(ids);
+            const sources = nodesRef.current.filter((node) => idSet.has(node.id));
+            if (!sources.length) return;
+            const right = Math.max(...sources.map((node) => node.position.x + node.width));
+            const groupId = sources.some((node) => node.metadata?.groupId) ? `group-${crypto.randomUUID()}` : undefined;
+            const copies: CanvasNodeData[] = sources.map((node) => ({
+                ...node,
+                id: `${node.type}-${crypto.randomUUID()}`,
+                title: `${node.title} 副本`,
+                position: { x: node.position.x + right + 36, y: node.position.y },
+                metadata: {
+                    ...node.metadata,
+                    ...(groupId ? { groupId } : {}),
+                    imageTask: undefined,
+                    videoTask: undefined,
+                    videoTaskRequest: undefined,
+                    audioTask: undefined,
+                    textTask: undefined,
+                    uploadState: undefined,
+                    errorDetails: undefined,
+                    status: node.metadata?.content ? ("success" as const) : ("idle" as const),
+                    isBatchRoot: false,
+                    batchChildIds: undefined,
+                    batchRootId: undefined,
+                    primaryImageId: undefined,
+                    imageBatchExpanded: false,
+                },
+            }));
+            const nextNodes = [...nodesRef.current, ...copies];
+            setNodes(nextNodes);
+            updateProject(projectId, { nodes: nextNodes });
+            void flushProjectSave(projectId);
+            setSelectedNodeIds(new Set(copies.map((node) => node.id)));
+            setToolbarNodeId(null);
+        },
+        [flushProjectSave, nodesRef, projectId, setNodes, setSelectedNodeIds, setToolbarNodeId, updateProject],
+    );
+
+    const handleRunSelection = useCallback(
+        (ids: string[]) => {
+            const idSet = new Set(ids);
+            const targets = nodesRef.current.filter((node) => idSet.has(node.id) && Boolean(node.metadata?.composerContent || node.metadata?.prompt));
+            if (!targets.length) {
+                message.info("所选节点没有可执行的提示词");
+                return;
+            }
+            void Promise.allSettled(targets.map((node) => handleGenerateNode(node.id, node.metadata?.generationMode || "image", node.metadata?.composerContent ?? node.metadata?.prompt ?? ""))).then((results) => {
+                const failed = results.filter((result) => result.status === "rejected").length;
+                if (failed) message.warning(`${failed} 项执行失败`);
+            });
+        },
+        [handleGenerateNode, message, nodesRef],
+    );
+
+    const handleArrangeSelection = useCallback(
+        (ids: string[], mode: CanvasArrangeMode) => {
+            const updates = arrangeCanvasNodes(nodesRef.current, ids, mode);
+            if (!updates.length) return;
+            const updatesById = new Map(updates.map((update) => [update.id, update.position]));
+            const nextNodes = nodesRef.current.map((node) => (updatesById.has(node.id) ? { ...node, position: updatesById.get(node.id)! } : node));
+            setNodes(nextNodes);
+            updateProject(projectId, { nodes: nextNodes });
+            void flushProjectSave(projectId);
+        },
+        [flushProjectSave, nodesRef, projectId, setNodes, updateProject],
+    );
+
+    const groupLabels = useMemo(() => buildGroupLabels(nodes), [nodes]);
+    const selectionActions = useMemo(
+        () => ({
+            onSaveAssets: handleSaveAssets,
+            onDuplicate: handleDuplicateSelection,
+            onDownload: () => void downloadSelectedMedia(),
+            onRun: handleRunSelection,
+            onAddMaterial: () => setAssetPickerOpen(true),
+            onDelete: (ids: string[]) => deleteNodes(new Set(ids)),
+            onArrange: handleArrangeSelection,
+        }),
+        [deleteNodes, downloadSelectedMedia, handleArrangeSelection, handleDuplicateSelection, handleRunSelection, handleSaveAssets, setAssetPickerOpen],
+    );
     const handleImageSettingsOpenChange = useCallback((open: boolean) => {
         setNodeImageSettingsOpen(open);
         if (open) setToolbarNodeId(null);
@@ -626,6 +723,8 @@ function VozebProCanvasPage() {
                     renderNode={renderCanvasNodeContent}
                     onGroupNodes={handleGroupNodes}
                     onUngroupNodes={handleUngroupNodes}
+                    groupLabels={groupLabels}
+                    selectionActions={selectionActions}
                     onNodesCommit={(updates) => {
                         const updatesById = new Map(updates.map((update) => [update.id, update]));
                         const nextNodes = nodesRef.current.map((node) => {
