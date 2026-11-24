@@ -417,7 +417,7 @@ export function AccountCenter({ scope }: { scope: AccountScope }) {
                                     </AccountPanel>
                                     <AccountPanel title="账号资料" description="这些信息会展示在作品广场与个人主页。">
                                         <div className="flex items-center gap-3">
-                                            <span className="grid size-11 shrink-0 place-items-center rounded-full bg-[linear-gradient(140deg,#8a94a3_0%,#3f4854_100%)] text-[15px] font-semibold text-white">
+                                            <span className="grid size-11 shrink-0 place-items-center rounded-full bg-[linear-gradient(135deg,#f6b181_0%,#e2671f_100%)] text-[15px] font-semibold text-white">
                                                 {Array.from(displayName.trim() || user?.username || "U")[0]?.toUpperCase()}
                                             </span>
                                             <div className="min-w-0">
