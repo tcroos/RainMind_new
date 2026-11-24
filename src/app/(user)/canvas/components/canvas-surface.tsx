@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { CSSProperties, DragEvent as ReactDragEvent, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent, ReactNode, RefObject } from "react";
+import type { CSSProperties, DragEvent as ReactDragEvent, MouseEvent as ReactMouseEvent, MutableRefObject, PointerEvent as ReactPointerEvent, ReactNode, RefObject } from "react";
 
 import { Plus, Scissors } from "lucide-react";
 
@@ -217,6 +217,8 @@ export function CanvasSurface({
     /** 拖动平移时自动浮出的小地图。与页面上的手动开关（minimapOpen）取并集：
      *  手动开的常驻，自动开的只要出现「拖动以外的操作」就收回。 */
     const [panMinimap, setPanMinimap] = useState(false);
+    /** 小地图注册进来的逐帧回调：平移时直接搬橙色视口框，不等 setState */
+    const minimapSyncRef = useRef<((viewport: ViewportTransform) => void) | null>(null);
     const [surfaceInteracting, setSurfaceInteracting] = useState(false);
     const [hoveredConnectionId, setHoveredConnectionId] = useState<string | null>(null);
     const [edgeCut, setEdgeCut] = useState<{ connectionId: string; left: number; top: number } | null>(null);
@@ -449,6 +451,8 @@ export function CanvasSurface({
             viewportDirtyRef.current = true;
             displayViewportRef.current = next;
             applyViewportStyles(next);
+            // 小地图的视口框同步跟手：只写 4 个 style，不触发 React 渲染
+            minimapSyncRef.current?.(next);
         },
         [applyViewportStyles],
     );
@@ -1505,7 +1509,7 @@ export function CanvasSurface({
                     <Scissors className="size-5" aria-hidden />
                 </button>
             ) : null}
-            {minimapOpen || panMinimap ? <CanvasMiniMap nodes={visibleNodes} viewport={displayViewport} viewportSize={surfaceSize} theme={theme} onViewportPreview={previewMinimapViewport} onViewportCommit={commitMinimapViewport} /> : null}
+            {minimapOpen || panMinimap ? <CanvasMiniMap nodes={visibleNodes} viewport={displayViewport} viewportSize={surfaceSize} theme={theme} onViewportPreview={previewMinimapViewport} onViewportCommit={commitMinimapViewport} syncRef={minimapSyncRef} /> : null}
         </div>
     );
 }
@@ -1550,6 +1554,7 @@ function CanvasMiniMap({
     theme,
     onViewportPreview,
     onViewportCommit,
+    syncRef,
 }: {
     nodes: CanvasNodeData[];
     viewport: ViewportTransform;
@@ -1557,6 +1562,8 @@ function CanvasMiniMap({
     theme: CanvasTheme;
     onViewportPreview: (viewport: ViewportTransform) => void;
     onViewportCommit: () => void;
+    /** 平移/缩放过程中父级逐帧回调，用来直接搬橙色视口框，避免每帧 setState 拖垮整张画布的重渲染 */
+    syncRef?: MutableRefObject<((viewport: ViewportTransform) => void) | null>;
 }) {
     const width = Math.min(264, Math.max(184, viewportSize.width - 32));
     const height = Math.round(width * 0.62);
@@ -1586,6 +1593,27 @@ function CanvasMiniMap({
     const offsetY = (height - worldHeight * scale) / 2;
     const point = useCallback((x: number, y: number) => ({ x: offsetX + (x - bounds.left) * scale, y: offsetY + (y - bounds.top) * scale }), [bounds.left, bounds.top, offsetX, offsetY, scale]);
     const viewPoint = point(viewportWorldRect.x, viewportWorldRect.y);
+
+    /* 平移时父级不 setState 只改 transform，所以视口框必须能被动跟着走。
+       这里把当前的比例尺/偏移存进 ref，父级每帧调用一次 sync，只写 4 个 style，不触发 React 渲染。 */
+    const rectRef = useRef<HTMLDivElement>(null);
+    const mappingRef = useRef({ left: bounds.left, top: bounds.top, scale, offsetX, offsetY, viewportWidth: viewportSize.width, viewportHeight: viewportSize.height });
+    mappingRef.current = { left: bounds.left, top: bounds.top, scale, offsetX, offsetY, viewportWidth: viewportSize.width, viewportHeight: viewportSize.height };
+    useEffect(() => {
+        if (!syncRef) return;
+        syncRef.current = (next) => {
+            const element = rectRef.current;
+            if (!element) return;
+            const map = mappingRef.current;
+            element.style.left = `${map.offsetX + (-next.x / next.k - map.left) * map.scale}px`;
+            element.style.top = `${map.offsetY + (-next.y / next.k - map.top) * map.scale}px`;
+            element.style.width = `${Math.max(6, (map.viewportWidth / next.k) * map.scale)}px`;
+            element.style.height = `${Math.max(6, (map.viewportHeight / next.k) * map.scale)}px`;
+        };
+        return () => {
+            syncRef.current = null;
+        };
+    }, [syncRef]);
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
@@ -1657,6 +1685,7 @@ function CanvasMiniMap({
             >
                 <canvas ref={canvasRef} className="pointer-events-none absolute inset-0 block h-full w-full" aria-hidden="true" />
                 <div
+                    ref={rectRef}
                     className="canvas-minimap-viewport pointer-events-none absolute rounded-[4px]"
                     style={{
                         left: viewPoint.x,
