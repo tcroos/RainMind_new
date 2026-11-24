@@ -411,9 +411,9 @@ function AccountMenuPanel({ user, avatarUrl, avatarInitial, onNavigate, onLogout
                         </button>
                     );
                 })}
-            </div>
-
-            <div className="mt-2 border-t border-[var(--hairline)] pt-2">
+                {/* 外观（深浅切换）作为普通一行跟在其它入口后面：
+                 * 之前单独加了一条分割线，看起来像另一个分区，
+                 * 但它和上面那几行是同一类「菜单项」，不该被切开。 */}
                 <button
                     type="button"
                     className="flex h-9 w-full items-center gap-2.5 rounded-lg px-2 text-left text-[12.5px] font-medium text-[var(--ink-1)] transition hover:bg-[var(--surface-soft)]"
@@ -429,6 +429,65 @@ function AccountMenuPanel({ user, avatarUrl, avatarInitial, onNavigate, onLogout
                 <button type="button" className="flex h-9 w-full items-center gap-2.5 rounded-lg px-2 text-left text-[12.5px] font-medium text-rose-600 transition hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-950/30" onClick={onLogout}>
                     <LogOut className="size-4 shrink-0" />
                     退出登录
+                </button>
+            </div>
+        </div>
+    );
+}
+
+/**
+ * 悬浮积分时的小卡片：套餐 + 升级入口 + 积分 + 使用详情。
+ * 和账户菜单里那块「当前套餐 / 积分余额」信息重叠，但用途不同 ——
+ * 这里只回答两件事：我还有多少、去哪儿充值或看明细，所以做成紧凑三行，
+ * 悬停即可看到，不用先点开账户菜单。
+ */
+function PointsQuickPanel({ user, onNavigate }: { user: LocalUser; onNavigate: (href: string) => void }) {
+    const planLabel = user.planName || user.planId || "免费版";
+    const planActionLabel = user.hasActivePlan ? "续费" : "升级";
+    const dailyPoints = user.dailyPointsBalance || 0;
+    return (
+        <div className="w-[min(17rem,calc(100vw-2rem))] text-[var(--ink-1)]">
+            <div className="flex items-center justify-between gap-2 px-1">
+                <span className="min-w-0 truncate text-[13px] font-semibold">{planLabel}</span>
+                <button
+                    type="button"
+                    /* 同上：全局有未分层的 button{color:inherit}，文字色只能内联 */
+                    style={{ color: "var(--surface-panel)" }}
+                    className="inline-flex h-7 shrink-0 items-center gap-1 rounded-md bg-[#18181b] px-2.5 text-[11px] font-semibold transition hover:opacity-90 dark:bg-[#ffffff]"
+                    onClick={() => onNavigate("/wallet?section=billing")}
+                >
+                    <Crown className="size-3" /> {planActionLabel}
+                </button>
+            </div>
+
+            <div className="mt-2 border-t border-[var(--hairline)] pt-2">
+                <div className="flex items-center justify-between gap-2 px-1 py-1">
+                    <span className="inline-flex items-center gap-2 text-[12.5px] font-medium">
+                        <CreditSymbol className="text-[13px]" />
+                        积分
+                    </span>
+                    <span className="text-[13px] font-semibold tabular-nums">{formatCreditAmount(user.pointsBalance)}</span>
+                </div>
+                <div className="px-1 py-1">
+                    <div className="flex items-center justify-between gap-2">
+                        <span className="inline-flex items-center gap-2 text-[12.5px] font-medium">
+                            <Gift className="size-4 shrink-0" />
+                            每日免费积分
+                        </span>
+                        <span className="text-[13px] font-semibold tabular-nums">{formatCreditAmount(dailyPoints)}</span>
+                    </div>
+                    <p className="mt-1 pl-6 text-[11px] leading-4 text-[var(--ink-3)]">每天重置为 {formatCreditAmount(dailyPoints)} 免费积分</p>
+                </div>
+            </div>
+
+            <div className="mt-1 border-t border-[var(--hairline)] pt-1">
+                <button
+                    type="button"
+                    className="flex h-9 w-full items-center gap-2.5 rounded-lg px-1 text-left text-[12.5px] font-medium transition hover:bg-[var(--surface-soft)]"
+                    onClick={() => onNavigate("/wallet")}
+                >
+                    使用详情
+                    <ChevronRight className="ml-auto size-4 text-[var(--ink-3)]" />
                 </button>
             </div>
         </div>
@@ -476,52 +535,73 @@ export function AccountRailBar({ expanded }: { expanded: boolean }) {
     }
 
     return (
-        <Popover
-            rootClassName="account-menu-popover"
-            open={open}
-            onOpenChange={setOpen}
-            trigger="click"
-            placement="topLeft"
-            arrow={false}
-            content={
-                <AccountMenuPanel
-                    user={user}
-                    avatarUrl={avatarUrl}
-                    avatarInitial={avatarInitial}
-                    onNavigate={(href) => {
-                        setOpen(false);
-                        router.push(href);
-                    }}
-                    onLogout={() => {
-                        setOpen(false);
-                        void logout();
-                    }}
-                    onDismiss={() => setOpen(false)}
-                />
-            }
-        >
-            <button
-                type="button"
-                aria-label="账户菜单"
-                title={accountName}
-                className={cn(
-                    "flex w-full items-center rounded-lg text-[var(--ink-2)] transition-colors hover:bg-[var(--surface-inset)] hover:text-[var(--ink-1)]",
-                    expanded ? "h-11 gap-2 px-2" : "h-11 justify-center px-0",
-                )}
+        <div className={cn("flex items-center gap-1", expanded ? "w-full" : "flex-col gap-1.5")}>
+            <Popover
+                rootClassName="account-menu-popover"
+                open={open}
+                onOpenChange={setOpen}
+                trigger="click"
+                placement="topLeft"
+                arrow={false}
+                content={
+                    <AccountMenuPanel
+                        user={user}
+                        avatarUrl={avatarUrl}
+                        avatarInitial={avatarInitial}
+                        onNavigate={(href) => {
+                            setOpen(false);
+                            router.push(href);
+                        }}
+                        onLogout={() => {
+                            setOpen(false);
+                            void logout();
+                        }}
+                        onDismiss={() => setOpen(false)}
+                    />
+                }
             >
-                <span className="grid size-7 shrink-0 place-items-center overflow-hidden rounded-full bg-[linear-gradient(135deg,#f6b181_0%,#e2671f_100%)] text-[11px] font-semibold text-white ring-1 ring-black/5 dark:ring-white/15">
-                    {avatarUrl ? <img src={avatarUrl} alt="" className="size-full object-cover" referrerPolicy="no-referrer" /> : avatarInitial}
-                </span>
-                {expanded ? (
-                    <>
-                        <span className="min-w-0 flex-1 truncate text-left text-[13px] font-medium text-[var(--ink-1)]">{accountName}</span>
-                        <span className="inline-flex shrink-0 items-center gap-1 text-[12px] font-semibold tabular-nums">
-                            <CreditSymbol className="text-[13px] text-[var(--brand-600)]" />
-                            {formatCreditAmount(user.pointsBalance)}
-                        </span>
-                    </>
-                ) : null}
-            </button>
-        </Popover>
+                <button
+                    type="button"
+                    aria-label="账户菜单"
+                    title={accountName}
+                    className={cn(
+                        "flex items-center rounded-lg text-[var(--ink-2)] transition-colors hover:bg-[var(--surface-inset)] hover:text-[var(--ink-1)]",
+                        expanded ? "h-11 min-w-0 flex-1 gap-2 px-2" : "size-10 justify-center",
+                    )}
+                >
+                    <span className="grid size-7 shrink-0 place-items-center overflow-hidden rounded-full bg-[linear-gradient(135deg,#f6b181_0%,#e2671f_100%)] text-[11px] font-semibold text-white ring-1 ring-black/5 dark:ring-white/15">
+                        {avatarUrl ? <img src={avatarUrl} alt="" className="size-full object-cover" referrerPolicy="no-referrer" /> : avatarInitial}
+                    </span>
+                    {expanded ? <span className="min-w-0 flex-1 truncate text-left text-[13px] font-medium text-[var(--ink-1)]">{accountName}</span> : null}
+                </button>
+            </Popover>
+
+            {/* 积分单独成键：悬停就展开「套餐 + 积分 + 使用详情」，
+             * 想看余额/充值不用先点开账户菜单。 */}
+            <Popover
+                rootClassName="user-points-popover"
+                trigger="hover"
+                placement="topRight"
+                arrow={false}
+                content={
+                    <PointsQuickPanel
+                        user={user}
+                        onNavigate={(href) => {
+                            router.push(href);
+                        }}
+                    />
+                }
+            >
+                <button
+                    type="button"
+                    aria-label="积分与套餐"
+                    title="积分与套餐"
+                    className="inline-flex h-7 shrink-0 items-center gap-1 rounded-full bg-[var(--surface-inset)] px-2 text-[12px] font-semibold tabular-nums text-[var(--ink-1)] transition-colors hover:bg-[var(--surface-hover)]"
+                >
+                    <CreditSymbol className="text-[13px] text-[var(--brand-600)]" />
+                    {formatCreditAmount(user.pointsBalance)}
+                </button>
+            </Popover>
+        </div>
     );
 }
