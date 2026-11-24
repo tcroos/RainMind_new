@@ -12,6 +12,8 @@ type CanvasUiStore = {
     setEditingProjectTitle: (title: string) => void;
     stopEditingProject: () => void;
     toggleSelectedProjectId: (id: string, selected: boolean) => void;
+    /** 整批替换选择集：列表页的「全选 / 取消全选」用它一次set完，避免逐张 toggle 触发 N 次渲染 */
+    setSelectedProjectIds: (ids: string[]) => void;
     setDeleteProjectIds: (ids: string[]) => void;
     removeSelectedProjectIds: (ids: string[]) => void;
     /** 深浅两套色盘各自记忆，切换深浅时还原各自上次选择 */
@@ -31,6 +33,7 @@ export const useCanvasUiStore = create<CanvasUiStore>()(
             setEditingProjectTitle: (editingProjectTitle) => set({ editingProjectTitle }),
             stopEditingProject: () => set({ editingProjectId: null }),
             toggleSelectedProjectId: (id, selected) => set((state) => ({ selectedProjectIds: selected ? [...new Set([...state.selectedProjectIds, id])] : state.selectedProjectIds.filter((item) => item !== id) })),
+            setSelectedProjectIds: (selectedProjectIds) => set({ selectedProjectIds }),
             setDeleteProjectIds: (deleteProjectIds) => set({ deleteProjectIds }),
             lightPaletteId: DEFAULT_CANVAS_PALETTE_ID.light,
             darkPaletteId: DEFAULT_CANVAS_PALETTE_ID.dark,

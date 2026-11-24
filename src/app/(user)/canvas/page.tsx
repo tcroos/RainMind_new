@@ -2,18 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { App, Button, Input, Pagination } from "antd";
-import { Download, FileUp, Search } from "lucide-react";
+import { App, Button, Pagination } from "antd";
+import { Check, Download, ListChecks } from "lucide-react";
 
-import { readZip } from "@/lib/zip";
 import { cn } from "@/lib/utils";
-import { APP_EXPORT_ID } from "@/lib/storage-keys";
-import { uploadMediaFile } from "@/services/file-storage";
-import { uploadImage } from "@/services/image-storage";
 import { CanvasDeleteProjectsDialog } from "./components/canvas-delete-projects-dialog";
 import { CanvasCreateCard } from "./components/canvas-project-create-card";
 import { CanvasProjectCard } from "./components/canvas-project-card";
-import type { CanvasExportFile } from "./export-types";
 import { useCanvasStore } from "./stores/use-canvas-store";
 import { useCanvasUiStore } from "./stores/use-canvas-ui-store";
 import { resolveSiteTitle } from "@/lib/site-brand";
@@ -25,10 +20,11 @@ export default function CanvasPage() {
     const { message } = App.useApp();
     const router = useRouter();
     const searchParams = useSearchParams();
-    const inputRef = useRef<HTMLInputElement>(null);
     const autoOpenRef = useRef(false);
     const [creating, setCreating] = useState(false);
     const [exporting, setExporting] = useState(false);
+    /** 多选态：标题旁的小按钮点开才进入，进入后卡片右上角出现复选框，底部浮出「全选 / 取消」 */
+    const [selectMode, setSelectMode] = useState(false);
     const siteTitle = usePublicSessionStore((state) => resolveSiteTitle(state.payload?.settings?.site?.title));
     const userId = useUserStore((state) => state.user?.id || "");
     const hydrated = useCanvasStore((state) => state.hydrated);
@@ -41,16 +37,13 @@ export default function CanvasPage() {
     const pageSize = useCanvasStore((state) => state.summaryPageSize);
     const loadProject = useCanvasStore((state) => state.loadProject);
     const createProject = useCanvasStore((state) => state.createProject);
-    const importProject = useCanvasStore((state) => state.importProject);
+    const summaryBusy = useCanvasStore((state) => state.summaryBusy);
     const selectedIds = useCanvasUiStore((state) => state.selectedProjectIds);
+    const setSelectedIds = useCanvasUiStore((state) => state.setSelectedProjectIds);
     const setDeleteIds = useCanvasUiStore((state) => state.setDeleteProjectIds);
     const removeSelectedIds = useCanvasUiStore((state) => state.removeSelectedProjectIds);
-    const searchProjects = useCanvasStore((state) => state.searchProjects);
-    const storedKeyword = useCanvasStore((state) => state.summaryKeyword);
-    const summaryBusy = useCanvasStore((state) => state.summaryBusy);
-    const [keyword, setKeyword] = useState(storedKeyword);
-    const [searchOpen, setSearchOpen] = useState(Boolean(storedKeyword));
     const ready = Boolean(userId && hydrated && hydratedUserId === userId);
+    const allSelected = projects.length > 0 && selectedIds.length === projects.length;
 
     const mode = searchParams.get("mode");
     const agentMode = mode === "new" || mode === "recent" || mode === "choose";
@@ -69,35 +62,12 @@ export default function CanvasPage() {
             setCreating(false);
         }
     };
-    const importCanvas = async (file?: File) => {
-        if (!file) return;
-        try {
-            const zip = await readZip(file);
-            const projectFile = zip.get("projects.json");
-            if (!projectFile) throw new Error("missing projects.json");
-            const data = JSON.parse(await projectFile.text()) as CanvasExportFile;
-            if (data.app !== APP_EXPORT_ID) throw new Error("不是当前应用的画布包");
-            await Promise.all(
-                data.projects.map(async (item) => {
-                    const uploaded = new Map<string, { storageKey: string; url: string }>();
-                    await Promise.all(
-                        item.files.map(async (file) => {
-                            const blob = zip.get(file.path);
-                            if (!blob) return;
-                            const typedBlob = blob.type ? blob : blob.slice(0, blob.size, file.mimeType);
-                            const media = file.mimeType.startsWith("image/") ? await uploadImage(typedBlob) : await uploadMediaFile(typedBlob, file.mimeType.startsWith("audio/") ? "audio" : "video");
-                            uploaded.set(file.storageKey, media);
-                        }),
-                    );
-                    await importProject(remapImportedProjectMedia(item.project, uploaded));
-                }),
-            );
-            message.success(`已导入 ${data.projects.length} 个画布`);
-        } catch {
-            message.error("导入失败，请选择有效的画布压缩包");
-        } finally {
-            if (inputRef.current) inputRef.current.value = "";
-        }
+    const exitSelectMode = () => {
+        removeSelectedIds(selectedIds);
+        setSelectMode(false);
+    };
+    const toggleSelectAll = () => {
+        setSelectedIds(allSelected ? [] : projects.map((project) => project.id));
     };
     const exportSelectedProjects = async () => {
         if (!selectedIds.length || exporting) return;
@@ -115,13 +85,6 @@ export default function CanvasPage() {
     useEffect(() => {
         void hydrate();
     }, [hydrate, userId]);
-
-    // 输入停顿 320ms 再查，避免每敲一个字打一次接口；store 里同词会直接短路
-    useEffect(() => {
-        if (!ready) return;
-        const timer = setTimeout(() => void searchProjects(keyword), 320);
-        return () => clearTimeout(timer);
-    }, [keyword, ready, searchProjects]);
 
     useEffect(() => {
         if (!ready || autoOpenRef.current || (mode !== "new" && mode !== "recent")) return;
@@ -143,69 +106,27 @@ export default function CanvasPage() {
     }
 
     return (
-        <main className="h-full overflow-auto bg-background text-[var(--ink-1)]">
-            <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-5 px-4 py-5 sm:gap-6 sm:px-7 sm:py-7">
-                <header className="flex items-center justify-between gap-3">
+        <main className="h-full overflow-auto bg-background pb-24 text-[var(--ink-1)]">
+            <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-5 px-5 py-5 sm:px-6 sm:py-6">
+                <header className="flex items-center gap-1.5">
                     <h1 className="truncate text-[15px] font-medium leading-6 tracking-tight text-[var(--ink-1)]">画布</h1>
-                    <div className="flex shrink-0 items-center gap-0.5">
-                        {/* 搜索默认收起，只留一个放大镜：库里通常只有几张卡，摆一条常驻输入框纯占地方。
-                            点开后才让出宽度，空了失焦再收回去。 */}
-                        {searchOpen ? (
-                            <div className="w-[180px]">
-                                <Input
-                                    allowClear
-                                    autoFocus
-                                    size="small"
-                                    value={keyword}
-                                    onChange={(event) => setKeyword(event.target.value)}
-                                    prefix={<Search className="size-3.5 text-[var(--ink-3)]" />}
-                                    placeholder="搜索画布"
-                                    aria-label="搜索画布"
-                                    onBlur={() => {
-                                        if (!keyword.trim()) setSearchOpen(false);
-                                    }}
-                                />
-                            </div>
-                        ) : (
-                            <button
-                                type="button"
-                                aria-label="搜索画布"
-                                title="搜索"
-                                onClick={() => setSearchOpen(true)}
-                                className="grid size-8 place-items-center rounded-lg text-[var(--ink-3)] transition-colors duration-150 hover:bg-[var(--surface-soft)] hover:text-[var(--ink-1)]"
-                            >
-                                <Search className="size-4" />
-                            </button>
+                    {/* 批量操作的入口：和标题同一行、紧贴右侧，比右上角工具区更靠近内容 */}
+                    <button
+                        type="button"
+                        aria-pressed={selectMode}
+                        aria-label={selectMode ? "退出多选" : "多选"}
+                        title={selectMode ? "退出多选" : "多选"}
+                        onClick={() => (selectMode ? exitSelectMode() : setSelectMode(true))}
+                        className={cn(
+                            "grid size-6 shrink-0 place-items-center rounded-md transition-colors duration-150",
+                            selectMode
+                                ? "bg-[var(--brand-500)] text-white hover:bg-[var(--brand-600)]"
+                                : "bg-[var(--surface-soft)] text-[var(--ink-2)] hover:bg-[var(--surface-inset)] hover:text-[var(--ink-1)]",
                         )}
-                        {/* 导入改用图标：低频操作，一行文字按钮的视觉重量和"新建"相当，会把注意力从卡片上引开 */}
-                        <button
-                            type="button"
-                            aria-label="导入画布"
-                            title="导入画布"
-                            disabled={!ready}
-                            onClick={() => inputRef.current?.click()}
-                            className="grid size-8 place-items-center rounded-lg text-[var(--ink-3)] transition-colors duration-150 hover:bg-[var(--surface-soft)] hover:text-[var(--ink-1)] disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                            <FileUp className="size-4" />
-                        </button>
-                    </div>
+                    >
+                        <ListChecks className="size-[14px]" strokeWidth={1.9} />
+                    </button>
                 </header>
-
-                {selectedIds.length ? (
-                    <div className="flex flex-wrap items-center gap-2 rounded-xl bg-[var(--surface-panel)] px-3 py-2 shadow-[0_1px_2px_rgba(17,17,19,0.05),0_8px_20px_-14px_rgba(17,17,19,0.25)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_20px_-14px_rgba(0,0,0,0.7)]">
-                        <span className="text-[12px] text-[var(--ink-2)]">已选 {selectedIds.length} 个画布</span>
-                        <span className="flex-1" />
-                        <Button size="small" loading={exporting} icon={<Download className="size-3.5" />} onClick={() => void exportSelectedProjects()}>
-                            导出
-                        </Button>
-                        <Button size="small" danger onClick={() => setDeleteIds(selectedIds)}>
-                            删除
-                        </Button>
-                        <Button size="small" type="text" onClick={() => removeSelectedIds(selectedIds)}>
-                            取消选择
-                        </Button>
-                    </div>
-                ) : null}
 
                 {!ready ? (
                     <section className="flex min-h-40 flex-col items-center justify-center gap-3 text-center text-sm text-[var(--ink-3)]">
@@ -218,19 +139,14 @@ export default function CanvasPage() {
                     </section>
                 ) : (
                     <>
-                        {/* 列宽按参照稿收紧：1080 视口下就该排到 4 列，原来要等到 1280 才排 4 列，
-                            中间档位卡片被拉得很宽、留白显得散 */}
-                        <div className={cn("grid grid-cols-2 gap-x-4 gap-y-6 transition-opacity duration-200 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5", summaryBusy && "pointer-events-none opacity-50")}>
+                        {/* 一屏最多 5 列：列再多卡片就退化成缩略图墙，看不清封面也点不准 */}
+                        <div className={cn("grid grid-cols-2 gap-x-4 gap-y-6 transition-opacity duration-200 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5", summaryBusy && "pointer-events-none opacity-50")}>
                             <CanvasCreateCard onCreate={() => void createAndEnter()} loading={creating} />
                             {projects.map((project) => (
-                                <CanvasProjectCard key={project.id} project={project} />
+                                <CanvasProjectCard key={project.id} project={project} selectable={selectMode} />
                             ))}
                         </div>
-                        {!projects.length ? (
-                            <p className="pb-6 text-center text-[12px] text-[var(--ink-3)]">
-                                {keyword.trim() ? `没有找到包含「${keyword.trim()}」的画布` : "还没有画布，点上面的卡片开始搭第一个"}
-                            </p>
-                        ) : null}
+                        {!projects.length ? <p className="pb-6 text-center text-[12px] text-[var(--ink-3)]">还没有画布，点上面的空格子开始搭第一个</p> : null}
                         {total > pageSize ? (
                             <div className="flex justify-center pb-2">
                                 <Pagination current={page} pageSize={pageSize} total={total} showSizeChanger={false} onChange={(nextPage) => void hydrate(true, nextPage)} />
@@ -240,27 +156,51 @@ export default function CanvasPage() {
                 )}
             </div>
 
-            <input ref={inputRef} type="file" accept="application/zip,.zip" className="hidden" onChange={(event) => void importCanvas(event.target.files?.[0])} />
+            {selectMode ? (
+                <div className="pointer-events-none fixed inset-x-0 bottom-6 z-40 flex justify-center px-4">
+                    <div className="pointer-events-auto inline-flex items-center gap-0.5 rounded-full bg-[var(--surface-panel)] p-1 pl-1.5 text-[12px] leading-5 text-[var(--ink-1)] shadow-[0_10px_30px_-10px_rgba(17,17,19,0.35),0_2px_6px_-2px_rgba(17,17,19,0.12)] ring-1 ring-[var(--hairline)] dark:shadow-[0_12px_34px_-12px_rgba(0,0,0,0.85)]">
+                        <button type="button" onClick={toggleSelectAll} className="inline-flex items-center gap-1.5 rounded-full py-1 pl-1.5 pr-2.5 transition-colors hover:bg-[var(--surface-soft)]">
+                            <span
+                                aria-hidden
+                                className={cn(
+                                    "grid size-4 shrink-0 place-items-center rounded-[4px] transition-colors",
+                                    allSelected ? "bg-[var(--brand-500)] text-white ring-1 ring-[var(--brand-500)]" : "bg-white/80 ring-1 ring-black/25 dark:bg-white/5 dark:ring-white/60",
+                                )}
+                            >
+                                {allSelected ? <Check className="size-3" strokeWidth={3.5} /> : null}
+                            </span>
+                            全选（{projects.length}）
+                        </button>
+                        {selectedIds.length ? (
+                            <>
+                                <span className="mx-1 h-4 w-px shrink-0 bg-[var(--hairline)]" />
+                                <button
+                                    type="button"
+                                    disabled={exporting}
+                                    onClick={() => void exportSelectedProjects()}
+                                    className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 transition-colors hover:bg-[var(--surface-soft)] disabled:opacity-50"
+                                >
+                                    <Download className="size-3.5 text-[var(--ink-2)]" strokeWidth={1.9} />
+                                    导出
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setDeleteIds(selectedIds)}
+                                    className="rounded-full px-2.5 py-1 text-[var(--ink-1)] transition-colors hover:bg-[var(--surface-soft)]"
+                                >
+                                    删除（{selectedIds.length}）
+                                </button>
+                            </>
+                        ) : null}
+                        <span className="mx-1 h-4 w-px shrink-0 bg-[var(--hairline)]" />
+                        <button type="button" onClick={exitSelectMode} className="rounded-full px-3 py-1 text-[var(--ink-2)] transition-colors hover:bg-[var(--surface-soft)] hover:text-[var(--ink-1)]">
+                            取消
+                        </button>
+                    </div>
+                </div>
+            ) : null}
+
             <CanvasDeleteProjectsDialog />
         </main>
     );
-}
-
-function remapImportedProjectMedia(project: CanvasExportFile["projects"][number]["project"], uploaded: Map<string, { storageKey: string; url: string }>) {
-    const visit = (value: unknown): unknown => {
-        if (Array.isArray(value)) return value.map(visit);
-        if (!value || typeof value !== "object") return value;
-        const source = value as Record<string, unknown>;
-        const next = Object.fromEntries(Object.entries(source).map(([key, item]) => [key, visit(item)]));
-        const media = typeof source.storageKey === "string" ? uploaded.get(source.storageKey) : undefined;
-        if (!media) return next;
-        next.storageKey = media.storageKey;
-        next.serverUrl = media.url;
-        delete next.remoteUrl;
-        if ("content" in source) next.content = media.url;
-        if ("dataUrl" in source) next.dataUrl = media.url;
-        if ("url" in source) next.url = media.url;
-        return next;
-    };
-    return visit(project) as typeof project;
 }
