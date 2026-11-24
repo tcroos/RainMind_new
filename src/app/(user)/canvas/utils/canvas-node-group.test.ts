@@ -23,12 +23,29 @@ describe("canvas node group", () => {
         expect(nodes[0].metadata?.groupId).toBeUndefined(); // 不修改入参
     });
 
-    it("解组只清除选中节点的 groupId", () => {
-        const nodes = [node("a", "g1"), node("b", "g1"), node("c", "g2")];
-        const next = applyNodeGroup(nodes, ["a"], null);
+    it("解组会清掉整组，不影响别的组", () => {
+        const nodes = [node("a", "g1"), node("b", "g1"), node("c", "g2"), node("d", "g2")];
+        const next = applyNodeGroup(nodes, ["a", "b"], null);
         expect(next.find((item) => item.id === "a")?.metadata?.groupId).toBeUndefined();
-        expect(next.find((item) => item.id === "b")?.metadata?.groupId).toBe("g1");
+        expect(next.find((item) => item.id === "b")?.metadata?.groupId).toBeUndefined();
         expect(next.find((item) => item.id === "c")?.metadata?.groupId).toBe("g2");
+        expect(next.find((item) => item.id === "d")?.metadata?.groupId).toBe("g2");
+    });
+
+    it("把节点拽进新组后，旧组只剩一个成员会被清理，避免幽灵组", () => {
+        const nodes = [node("a", "g1"), node("b", "g1"), node("c", "g1"), node("d")];
+        const next = applyNodeGroup(nodes, ["a", "b", "d"], "g2");
+        expect(next.find((item) => item.id === "a")?.metadata?.groupId).toBe("g2");
+        expect(next.find((item) => item.id === "b")?.metadata?.groupId).toBe("g2");
+        expect(next.find((item) => item.id === "d")?.metadata?.groupId).toBe("g2");
+        expect(next.find((item) => item.id === "c")?.metadata?.groupId).toBeUndefined();
+    });
+
+    it("输入里已存在的单成员组也会被清理", () => {
+        const nodes = [node("a", "g1"), node("b", "g2"), node("c", "g2")];
+        const next = applyNodeGroup(nodes, ["b"], null);
+        expect(next.find((item) => item.id === "a")?.metadata?.groupId).toBeUndefined();
+        expect(next.find((item) => item.id === "c")?.metadata?.groupId).toBeUndefined();
     });
 
     it("commonGroupId 仅在同一非空组时返回组号", () => {

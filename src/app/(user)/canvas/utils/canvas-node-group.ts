@@ -55,16 +55,37 @@ export function expandGroupSelection(nodes: CanvasNodeData[], ids: Iterable<stri
 }
 
 /**
+ * 清理成员不足两个的组：把节点拽去别的组、或只解组了半组时，
+ * 剩下的单个节点不该继续带着一个看不见却仍会联动的 groupId。
+ */
+function pruneSingletonGroups(nodes: CanvasNodeData[]): CanvasNodeData[] {
+    const counts = new Map<string, number>();
+    for (const node of nodes) {
+        const groupId = node.metadata?.groupId;
+        if (groupId) counts.set(groupId, (counts.get(groupId) || 0) + 1);
+    }
+    if ([...counts.values()].every((count) => count >= 2)) return nodes;
+    return nodes.map((node) => {
+        const groupId = node.metadata?.groupId;
+        if (!groupId || (counts.get(groupId) || 0) >= 2) return node;
+        const metadata = { ...node.metadata };
+        delete metadata.groupId;
+        return { ...node, metadata };
+    });
+}
+
+/**
  * 生成打组 / 解组后的节点数组。
  * groupId 传字符串表示打组（写入所有选中节点），传 null 表示解组（仅清除选中节点的 groupId）。
  */
 export function applyNodeGroup(nodes: CanvasNodeData[], ids: Iterable<string>, groupId: string | null): CanvasNodeData[] {
     const targets = new Set(ids);
-    return nodes.map((node) => {
+    const next = nodes.map((node) => {
         if (!targets.has(node.id)) return node;
         const metadata = { ...node.metadata };
         if (groupId === null) delete metadata.groupId;
         else metadata.groupId = groupId;
         return { ...node, metadata };
     });
+    return pruneSingletonGroups(next);
 }

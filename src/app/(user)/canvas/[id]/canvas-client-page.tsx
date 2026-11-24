@@ -25,7 +25,7 @@ import { CanvasTopBar } from "../components/canvas-top-bar";
 import { CanvasZoomControls } from "../components/canvas-zoom-controls";
 import { CanvasNodeType, type CanvasNodeData, type Position } from "../types";
 import type { CanvasResourceReference } from "../utils/canvas-resource-references";
-import { applyNodeGroup, buildGroupLabels } from "../utils/canvas-node-group";
+import { applyNodeGroup, buildGroupLabels, commonGroupId, expandGroupSelection } from "../utils/canvas-node-group";
 import { arrangeCanvasNodes, type CanvasArrangeMode } from "../utils/canvas-node-arrange";
 
 const CanvasAssistantPanel = dynamic(() => import("../components/canvas-assistant-panel").then((mod) => mod.CanvasAssistantPanel), { ssr: false });
@@ -432,7 +432,9 @@ function VozebProCanvasPage() {
     );
     const handleUngroupNodes = useCallback(
         (ids: string[]) => {
-            const nextNodes = applyNodeGroup(nodesRef.current, ids, null);
+            // 从组内任一个成员触发解组时，必须解散整组，否则会留下「半组」和幽灵 groupId
+            const targets = [...expandGroupSelection(nodesRef.current, ids)];
+            const nextNodes = applyNodeGroup(nodesRef.current, targets, null);
             setNodes(nextNodes);
             updateProject(projectId, { nodes: nextNodes });
             void flushProjectSave(projectId);
@@ -458,31 +460,42 @@ function VozebProCanvasPage() {
             const idSet = new Set(ids);
             const sources = nodesRef.current.filter((node) => idSet.has(node.id));
             if (!sources.length) return;
+            const left = Math.min(...sources.map((node) => node.position.x));
             const right = Math.max(...sources.map((node) => node.position.x + node.width));
-            const groupId = sources.some((node) => node.metadata?.groupId) ? `group-${crypto.randomUUID()}` : undefined;
-            const copies: CanvasNodeData[] = sources.map((node) => ({
-                ...node,
-                id: `${node.type}-${crypto.randomUUID()}`,
-                title: `${node.title} 副本`,
-                position: { x: node.position.x + right + 36, y: node.position.y },
-                metadata: {
-                    ...node.metadata,
-                    ...(groupId ? { groupId } : {}),
-                    imageTask: undefined,
-                    videoTask: undefined,
-                    videoTaskRequest: undefined,
-                    audioTask: undefined,
-                    textTask: undefined,
-                    uploadState: undefined,
-                    errorDetails: undefined,
-                    status: node.metadata?.content ? ("success" as const) : ("idle" as const),
-                    isBatchRoot: false,
-                    batchChildIds: undefined,
-                    batchRootId: undefined,
-                    primaryImageId: undefined,
-                    imageBatchExpanded: false,
-                },
-            }));
+            const offsetX = right - left + 36;
+            // 每个来源组各自生成一个新组：既不让副本与原组共用 groupId，也不把不同组揉成一组
+            const clonedGroups = new Map<string, string>();
+            const copies: CanvasNodeData[] = sources.map((node) => {
+                const sourceGroupId = node.metadata?.groupId;
+                let groupId: string | undefined;
+                if (sourceGroupId) {
+                    if (!clonedGroups.has(sourceGroupId)) clonedGroups.set(sourceGroupId, `group-${crypto.randomUUID()}`);
+                    groupId = clonedGroups.get(sourceGroupId);
+                }
+                return {
+                    ...node,
+                    id: `${node.type}-${crypto.randomUUID()}`,
+                    title: `${node.title} 副本`,
+                    position: { x: node.position.x + offsetX, y: node.position.y },
+                    metadata: {
+                        ...node.metadata,
+                        groupId,
+                        imageTask: undefined,
+                        videoTask: undefined,
+                        videoTaskRequest: undefined,
+                        audioTask: undefined,
+                        textTask: undefined,
+                        uploadState: undefined,
+                        errorDetails: undefined,
+                        status: node.metadata?.content ? ("success" as const) : ("idle" as const),
+                        isBatchRoot: false,
+                        batchChildIds: undefined,
+                        batchRootId: undefined,
+                        primaryImageId: undefined,
+                        imageBatchExpanded: false,
+                    },
+                };
+            });
             const nextNodes = [...nodesRef.current, ...copies];
             setNodes(nextNodes);
             updateProject(projectId, { nodes: nextNodes });
@@ -522,6 +535,20 @@ function VozebProCanvasPage() {
         [flushProjectSave, nodesRef, projectId, setNodes, updateProject],
     );
 
+    /* 从组工具栏点「添加素材」时记下目标组：新节点落在组框右侧并直接归组 */
+    const assetInsertTargetRef = useRef<{ groupId?: string; position?: Position } | null>(null);
+    const handleAddMaterial = useCallback(
+        (ids: string[]) => {
+            const groupId = commonGroupId(nodesRef.current, ids);
+            const members = groupId ? nodesRef.current.filter((node) => node.metadata?.groupId === groupId) : [];
+            assetInsertTargetRef.current = groupId && members.length
+                ? { groupId, position: { x: Math.max(...members.map((node) => node.position.x + node.width)) + 40, y: Math.min(...members.map((node) => node.position.y)) } }
+                : null;
+            setAssetPickerOpen(true);
+        },
+        [setAssetPickerOpen],
+    );
+
     const groupLabels = useMemo(() => buildGroupLabels(nodes), [nodes]);
     const selectionActions = useMemo(
         () => ({
@@ -529,11 +556,11 @@ function VozebProCanvasPage() {
             onDuplicate: handleDuplicateSelection,
             onDownload: () => void downloadSelectedMedia(),
             onRun: handleRunSelection,
-            onAddMaterial: () => setAssetPickerOpen(true),
+            onAddMaterial: handleAddMaterial,
             onDelete: (ids: string[]) => deleteNodes(new Set(ids)),
             onArrange: handleArrangeSelection,
         }),
-        [deleteNodes, downloadSelectedMedia, handleArrangeSelection, handleDuplicateSelection, handleRunSelection, handleSaveAssets, setAssetPickerOpen],
+        [deleteNodes, downloadSelectedMedia, handleAddMaterial, handleArrangeSelection, handleDuplicateSelection, handleRunSelection, handleSaveAssets],
     );
     const handleImageSettingsOpenChange = useCallback((open: boolean) => {
         setNodeImageSettingsOpen(open);
@@ -658,10 +685,21 @@ function VozebProCanvasPage() {
                 }}
                 onOpenProjects={() => router.push("/canvas")}
                 onCreateProject={createAndOpenProject}
-                onInsertAsset={handleAssetInsert}
-                onInsertPrompt={insertAssistantText}
+                onInsertAsset={(payload) => {
+                    const target = assetInsertTargetRef.current;
+                    assetInsertTargetRef.current = null;
+                    handleAssetInsert(payload, target || undefined);
+                }}
+                onInsertPrompt={(text) => {
+                    const target = assetInsertTargetRef.current;
+                    assetInsertTargetRef.current = null;
+                    insertAssistantText(text, target || undefined);
+                }}
                 onLocateNode={locateCanvasNode}
-                onClose={() => setAssetPickerOpen(false)}
+                onClose={() => {
+                    assetInsertTargetRef.current = null;
+                    setAssetPickerOpen(false);
+                }}
             />
             <section className="relative min-w-0 max-w-full flex-1 overflow-hidden">
                 <CanvasTopBar

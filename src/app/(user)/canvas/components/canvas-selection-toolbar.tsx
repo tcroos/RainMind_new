@@ -17,9 +17,8 @@ export type CanvasSelectionActions = {
 };
 
 type CanvasSelectionToolbarProps = {
-    /** 选区在世界坐标里的左上角与宽度，用于把工具栏居中挂在选区上方 */
-    anchor: { left: number; top: number; width: number };
-    scale: number;
+    /** 屏幕坐标：工具栏水平中心 x、底边 y（工具栏挂在选区上方，已做视口边界收敛） */
+    anchor: { left: number; top: number };
     theme: CanvasTheme;
     themeName: "light" | "dark";
     nodeIds: string[];
@@ -36,7 +35,7 @@ const ARRANGE_ITEMS: { mode: CanvasArrangeMode; label: string; Icon: typeof Layo
     { mode: "column", label: "垂直排列", Icon: Columns3 },
 ];
 
-export function CanvasSelectionToolbar({ anchor, scale, theme, themeName, nodeIds, groupId, groupLabel, onGroup, onUngroup, actions }: CanvasSelectionToolbarProps) {
+export function CanvasSelectionToolbar({ anchor, theme, themeName, nodeIds, groupId, groupLabel, onGroup, onUngroup, actions }: CanvasSelectionToolbarProps) {
     const [openMenu, setOpenMenu] = useState<"group" | "arrange" | null>(null);
     const rootRef = useRef<HTMLDivElement>(null);
 
@@ -62,6 +61,8 @@ export function CanvasSelectionToolbar({ anchor, scale, theme, themeName, nodeId
     const panelBorder = themeName === "light" ? "rgba(17,17,19,0.10)" : theme.toolbar.border;
     const fg = theme.toolbar.item;
     const menuBg = panelBg;
+    /* 激活态走中性灰，不用 toolbar.activeBg（深色下是白底，配上浅色字会看不清） */
+    const activeButtonBg = themeName === "light" ? "rgba(17,17,19,0.07)" : "rgba(255,255,255,0.12)";
 
     const buttonClass = "flex h-7 items-center gap-1.5 rounded-md px-2 text-[11px] font-medium whitespace-nowrap transition-colors";
     const divider = <span className="mx-0.5 h-4 w-px shrink-0" style={{ background: panelBorder }} aria-hidden />;
@@ -74,10 +75,10 @@ export function CanvasSelectionToolbar({ anchor, scale, theme, themeName, nodeId
             aria-label={`已选 ${nodeIds.length} 项`}
             className="pointer-events-auto absolute flex items-center gap-0.5 whitespace-nowrap rounded-xl px-1 py-1"
             style={{
-                left: anchor.left + anchor.width / 2,
-                top: anchor.top - 12 / Math.max(scale, 0.01),
-                transform: `translate(-50%, -100%) scale(${1 / Math.max(scale, 0.01)})`,
-                transformOrigin: "50% 100%",
+                left: anchor.left,
+                top: anchor.top,
+                /* 工具栏挂在屏幕层，不跟随画布缩放，避免远景下放大导致边缘发虚 */
+                transform: "translate(-50%, -100%)",
                 background: panelBg,
                 border: `1px solid ${panelBorder}`,
                 boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
@@ -87,6 +88,8 @@ export function CanvasSelectionToolbar({ anchor, scale, theme, themeName, nodeId
             onPointerDown={stop}
             onMouseDown={stop}
             onClick={stop}
+            onDoubleClick={stop}
+            onContextMenu={(event) => event.preventDefault()}
         >
             <span className="grid size-6 shrink-0 place-items-center opacity-50" title="拖动选区即可整体移动" aria-hidden>
                 <GripVertical className="size-3.5" />
@@ -108,7 +111,7 @@ export function CanvasSelectionToolbar({ anchor, scale, theme, themeName, nodeId
                     type="button"
                     data-canvas-group-action
                     className={buttonClass}
-                    style={{ color: fg, background: groupId ? theme.toolbar.activeBg : undefined }}
+                    style={{ color: fg, background: groupId ? activeButtonBg : undefined }}
                     title={groupId ? `${groupLabel || "当前组"}：解除编组` : "把选中节点编为一组"}
                     onClick={() => (groupId ? run(onUngroup) : run(onGroup))}
                 >

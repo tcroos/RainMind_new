@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, DragEvent as ReactDragEvent, MouseEvent as ReactMouseEvent, MutableRefObject, PointerEvent as ReactPointerEvent, ReactNode, RefObject } from "react";
 
-import { Plus, Scissors } from "lucide-react";
+import { ChevronDown, Plus, Scissors } from "lucide-react";
 
 import { canvasThemes, type CanvasBackgroundMode, type CanvasTheme } from "@/lib/canvas-theme";
 import { useThemeStore } from "@/stores/use-theme-store";
@@ -11,7 +11,8 @@ import { CanvasNode, type CanvasNodeProps } from "./canvas-node";
 import { CanvasNodeType, type CanvasConnection, type CanvasNodeData, type Position, type ViewportTransform } from "../types";
 import { edgePath, expandCanvasDragNodeIds, findConnectionTarget, isBlockedConnectionDrop, isCanvasVideoControlPoint, nodeAnchor, previewPath, samePosition, selectNodesInBounds, worldFromScreen } from "../utils/canvas-surface-geometry";
 import { buildCanvasSpatialIndex, canvasNodeBounds, canvasNodesBounds, type CanvasBounds } from "../utils/canvas-spatial-index";
-import { commonGroupId, expandGroupSelection, groupMemberIds } from "../utils/canvas-node-group";
+import { groupMemberIds, commonGroupId, expandGroupSelection } from "../utils/canvas-node-group";
+import { toolbarScreenAnchor } from "../utils/canvas-toolbar-position";
 import { CanvasSelectionToolbar, type CanvasSelectionActions } from "./canvas-selection-toolbar";
 import { canvasMediaLoadBudget, selectCanvasMediaLoadIds } from "../utils/canvas-media-load-budget";
 import { CANVAS_MIN_ZOOM } from "../utils/canvas-zoom";
@@ -225,6 +226,13 @@ export function CanvasSurface({
     const [displayViewport, setDisplayViewport] = useState(viewport);
     const [connection, setConnection] = useState<ConnectionDraft | null>(null);
     const [boxSelection, setBoxSelection] = useState<BoxSelection | null>(null);
+    /**
+     * 悬浮工具栏的激活开关。只有「鼠标框选松手」和「点击组框顶部菜单 / 在组框内按下」会打开；
+     * 点击单个节点、点空白、切换连线都不会打开 —— 避免点一下组内节点就弹出整组工具栏。
+     */
+    const [toolbarActive, setToolbarActive] = useState(false);
+    /** 供 pointerdown 命中组框使用，每次渲染同步当前组框的世界坐标范围 */
+    const groupFrameHitRef = useRef<{ groupId: string; memberIds: string[]; bounds: CanvasBounds }[]>([]);
     const [temporaryPan, setTemporaryPan] = useState(false);
     /** 拖动平移时自动浮出的小地图。与页面上的手动开关（minimapOpen）取并集：
      *  手动开的常驻，自动开的只要出现「拖动以外的操作」就收回。 */
@@ -509,8 +517,8 @@ export function CanvasSurface({
 
     const setSelection = useCallback(
         (nodeIds: Set<string>, connectionId: string | null = null) => {
-            // 组内成员作为一个整体：选中其中任意一个就把整组纳入选中态
-            onSelectionChange(connectionId ? nodeIds : expandGroupSelection(displayNodesRef.current, nodeIds), connectionId);
+            // 只有「框选」和「点组框」才主动扩展到整组；点击节点保持单选，不弹整组工具栏。
+            onSelectionChange(nodeIds, connectionId);
         },
         [onSelectionChange],
     );
@@ -601,12 +609,46 @@ export function CanvasSurface({
                 nextSelection.add(nodeId);
             }
             setSelection(nextSelection, null);
+            // 点节点只选中节点本身：不弹整组工具栏、不画选区虚线框。
+            setToolbarActive(false);
             const dragIds = nextSelection.has(nodeId) ? expandCanvasDragNodeIds(displayNodesRef.current, nextSelection) : [];
             if (!dragIds.length) return;
             const positions = new Map(dragIds.map((id) => [id, displayNodesRef.current.find((node) => node.id === id)?.position || { x: 0, y: 0 }]));
             interactionRef.current = { kind: "drag", pointerId: "pointerId" in event ? event.pointerId : null, start: { x: event.clientX, y: event.clientY }, nodeIds: dragIds, positions, moved: false };
         },
         [onDragStateChange, setSelection],
+    );
+
+    /** 命中组框：嵌套时取面积最小的那层，保证内层组优先响应 */
+    const hitTestGroupFrame = useCallback((world: Position) => {
+        let best: { groupId: string; memberIds: string[]; bounds: CanvasBounds } | null = null;
+        let bestArea = Number.POSITIVE_INFINITY;
+        for (const frame of groupFrameHitRef.current) {
+            const { left, top, right, bottom } = frame.bounds;
+            if (world.x < left || world.x > right || world.y < top || world.y > bottom) continue;
+            const area = Math.max(0, right - left) * Math.max(0, bottom - top);
+            if (area < bestArea) {
+                bestArea = area;
+                best = frame;
+            }
+        }
+        return best;
+    }, []);
+
+    /** 组框顶上的 Group N 菜单：按下即选中整组并弹出工具栏，直接拖动能整组移动 */
+    const handleGroupLabelPointerDown = useCallback(
+        (event: ReactPointerEvent<HTMLButtonElement>, frame: { groupId: string; memberIds: string[] }) => {
+            if (event.button !== 0) return;
+            event.preventDefault();
+            event.stopPropagation();
+            const ids = frame.memberIds;
+            setSelection(new Set(ids), null);
+            setToolbarActive(ids.length >= 2);
+            const positions = new Map(ids.map((id) => [id, displayNodesRef.current.find((node) => node.id === id)?.position || { x: 0, y: 0 }]));
+            interactionRef.current = { kind: "drag", pointerId: event.pointerId, start: { x: event.clientX, y: event.clientY }, nodeIds: ids, positions, moved: false };
+            surfaceRef.current?.setPointerCapture?.(event.pointerId);
+        },
+        [setSelection],
     );
 
     const handlePointerDown = useCallback(
@@ -638,17 +680,21 @@ export function CanvasSurface({
             if (event.button === 1 || event.button === 0) {
                 const world = screenToWorld(event.clientX, event.clientY);
                 const additive = event.shiftKey || event.ctrlKey || event.metaKey;
-                const multiBounds = multiSelectionBoundsRef.current;
-                const insideMultiSelection =
-                    !additive &&
-                    event.button === 0 &&
-                    interactionMode !== "pan" &&
-                    !isPointerControlTarget(target, event) &&
-                    Boolean(multiBounds && world.x >= multiBounds.left && world.x <= multiBounds.right && world.y >= multiBounds.top && world.y <= multiBounds.bottom);
-                if (insideMultiSelection) {
-                    const nodeIds = Array.from(selectedNodeIdsRef.current);
+                const canGrabGroup = event.button === 0 && !additive && interactionMode !== "pan" && !isPointerControlTarget(target, event);
+                // 组框内的空白按下 = 抓起整组；未打组的多选区仍沿用原来的整块拖动
+                const groupHit = canGrabGroup ? hitTestGroupFrame(world) : null;
+                const dragBounds = groupHit?.bounds ?? multiSelectionBoundsRef.current;
+                const insideDragArea =
+                    canGrabGroup &&
+                    Boolean(dragBounds && world.x >= dragBounds.left && world.x <= dragBounds.right && world.y >= dragBounds.top && world.y <= dragBounds.bottom);
+                if (insideDragArea) {
+                    const nodeIds = groupHit ? groupHit.memberIds : Array.from(selectedNodeIdsRef.current);
                     const positions = new Map(nodeIds.map((id) => [id, displayNodesRef.current.find((node) => node.id === id)?.position || { x: 0, y: 0 }]));
                     if (positions.size) {
+                        if (groupHit) {
+                            setSelection(new Set(nodeIds), null);
+                            setToolbarActive(nodeIds.length >= 2);
+                        }
                         setPanMinimap(false);
                         interactionRef.current = { kind: "drag", pointerId: event.pointerId, start: { x: event.clientX, y: event.clientY }, nodeIds, positions, moved: false };
                         event.currentTarget.setPointerCapture?.(event.pointerId);
@@ -676,7 +722,7 @@ export function CanvasSurface({
                 event.currentTarget.setPointerCapture?.(event.pointerId);
             }
         },
-        [interactionMode, onViewportInteractionChange, screenToWorld],
+        [hitTestGroupFrame, interactionMode, onViewportInteractionChange, screenToWorld, setSelection],
     );
 
     const handlePointerDownCapture = useCallback(
@@ -837,7 +883,11 @@ export function CanvasSurface({
             if (interaction.kind === "drag") commitDrag();
             else if (interaction.kind === "box") {
                 interactionRef.current = null;
-                setSelection(boxSelectionRef.current?.nodeIds || new Set(), null);
+                const rawIds = boxSelectionRef.current?.nodeIds || new Set<string>();
+                // 框选命中组内任一成员时把整组纳入，选区始终以「组」为单位
+                const ids = interaction.moved ? expandGroupSelection(displayNodesRef.current, rawIds) : rawIds;
+                setSelection(ids, null);
+                setToolbarActive(interaction.moved && ids.size >= 2);
                 boxSelectionRef.current = null;
                 setBoxSelection(null);
                 if (!interaction.moved) onPaneClick();
@@ -1095,21 +1145,30 @@ export function CanvasSurface({
         () => (multiSelectionNodes.length >= 2 ? commonGroupId(displayNodesRef.current, multiSelectionNodes.map((node) => node.id)) : null),
         [multiSelectionNodes],
     );
-    /* 每个组一圈边框 + 左上角 Group N 标签；只画成员都在视口附近的组，避免远景下满屏描边 */
+    /* 每个组一圈边框 + 左上角可点击的 Group N 菜单；成员取全量节点，避免组跨出视口时边框缩水 */
     const groupFrames = useMemo(() => {
         const ids = new Set(displayNodesRef.current.map((node) => node.metadata?.groupId).filter((value): value is string => Boolean(value)));
-        const frames: { groupId: string; label: string; bounds: CanvasBounds }[] = [];
+        const frames: { groupId: string; label: string; memberIds: string[]; bounds: CanvasBounds }[] = [];
         ids.forEach((groupId) => {
-            const members = groupMemberIds(visibleNodes, groupId)
-                .map((id) => getDisplayNode(id))
-                .filter((node): node is CanvasNodeData => Boolean(node));
+            const memberIds = groupMemberIds(visibleNodes, groupId);
+            const members = memberIds.map((id) => getDisplayNode(id)).filter((node): node is CanvasNodeData => Boolean(node));
             if (members.length < 2) return;
-            frames.push({ groupId, label: groupLabels?.get(groupId) || "Group", bounds: canvasNodesBounds(members, 18 / Math.max(displayViewport.k, 0.01), 22 / Math.max(displayViewport.k, 0.01)) });
+            frames.push({ groupId, label: groupLabels?.get(groupId) || "Group", memberIds, bounds: canvasNodesBounds(members, 18 / Math.max(displayViewport.k, 0.01), 22 / Math.max(displayViewport.k, 0.01)) });
         });
         return frames;
     }, [displayViewport.k, getDisplayNode, groupLabels, visibleNodes]);
+    groupFrameHitRef.current = groupFrames;
     const multiSelectionScale = Math.max(displayViewport.k, 0.01);
     const knobScreenScale = Math.max(0.5, Math.min(1, displayViewport.k));
+    const groupFrameIds = new Set(groupFrames.map((frame) => frame.groupId));
+    const selectionTouchesGroup = multiSelectionNodes.some((node) => Boolean(node.metadata?.groupId && groupFrameIds.has(node.metadata.groupId)));
+    const activeGroupFrame = selectionGroupId ? groupFrames.find((frame) => frame.groupId === selectionGroupId) || null : null;
+    const toolbarBounds = activeGroupFrame?.bounds || multiSelectionBounds;
+    /* 已打组的选区只留组框实线；再叠一圈白色虚线就成了双层边框 */
+    const showSelectionDashedFrame = toolbarActive && Boolean(multiSelectionBounds) && !selectionTouchesGroup;
+    const showSelectionToolbar = toolbarActive && multiSelectionNodes.length >= 2 && Boolean(toolbarBounds);
+    // 组激活时把工具栏再抬高一点，给组框左上角的 Group N 菜单让位
+    const toolbarScreenPosition = toolbarBounds ? toolbarScreenAnchor(toolbarBounds, displayViewport, surfaceSize, activeGroupFrame ? 36 : 12) : null;
 
     const updateBatchHandleMagnet = (event: ReactPointerEvent<HTMLDivElement>) => {
         if (!multiSelectionBounds || batchConnectionRef.current) {
@@ -1424,26 +1483,13 @@ export function CanvasSurface({
                                     top: frame.bounds.top,
                                     width: Math.max(0, frame.bounds.right - frame.bounds.left),
                                     height: Math.max(0, frame.bounds.bottom - frame.bounds.top),
-                                    border: `${1.5 / multiSelectionScale}px solid ${selectionGroupId === frame.groupId ? theme.node.activeStroke : themeName === "light" ? "rgba(17,17,19,0.16)" : "rgba(255,255,255,0.16)"}`,
+                                    border: `${1.5 / multiSelectionScale}px solid ${toolbarActive && selectionGroupId === frame.groupId ? theme.node.activeStroke : themeName === "light" ? "rgba(17,17,19,0.16)" : "rgba(255,255,255,0.16)"}`,
                                     borderRadius: 20 / multiSelectionScale,
                                     /* 组框走中性灰，不带画布点阵的青蓝色调 */
                                     background: themeName === "light" ? "rgba(17,17,19,0.025)" : "rgba(255,255,255,0.035)",
                                     zIndex: 40,
                                 }}
-                            >
-                                <span
-                                    className="absolute whitespace-nowrap font-semibold"
-                                    style={{
-                                        left: 10 / multiSelectionScale,
-                                        top: -20 / multiSelectionScale,
-                                        fontSize: `${11 / multiSelectionScale}px`,
-                                        lineHeight: 1.2,
-                                        color: theme.node.muted,
-                                    }}
-                                >
-                                    {frame.label}
-                                </span>
-                            </div>
+                            />
                         ))}
                         {renderedNodes.map((node) => {
                             const viewProps = getNodeViewProps(node);
@@ -1475,7 +1521,7 @@ export function CanvasSurface({
                             );
                         })}
                         {selectionStyle ? <div className="pointer-events-none absolute border" style={{ ...selectionStyle, borderColor: theme.canvas.selectionStroke, background: theme.canvas.selectionFill }} /> : null}
-                        {multiSelectionBounds ? (
+                        {showSelectionDashedFrame && multiSelectionBounds ? (
                             <div
                                 data-canvas-multi-selection-frame
                                 aria-label={`已选 ${multiSelectionNodes.length} 项`}
@@ -1485,7 +1531,7 @@ export function CanvasSurface({
                                     top: multiSelectionBounds.top,
                                     width: Math.max(0, multiSelectionBounds.right - multiSelectionBounds.left),
                                     height: Math.max(0, multiSelectionBounds.bottom - multiSelectionBounds.top),
-                                    border: `${1.5 / multiSelectionScale}px dashed ${EDGE_ACTIVE_COLOR}`,
+                                    border: `${1.5 / multiSelectionScale}px dashed ${themeName === "light" ? "rgba(17,17,19,0.42)" : EDGE_ACTIVE_COLOR}`,
                                     borderRadius: 18 / multiSelectionScale,
                                     /* 选区底走中性灰，不用 canvas.selectionFill（浅色下是青蓝色） */
                                     background: themeName === "light" ? "rgba(17,17,19,0.04)" : "rgba(255,255,255,0.06)",
@@ -1494,21 +1540,7 @@ export function CanvasSurface({
                                 }}
                             />
                         ) : null}
-                        {multiSelectionBounds ? (
-                            <CanvasSelectionToolbar
-                                anchor={{ left: multiSelectionBounds.left, top: multiSelectionBounds.top, width: multiSelectionBounds.right - multiSelectionBounds.left }}
-                                scale={multiSelectionScale}
-                                theme={theme}
-                                themeName={themeName}
-                                nodeIds={multiSelectionNodes.map((node) => node.id)}
-                                groupId={selectionGroupId}
-                                groupLabel={selectionGroupId ? groupLabels?.get(selectionGroupId) || null : null}
-                                onGroup={onGroupNodes}
-                                onUngroup={onUngroupNodes}
-                                actions={selectionActions}
-                            />
-                        ) : null}
-                        {multiSelectionBounds && (!batchHandleHidden || batchConnection) ? (
+                        {toolbarActive && multiSelectionBounds && (!batchHandleHidden || batchConnection) ? (
                             <button
                                 type="button"
                                 data-canvas-batch-connect
@@ -1536,6 +1568,57 @@ export function CanvasSurface({
                     </div>
                 </div>
             </div>
+            {/* 组菜单与悬浮工具栏都挂在屏幕层：尺寸恒定、层级高于节点悬停工具栏、不被世界层裁掉 */}
+            {groupFrames.length > 0 || showSelectionToolbar ? (
+                <div className="pointer-events-none absolute inset-0" style={{ zIndex: 85 }}>
+                    {groupFrames.map((frame) => {
+                        const frameActive = toolbarActive && selectionGroupId === frame.groupId;
+                        const left = Math.min(Math.max(8, displayViewport.x + frame.bounds.left * displayViewport.k + 10), Math.max(8, surfaceSize.width - 120));
+                        const top = Math.min(Math.max(8, displayViewport.y + frame.bounds.top * displayViewport.k - 26), Math.max(8, surfaceSize.height - 28));
+                        return (
+                            <button
+                                key={frame.groupId}
+                                type="button"
+                                data-canvas-group-label={frame.groupId}
+                                aria-label={`${frame.label} 菜单`}
+                                title="点击弹出组工具栏，拖动可整组移动"
+                                className="pointer-events-auto absolute flex items-center gap-1 whitespace-nowrap rounded-md px-2 py-[3px] text-[11px] font-semibold leading-tight"
+                                style={{
+                                    left,
+                                    top,
+                                    color: frameActive ? theme.node.text : theme.node.muted,
+                                    background: theme.toolbar.panel,
+                                    border: `1px solid ${themeName === "light" ? "rgba(17,17,19,0.12)" : "rgba(255,255,255,0.14)"}`,
+                                    cursor: "grab",
+                                }}
+                                onPointerDown={(event) => handleGroupLabelPointerDown(event, frame)}
+                                onClick={(event) => event.stopPropagation()}
+                                onDoubleClick={(event) => event.stopPropagation()}
+                                onContextMenu={(event) => {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                }}
+                            >
+                                {frame.label}
+                                <ChevronDown className="size-3" aria-hidden />
+                            </button>
+                        );
+                    })}
+                    {showSelectionToolbar && toolbarScreenPosition ? (
+                        <CanvasSelectionToolbar
+                            anchor={toolbarScreenPosition}
+                            theme={theme}
+                            themeName={themeName}
+                            nodeIds={multiSelectionNodes.map((node) => node.id)}
+                            groupId={selectionGroupId}
+                            groupLabel={selectionGroupId ? groupLabels?.get(selectionGroupId) || null : null}
+                            onGroup={onGroupNodes}
+                            onUngroup={onUngroupNodes}
+                            actions={selectionActions}
+                        />
+                    ) : null}
+                </div>
+            ) : null}
             {connection ? (
                 <div
                     data-canvas-connection-knob

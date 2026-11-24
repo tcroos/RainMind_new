@@ -28,7 +28,8 @@ export function arrangeCanvasNodes(nodes: CanvasNodeData[], ids: Iterable<string
     const maxHeight = Math.max(...selected.map((node) => node.height));
 
     if (mode === "row") {
-        let x = base.left;
+        const totalWidth = selected.reduce((sum, node) => sum + node.width, 0) + ARRANGE_GAP * (selected.length - 1);
+        let x = centerX - totalWidth / 2;
         return selected.map((node) => {
             const update = { id: node.id, position: { x, y: centerY - node.height / 2 } };
             x += node.width + ARRANGE_GAP;
@@ -37,7 +38,8 @@ export function arrangeCanvasNodes(nodes: CanvasNodeData[], ids: Iterable<string
     }
 
     if (mode === "column") {
-        let y = base.top;
+        const totalHeight = selected.reduce((sum, node) => sum + node.height, 0) + ARRANGE_GAP * (selected.length - 1);
+        let y = centerY - totalHeight / 2;
         return selected.map((node) => {
             const update = { id: node.id, position: { x: centerX - node.width / 2, y } };
             y += node.height + ARRANGE_GAP;
@@ -46,11 +48,16 @@ export function arrangeCanvasNodes(nodes: CanvasNodeData[], ids: Iterable<string
     }
 
     const columns = Math.ceil(Math.sqrt(selected.length));
+    const rows = Math.ceil(selected.length / columns);
+    const gridWidth = columns * maxWidth + (columns - 1) * ARRANGE_GAP;
+    const gridHeight = rows * maxHeight + (rows - 1) * ARRANGE_GAP;
+    const originX = centerX - gridWidth / 2;
+    const originY = centerY - gridHeight / 2;
     return selected.map((node, index) => ({
         id: node.id,
         position: {
-            x: base.left + (index % columns) * (maxWidth + ARRANGE_GAP) + (maxWidth - node.width) / 2,
-            y: base.top + Math.floor(index / columns) * (maxHeight + ARRANGE_GAP) + (maxHeight - node.height) / 2,
+            x: originX + (index % columns) * (maxWidth + ARRANGE_GAP) + (maxWidth - node.width) / 2,
+            y: originY + Math.floor(index / columns) * (maxHeight + ARRANGE_GAP) + (maxHeight - node.height) / 2,
         },
     }));
 }

@@ -20,7 +20,7 @@ import { retryCanvasAgentNode } from "../components/canvas-agent-node-retry";
 import { buildNodeGenerationContext, buildNodeGenerationInputs, buildNodeResponseMessages, hydrateNodeGenerationContext } from "../components/canvas-node-generation";
 import { type CanvasNodeGenerationMode } from "../components/canvas-node-prompt-panel";
 import { NODE_DEFAULT_SIZE, getNodeSpec } from "../constants";
-import { CanvasNodeType, isCanvasImageNodeType, type CanvasAssistantImage, type CanvasNodeData } from "../types";
+import { CanvasNodeType, isCanvasImageNodeType, type CanvasAssistantImage, type CanvasNodeData, type Position } from "../types";
 import { applyCameraPrompt } from "../utils/canvas-camera";
 import { nodeSizeFromAspect, nodeSizeFromRatio, videoNodeSizeFromNatural } from "../utils/canvas-node-size";
 import { buildPanoramaPrompt } from "../utils/canvas-panorama";
@@ -30,6 +30,7 @@ import { NODE_STATUS_CANCELLED, NODE_STATUS_ERROR, NODE_STATUS_IDLE, NODE_STATUS
 import { canvasVideoStorageFailureDetails, classifyCanvasVideoTaskFailure, isTerminalCanvasVideoTaskFailureKind } from "./canvas-video-task-recovery";
 import { sourceCanvasTaskIdentity } from "./canvas-task-commit-guard";
 import { canvasNodeTaskId, mergeCanvasNodeTaskState } from "./canvas-node-task-state";
+
 import { reconcileCanvasTaskRetry } from "./canvas-task-retry";
 import { hasCanvasGenerationTask, pauseCanvasGenerationReview, resumeCanvasGenerationReview } from "./canvas-generation-review";
 import {
@@ -50,6 +51,9 @@ import {
 import type { CanvasInteractions } from "./use-canvas-interactions";
 import type { CanvasPageState } from "./use-canvas-page-state";
 import type { CanvasTaskRuntime } from "./use-canvas-task-runtime";
+
+/** 从组工具栏「添加素材」插入时：把新节点放到组框右侧并直接归入该组 */
+export type CanvasAssetInsertOptions = { groupId?: string; position?: Position };
 
 async function createCanvasVideoTask(...args: Parameters<typeof createServerVideoGenerationTask>) {
     try {
@@ -1090,7 +1094,7 @@ export function useCanvasGenerationActions({ state, tasks, interactions }: { sta
     );
 
     const insertAssistantImage = useCallback(
-        async (image: CanvasAssistantImage) => {
+        async (image: CanvasAssistantImage, options?: CanvasAssetInsertOptions) => {
             const storedImage = image.storageKey ? { url: image.dataUrl, storageKey: image.storageKey, remoteUrl: image.remoteUrl, serverUrl: image.serverUrl, width: 1, height: 1, bytes: 0, mimeType: "image/png" } : await uploadCanvasImage(image.dataUrl);
             const meta = storedImage.width === 1 && storedImage.height === 1 ? await readImageMeta(storedImage.url) : storedImage;
             const config = nodeSizeFromAspect(meta.width, meta.height);
@@ -1100,10 +1104,10 @@ export function useCanvasGenerationActions({ state, tasks, interactions }: { sta
                 id,
                 type: CanvasNodeType.Image,
                 title: image.prompt.slice(0, 32) || "Generated Image",
-                position: { x: center.x - config.width / 2, y: center.y - config.height / 2 },
+                position: options?.position || { x: center.x - config.width / 2, y: center.y - config.height / 2 },
                 width: config.width,
                 height: config.height,
-                metadata: { ...imageMetadata({ ...storedImage, width: meta.width, height: meta.height }), prompt: image.prompt },
+                metadata: { ...imageMetadata({ ...storedImage, width: meta.width, height: meta.height }), prompt: image.prompt, ...(options?.groupId ? { groupId: options.groupId } : {}) },
             };
 
             setNodes((prev) => [...prev, node]);
@@ -1115,11 +1119,14 @@ export function useCanvasGenerationActions({ state, tasks, interactions }: { sta
     );
 
     const insertAssistantText = useCallback(
-        (text: string) => {
+        (text: string, options?: CanvasAssetInsertOptions) => {
             const center = screenToCanvas((containerRef.current?.getBoundingClientRect().left || 0) + size.width / 2, (containerRef.current?.getBoundingClientRect().top || 0) + size.height / 2);
+            const created = createCanvasNode(CanvasNodeType.Text, center, { content: text, status: NODE_STATUS_SUCCESS });
             const node = {
-                ...createCanvasNode(CanvasNodeType.Text, center, { content: text, status: NODE_STATUS_SUCCESS }),
+                ...created,
                 title: text.slice(0, 32) || "Assistant Text",
+                position: options?.position || created.position,
+                metadata: { ...created.metadata, ...(options?.groupId ? { groupId: options.groupId } : {}) },
             };
 
             setNodes((prev) => [...prev, node]);
@@ -1130,9 +1137,10 @@ export function useCanvasGenerationActions({ state, tasks, interactions }: { sta
     );
 
     const handleAssetInsert = useCallback(
-        (payload: InsertAssetPayload) => {
+        (payload: InsertAssetPayload, options?: CanvasAssetInsertOptions) => {
+            const groupMetadata = options?.groupId ? { groupId: options.groupId } : {};
             if (payload.kind === "text") {
-                insertAssistantText(payload.content);
+                insertAssistantText(payload.content, options);
             } else if (payload.kind === "video") {
                 const spec = NODE_DEFAULT_SIZE[CanvasNodeType.Video];
                 const center = screenToCanvas((containerRef.current?.getBoundingClientRect().left || 0) + size.width / 2, (containerRef.current?.getBoundingClientRect().top || 0) + size.height / 2);
@@ -1144,10 +1152,10 @@ export function useCanvasGenerationActions({ state, tasks, interactions }: { sta
                         id,
                         type: CanvasNodeType.Video,
                         title: payload.title,
-                        position: { x: center.x - nextSize.width / 2, y: center.y - nextSize.height / 2 },
+                        position: options?.position || { x: center.x - nextSize.width / 2, y: center.y - nextSize.height / 2 },
                         width: nextSize.width,
                         height: nextSize.height,
-                        metadata: { content: payload.url, storageKey: payload.storageKey, remoteUrl: payload.remoteUrl, serverUrl: payload.serverUrl, status: NODE_STATUS_SUCCESS, naturalWidth: payload.width, naturalHeight: payload.height },
+                        metadata: { content: payload.url, storageKey: payload.storageKey, remoteUrl: payload.remoteUrl, serverUrl: payload.serverUrl, status: NODE_STATUS_SUCCESS, naturalWidth: payload.width, naturalHeight: payload.height, ...groupMetadata },
                     },
                 ]);
                 setSelectedNodeIds(new Set([id]));
@@ -1161,15 +1169,15 @@ export function useCanvasGenerationActions({ state, tasks, interactions }: { sta
                         id,
                         type: CanvasNodeType.Audio,
                         title: payload.title,
-                        position: { x: center.x - spec.width / 2, y: center.y - spec.height / 2 },
+                        position: options?.position || { x: center.x - spec.width / 2, y: center.y - spec.height / 2 },
                         width: spec.width,
                         height: spec.height,
-                        metadata: { content: payload.url, storageKey: payload.storageKey, remoteUrl: payload.remoteUrl, serverUrl: payload.serverUrl, durationMs: payload.durationMs, status: NODE_STATUS_SUCCESS },
+                        metadata: { content: payload.url, storageKey: payload.storageKey, remoteUrl: payload.remoteUrl, serverUrl: payload.serverUrl, durationMs: payload.durationMs, status: NODE_STATUS_SUCCESS, ...groupMetadata },
                     },
                 ]);
                 setSelectedNodeIds(new Set([id]));
             } else {
-                insertAssistantImage({ id: `asset-${Date.now()}`, prompt: payload.title, dataUrl: payload.dataUrl, storageKey: payload.storageKey, remoteUrl: payload.remoteUrl, serverUrl: payload.serverUrl });
+                insertAssistantImage({ id: `asset-${Date.now()}`, prompt: payload.title, dataUrl: payload.dataUrl, storageKey: payload.storageKey, remoteUrl: payload.remoteUrl, serverUrl: payload.serverUrl }, options);
             }
         },
         [insertAssistantImage, insertAssistantText, screenToCanvas, size.height, size.width],

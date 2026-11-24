@@ -161,7 +161,11 @@ export function useCanvasNodeMediaActions({ state, tasks, interactions }: { stat
     }, []);
 
     const downloadSelectedMedia = useCallback(async () => {
-        if (selectedMediaDownloadPending || selectedMediaNodes.length < 2) return;
+        if (selectedMediaDownloadPending) return;
+        if (!selectedMediaNodes.length) {
+            message.info("所选节点没有可下载的素材");
+            return;
+        }
         setSelectedMediaDownloadPending(true);
         const noticeKey = "canvas-batch-download";
         message.loading({ key: noticeKey, content: `正在准备下载 ${selectedMediaNodes.length} 项素材…`, duration: 0 });
