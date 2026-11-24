@@ -28,10 +28,10 @@ export default async function AdminBillingPage({ searchParams }: AdminBillingPag
 
     return (
         <>
-            <header className="sticky top-0 z-20 border-b border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-950">
+            <header className="sticky top-0 z-20 border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
                 <div className="mx-auto flex h-16 max-w-[1440px] min-w-0 items-center justify-between gap-3 px-4 sm:gap-4 sm:px-6">
-                    <Link href="/admin" className="flex min-w-0 items-center gap-2.5 text-base font-semibold text-stone-950 dark:text-stone-100">
-                        <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-stone-950 text-white dark:bg-stone-100 dark:text-stone-950">
+                    <Link href="/admin" className="flex min-w-0 items-center gap-2.5 text-base font-semibold text-zinc-950 dark:text-zinc-100">
+                        <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-zinc-950 text-white dark:bg-zinc-100 dark:text-zinc-950">
                             <ArrowLeft className="size-4" />
                         </span>
                         <span className="truncate">财务钱包</span>
@@ -41,19 +41,19 @@ export default async function AdminBillingPage({ searchParams }: AdminBillingPag
             </header>
 
             <div className="mx-auto max-w-[1440px] px-3 py-4 sm:px-6 sm:py-5 lg:py-6">
-                <div className="mb-5 flex flex-col gap-4 rounded-lg border border-stone-200 bg-white px-4 py-4 shadow-sm shadow-stone-200/40 sm:px-5 md:flex-row md:items-center md:justify-between dark:border-stone-800 dark:bg-stone-950 dark:shadow-black/20">
+                <div className="mb-5 flex flex-col gap-4 rounded-lg border border-zinc-200 bg-white px-4 py-4 shadow-sm shadow-zinc-200/40 sm:px-5 md:flex-row md:items-center md:justify-between dark:border-zinc-800 dark:bg-zinc-950 dark:shadow-black/20">
                     <div className="flex min-w-0 items-start gap-3">
-                        <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-emerald-600 text-white dark:bg-emerald-400 dark:text-stone-950">
+                        <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-emerald-600 text-white dark:bg-emerald-400 dark:text-zinc-950">
                             <ReceiptText className="size-5" />
                         </span>
                         <div className="min-w-0">
-                            <h1 className="text-2xl font-semibold tracking-normal text-stone-950 dark:text-stone-100">财务钱包</h1>
-                            <p className="mt-1.5 max-w-2xl text-sm leading-6 text-stone-500 dark:text-stone-400">管理套餐商品、限时促销、优惠券、支付配置、订单收款和退款对账。</p>
+                            <h1 className="text-2xl font-semibold tracking-normal text-zinc-950 dark:text-zinc-100">财务钱包</h1>
+                            <p className="mt-1.5 max-w-2xl text-sm leading-6 text-zinc-500 dark:text-zinc-400">管理套餐商品、限时促销、优惠券、支付配置、订单收款和退款对账。</p>
                         </div>
                     </div>
                     <Link
                         href="/admin"
-                        className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-stone-200 px-3 text-sm font-medium text-stone-700 transition hover:bg-stone-50 dark:border-stone-800 dark:text-stone-200 dark:hover:bg-stone-900"
+                        className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-zinc-200 px-3 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-900"
                     >
                         <ArrowLeft className="size-4" />
                         返回后台
