@@ -142,6 +142,9 @@ src/app/styles/global-canvas-*.css    # controls / overrides / responsive 三个
 - [16:10] OWNER-SHELL 提交 `a0b8306`：创作页背景改纯色平铺，删掉顶部光池 / 冷暖雾 / 竖向渐变 / 暗角 / 胶片颗粒（连同 breathe 动画与 `.dark .create-ambient` 覆盖）。深色背景实测纵向 y60..y600 全是 rgb(10,10,11)，浅色全是 rgb(255,255,255)。点阵涟漪保留，仍是唯一动态层。**注意**：`global-create-ambient.css` 现在只剩两块规则（`.create-ambient` 与 `.create-dot-field`），不要以为文件被截断；测试也改成断言「不允许出现 background-image」
 
 - [16:30] OWNER-CANVAS **占用画布列表页精简**：`(user)/canvas/page.tsx`、`canvas/components/{canvas-project-card,canvas-project-create-card,canvas-project-cover,canvas-project-format}.tsx`。目标：按用户给的参考图收敛为「标题 + 卡片网格」，去掉副标题/搜索框/两个按钮/节点数元信息。仅动 canvas 域，不碰 shell。验证走 3001 只读截图
+- [16:35] OWNER-SHELL 提交 `654520b`：取消桌面端顶栏 —— 内容从视口顶部开始，侧栏与内容连成一整块，不再被 64px 横条切断；窄屏保留 56px 极简栏（菜单键 + logo + 消息）。`AnnouncementNotificationCenter` 新增 `variant="row"` 以便嵌进账户菜单（菜单里现在是「消息中心 + 未读右对齐」）；`AccountMenuPanel` 增加 `onDismiss`，点消息时先收起账户弹层。`--shell-header-h` 改为桌面 0px / 窄屏 56px，抽屉顶边算式与既有断言不变
+- [16:35] ⚠️ OWNER-SHELL **记录一次并发事故**：`0eafaef`（他人提交「侧边栏首个入口由 Agent 改为首页」）用整索引提交，把 SHELL 当时已 `git add` 的六个文件一起带走了（`app-sidebar`、`user-status-actions`、`credits`、`navigation-tools`、shell 与测试）—— 内容无误，但提交信息只写了导航改名，追溯时会误判。**约定补一条：`git commit` 必须带明确路径或先 `git status` 确认索引里只有自己的文件；禁止把别人已暂存的改动顺手提交**
+- [16:35] 提醒：页面大标题仍是「RainMind 创作 Agent」，导航项已改为「首页」。两者要不要统一，需产品确认（属 `(user)/create` 域，SHELL 不擅动）
 
 - [16:45] OWNER-CANVAS 提交 `692c8ba`：画布列表按参照稿收敛 —— 标题降为单行「画布」、去掉副标题/常驻搜索框/两个文字按钮、卡片只留标题+日期、更多操作移到标题行悬停显形、空封面去点阵、栅格 1080 起 4 列。**行为变化需知悉**：「新建画布」文字按钮已取消，改由首格「+」卡进入；导入改为图标按钮；搜索改为图标点开后展开。`?mode=new|recent` 深链逻辑未动。术语沿用「画布」未改成参照稿的「项目」，若要统一请提出
 
