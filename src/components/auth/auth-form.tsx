@@ -1,0 +1,365 @@
+"use client";
+
+import type { FormEvent, ReactNode } from "react";
+import { useState } from "react";
+import Link from "next/link";
+import { ArrowLeft, ArrowRight, Gift, LockKeyhole, Mail, ShieldCheck, UserRound } from "lucide-react";
+import { App, Button, Checkbox, Input } from "antd";
+
+import { AuthShowcaseVideo } from "@/components/auth/auth-showcase-video";
+import { DEFAULT_SITE_TITLE, resolveSiteTitle } from "@/lib/site-brand";
+import { usePublicSessionStore } from "@/stores/use-public-session-store";
+import { type LocalUser, useUserStore } from "@/stores/use-user-store";
+import { cn } from "@/lib/utils";
+import { clearAnnouncementDismissState } from "@/lib/announcement-dismiss";
+
+type AuthFormProps = {
+    mode: "login" | "register";
+    nextPath?: string;
+    registrationEnabled?: boolean;
+    emailRegistrationEnabled?: boolean;
+    firstUser?: boolean;
+    installToken?: string;
+    onInstallTokenChange?: (value: string) => void;
+    variant?: "page" | "embedded";
+    className?: string;
+    headerSlot?: ReactNode;
+    authError?: string;
+    initialReferralCode?: string;
+    referralSource?: string;
+    inviteError?: string;
+};
+
+export function AuthForm({
+    mode,
+    nextPath = "/create",
+    registrationEnabled = true,
+    emailRegistrationEnabled = false,
+    firstUser = false,
+    installToken = "",
+    onInstallTokenChange,
+    variant = "page",
+    className,
+    headerSlot,
+    authError,
+    initialReferralCode = "",
+    referralSource = "registration-form",
+    inviteError,
+}: AuthFormProps) {
+    const { message } = App.useApp();
+    const site = usePublicSessionStore((state) => state.payload?.settings?.site) || { title: DEFAULT_SITE_TITLE, logoUrl: "/logo.svg" };
+    const siteTitle = resolveSiteTitle(site.title);
+    const setUser = useUserStore((state) => state.setUser);
+    const [username, setUsername] = useState("");
+    const [email, setEmail] = useState("");
+    const [emailCode, setEmailCode] = useState("");
+    const [password, setPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
+    const [totpCode, setTotpCode] = useState("");
+    const [mfaRequired, setMfaRequired] = useState(false);
+    const [referralCode, setReferralCode] = useState(initialReferralCode);
+    const [policyAccepted, setPolicyAccepted] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
+    const [sendingCode, setSendingCode] = useState(false);
+    const isRegister = mode === "register";
+    const disabled = isRegister && !registrationEnabled;
+    const installTokenReady = !firstUser || installToken.trim().length >= 32;
+    const passwordMismatch = isRegister && confirmPassword.length > 0 && password !== confirmPassword;
+
+    const submit = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        if (disabled) return;
+        if (isRegister && password !== confirmPassword) {
+            message.error("两次输入的密码不一致");
+            return;
+        }
+        if (isRegister && !firstUser && !policyAccepted) {
+            message.warning("请先阅读并同意服务条款和隐私政策");
+            return;
+        }
+        setSubmitting(true);
+        try {
+            const response = await fetch(isRegister ? "/api/auth/register" : "/api/auth/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    username,
+                    email,
+                    emailCode,
+                    password,
+                    totpCode: !isRegister && mfaRequired ? totpCode : undefined,
+                    referralCode: isRegister && !firstUser ? referralCode : undefined,
+                    referralSource,
+                    policyAccepted: isRegister && !firstUser ? policyAccepted : undefined,
+                    installToken: firstUser ? installToken.trim() : undefined,
+                }),
+            });
+            const payload = (await response.json()) as { user?: LocalUser; error?: string; mfaRequired?: boolean; securityNotice?: { networkChanged: boolean; deviceChanged: boolean } };
+            if (!isRegister && payload.mfaRequired) {
+                setMfaRequired(true);
+                message.info("请输入身份验证器动态码");
+                return;
+            }
+            if (!response.ok || !payload.user) throw new Error(payload.error || (isRegister ? "注册失败" : "登录失败"));
+            setUser(payload.user);
+            if (!isRegister && payload.securityNotice) {
+                const changed = [payload.securityNotice.deviceChanged ? "设备" : "", payload.securityNotice.networkChanged ? "网络" : ""].filter(Boolean).join("和");
+                message.warning(`检测到登录${changed}发生变化，请在账户与安全中核对登录记录`);
+            } else {
+                message.success(isRegister ? "注册成功" : "登录成功");
+            }
+            /* 每次登录都重新展示公告（含换账号登录）：关闭状态只活在当前标签页，
+             * 不清掉的话 window.location.replace 之后仍会读到上一账号的关闭标记。 */
+            clearAnnouncementDismissState();
+            window.location.replace(nextPath);
+        } catch (error) {
+            message.error(error instanceof Error ? error.message : isRegister ? "注册失败" : "登录失败");
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const sendEmailCode = async () => {
+        setSendingCode(true);
+        try {
+            const response = await fetch("/api/auth/email-code", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ purpose: "register", email }),
+            });
+            const payload = (await response.json()) as { ok?: boolean; delivered?: boolean; error?: string };
+            if (!response.ok || payload.ok !== true) throw new Error(payload.error || "验证码发送失败");
+            message.success(payload.delivered === false ? "如果该邮箱已注册，验证码会发送到邮箱" : "验证码已发送，请查看邮箱");
+        } catch (error) {
+            message.error(error instanceof Error ? error.message : "验证码发送失败");
+        } finally {
+            setSendingCode(false);
+        }
+    };
+
+    const form = (
+        <section className={cn("auth-panel flex min-h-full items-center", variant === "embedded" ? "p-6 sm:p-7" : "p-8 sm:p-10", className)}>
+            <form onSubmit={submit} className={cn("auth-form-body w-full", variant === "embedded" ? "space-y-4" : "space-y-6", isRegister && !firstUser && "auth-form-register")}>
+                {headerSlot}
+                {/* 标准登录页表头：品牌名做主标题，下面一句说明用途的提示语。
+                    旧副标题是一串功能罗列的营销文案，摆在登录框里不像提示语。 */}
+                <div className="auth-form-header">
+                    <p className="auth-form-kicker text-sm font-medium">{firstUser ? "首次初始化" : isRegister ? "创建创作账号" : "欢迎回来"}</p>
+                    <h2 className={cn("mt-2 font-semibold tracking-normal text-stone-950 dark:text-white", variant === "embedded" ? "text-2xl" : "text-3xl")}>{firstUser ? "创建首个管理员" : isRegister ? `注册 ${siteTitle}` : `登录 ${siteTitle}`}</h2>
+                    <p className="auth-form-description mt-2.5 text-sm leading-6 text-stone-500 dark:text-stone-400">{isRegister ? "创建账号后即可开始创作，并保存项目与常用风格。" : "欢迎回来，请输入账号信息以继续。"}</p>
+                </div>
+
+                {authError ? <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-100">{authError}</div> : null}
+
+                {isRegister && inviteError ? <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-100">{inviteError}</div> : null}
+
+                {disabled ? <div className="rounded-md border border-cyan-200 bg-cyan-50 px-4 py-3 text-sm text-cyan-900 dark:border-cyan-300/20 dark:bg-cyan-300/8 dark:text-cyan-50">当前站点已关闭注册，请联系管理员开通账号。</div> : null}
+
+                {firstUser ? (
+                    <label className="block space-y-3">
+                        <span className="text-sm font-medium text-stone-700 dark:text-stone-200">一次性安装令牌</span>
+                        <Input.Password
+                            size="large"
+                            prefix={<LockKeyhole className="size-4 text-stone-500" />}
+                            value={installToken}
+                            onChange={(event) => onInstallTokenChange?.(event.target.value)}
+                            placeholder="从服务器 .env 中粘贴 VOZEB_PRO_INSTALL_TOKEN"
+                            autoComplete="off"
+                            disabled={submitting}
+                            required
+                        />
+                        <span className="block text-xs leading-5 text-stone-500 dark:text-stone-400">令牌只保存在当前页面内存中，不会写入浏览器存储。</span>
+                    </label>
+                ) : null}
+
+                <label className="block space-y-3">
+                    <span className="text-sm font-medium text-stone-700 dark:text-stone-200">{isRegister ? "用户名" : "用户名或邮箱"}</span>
+                    <Input
+                        size="large"
+                        prefix={<UserRound className="size-4 text-stone-500" />}
+                        value={username}
+                        onChange={(event) => {
+                            setUsername(event.target.value);
+                            setMfaRequired(false);
+                            setTotpCode("");
+                        }}
+                        placeholder={isRegister ? "设置登录用户名" : "输入用户名或已绑定邮箱"}
+                        autoComplete="username"
+                        disabled={submitting || disabled}
+                        required
+                    />
+                    {isRegister ? <span className="block text-xs leading-5 text-stone-500 dark:text-stone-400">用于登录，注册后不可修改；创作昵称可随时调整。</span> : null}
+                </label>
+
+                {isRegister && emailRegistrationEnabled ? (
+                    <div className="space-y-3">
+                        <label className="block space-y-3">
+                            <span className="text-sm font-medium text-stone-700 dark:text-stone-200">邮箱</span>
+                            <Input
+                                size="large"
+                                prefix={<Mail className="size-4 text-stone-500" />}
+                                value={email}
+                                onChange={(event) => setEmail(event.target.value)}
+                                placeholder="csyqlz@gmail.com"
+                                autoComplete="email"
+                                type="email"
+                                disabled={submitting || disabled}
+                                required
+                            />
+                        </label>
+                        <label className="block space-y-3">
+                            <span className="text-sm font-medium text-stone-700 dark:text-stone-200">邮箱验证码</span>
+                            <Input
+                                size="large"
+                                prefix={<ShieldCheck className="size-4 text-stone-500" />}
+                                value={emailCode}
+                                onChange={(event) => setEmailCode(event.target.value)}
+                                placeholder="6 位验证码"
+                                disabled={submitting || disabled}
+                                suffix={
+                                    <button type="button" className="auth-code-button" disabled={sendingCode || submitting || disabled || !email.trim()} onClick={() => void sendEmailCode()}>
+                                        {sendingCode ? "发送中" : "获取验证码"}
+                                    </button>
+                                }
+                                required
+                            />
+                        </label>
+                    </div>
+                ) : null}
+
+                {isRegister && !firstUser ? (
+                    <label className="block space-y-3">
+                        <span className="text-sm font-medium text-stone-700 dark:text-stone-200">邀请码（选填）</span>
+                        <Input
+                            size="large"
+                            prefix={<Gift className="size-4 text-stone-500" />}
+                            value={referralCode}
+                            onChange={(event) => setReferralCode(event.target.value.toUpperCase())}
+                            placeholder="通过邀请链接进入时会自动填写"
+                            autoComplete="off"
+                            maxLength={24}
+                            disabled={submitting || disabled}
+                        />
+                    </label>
+                ) : null}
+
+                <label className="block space-y-3">
+                    <span className="text-sm font-medium text-stone-700 dark:text-stone-200">密码</span>
+                    <Input.Password
+                        size="large"
+                        prefix={<LockKeyhole className="size-4 text-stone-500" />}
+                        value={password}
+                        onChange={(event) => {
+                            setPassword(event.target.value);
+                            setMfaRequired(false);
+                            setTotpCode("");
+                        }}
+                        placeholder={isRegister ? "至少 8 位" : "请输入密码"}
+                        autoComplete={isRegister ? "new-password" : "current-password"}
+                        disabled={submitting || disabled}
+                        required
+                    />
+                </label>
+
+                {isRegister ? (
+                    <div className="space-y-2">
+                        <span className="text-sm font-medium text-stone-700 dark:text-stone-200">确认密码</span>
+                        <Input.Password
+                            size="large"
+                            prefix={<LockKeyhole className="size-4 text-stone-500" />}
+                            value={confirmPassword}
+                            onChange={(event) => setConfirmPassword(event.target.value)}
+                            placeholder="再次输入密码"
+                            autoComplete="new-password"
+                            status={passwordMismatch ? "error" : undefined}
+                            disabled={submitting || disabled}
+                            required
+                        />
+                        {passwordMismatch ? <p className="auth-field-error">两次输入的密码不一致</p> : null}
+                    </div>
+                ) : null}
+
+                {!isRegister && mfaRequired ? (
+                    <label className="block space-y-3">
+                        <span className="text-sm font-medium text-stone-700 dark:text-stone-200">动态验证码</span>
+                        <Input
+                            size="large"
+                            prefix={<ShieldCheck className="size-4 text-stone-500" />}
+                            value={totpCode}
+                            autoFocus
+                            autoComplete="one-time-code"
+                            inputMode="numeric"
+                            placeholder="输入身份验证器动态码"
+                            disabled={submitting}
+                            onChange={(event) => setTotpCode(event.target.value)}
+                            required
+                        />
+                    </label>
+                ) : null}
+
+                {isRegister && !firstUser ? (
+                    <Checkbox checked={policyAccepted} disabled={submitting || disabled} onChange={(event) => setPolicyAccepted(event.target.checked)}>
+                        <span className="text-sm leading-6 text-stone-600 dark:text-stone-300">
+                            我已阅读并同意
+                            <a className="mx-1 font-medium text-stone-950 hover:underline dark:text-white" href={site.termsUrl || "/terms"} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()}>
+                                服务条款
+                            </a>
+                            和
+                            <a className="ml-1 font-medium text-stone-950 hover:underline dark:text-white" href={site.privacyUrl || "/privacy"} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()}>
+                                隐私政策
+                            </a>
+                        </span>
+                    </Checkbox>
+                ) : null}
+
+                <Button
+                    className="auth-submit-button"
+                    type="primary"
+                    htmlType="submit"
+                    size="large"
+                    block
+                    loading={submitting}
+                    disabled={disabled || !installTokenReady}
+                    icon={<ArrowRight className="size-4" />}
+                    iconPlacement="end"
+                >
+                    {firstUser ? "创建管理员并进入后台" : isRegister ? "注册并开始创作" : mfaRequired ? "验证并登录" : "登录并继续"}
+                </Button>
+
+                <div className="auth-switch-link pt-2 text-center text-sm text-stone-500 dark:text-stone-400">
+                    {isRegister ? (
+                        <>
+                            已有账号？{" "}
+                            <Link href="/login" className="font-medium text-stone-950 hover:underline dark:text-white">
+                                直接登录
+                            </Link>
+                        </>
+                    ) : (
+                        <>
+                            还没有账号？{" "}
+                            <Link href="/register" className="font-medium text-stone-950 hover:underline dark:text-white">
+                                立即注册
+                            </Link>
+                        </>
+                    )}
+                </div>
+            </form>
+        </section>
+    );
+
+    if (variant === "embedded") return form;
+
+    return (
+        <main className="auth-page-bg app-scroll-page text-foreground">
+            <div className="auth-page-shell">
+                <div className="auth-page-card">
+                    <AuthShowcaseVideo />
+                    <div className="auth-page-card-content">
+                        <Link href="/" className="auth-page-back"><ArrowLeft className="size-4" /><span>返回首页</span></Link>
+                        <div className="auth-page-card-inner">{form}</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    );
+}

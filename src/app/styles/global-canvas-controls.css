@@ -1,0 +1,981 @@
+@layer utilities {
+    .canvas-control-select.ant-select .ant-select-selector,
+    .canvas-control-number.ant-input-number {
+        border-color: rgba(120, 113, 108, 0.32) !important;
+        box-shadow: none !important;
+    }
+
+    .canvas-compact-control.canvas-control-select.ant-select {
+        height: 100%;
+    }
+
+    .canvas-compact-control.canvas-control-select.ant-select .ant-select-selector,
+    .canvas-compact-control.canvas-control-number.ant-input-number {
+        height: 100% !important;
+    }
+
+    .canvas-compact-control.canvas-control-select.ant-select .ant-select-selection-item,
+    .canvas-compact-control.canvas-control-select.ant-select .ant-select-selection-placeholder {
+        align-items: center;
+        display: flex;
+    }
+
+    .canvas-compact-control.canvas-control-select.ant-select .ant-select-selection-item,
+    .canvas-compact-control.canvas-control-select.ant-select .ant-select-selection-placeholder,
+    .canvas-compact-control.canvas-control-select.ant-select .ant-select-selection-search-input,
+    .canvas-compact-control.canvas-control-number.ant-input-number .ant-input-number-input {
+        height: 100% !important;
+        line-height: 1 !important;
+    }
+
+    .canvas-composer-icon.ant-btn {
+        flex: 0 0 32px;
+        width: 32px;
+    }
+
+    .canvas-composer-tools {
+        container-type: inline-size;
+    }
+
+    .canvas-composer-mode-button {
+        width: 32px;
+    }
+
+    .canvas-composer-tools .canvas-composer-mode-button span,
+    .canvas-composer-tools .canvas-model-picker-text,
+    .canvas-composer-tools .canvas-select-chevron,
+    .canvas-composer-tools .canvas-composer-icon.ant-btn > span:not(.ant-btn-icon) {
+        display: none;
+    }
+
+    .canvas-composer-tools .canvas-composer-model-picker {
+        width: 32px;
+        min-width: 32px;
+        justify-content: center;
+        gap: 0;
+        padding-inline: 0;
+    }
+
+    .canvas-composer-tools .canvas-composer-settings {
+        min-width: 32px !important;
+        overflow: hidden;
+    }
+
+    .canvas-composer-tools .canvas-composer-settings > span:not(.ant-btn-icon) {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .dark .canvas-generate-button.ant-btn-primary:not(.ant-btn-dangerous):not(:disabled) {
+        background: #f5f5f4;
+        border-color: #f5f5f4;
+        color: #111827;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.26);
+    }
+
+    .dark .canvas-generate-button.ant-btn-primary:not(.ant-btn-dangerous):not(:disabled):hover {
+        background: #ffffff;
+        border-color: #ffffff;
+        color: #020617;
+    }
+
+    .dark .canvas-generate-button.ant-btn-primary:disabled {
+        background: rgba(245, 245, 244, 0.36);
+        border-color: rgba(245, 245, 244, 0.22);
+        color: rgba(17, 24, 39, 0.7);
+    }
+
+    @container (min-width: 440px) {
+        .canvas-composer-mode-button {
+            padding-inline: 8px;
+            width: auto;
+        }
+
+        .canvas-composer-tools .canvas-composer-mode-button span {
+            display: inline;
+            font-size: 12px;
+            line-height: 1;
+        }
+
+        .canvas-composer-icon.ant-btn {
+            flex: 0 1 auto;
+            max-width: 170px;
+            width: auto !important;
+        }
+
+        .canvas-composer-tools .canvas-composer-icon.ant-btn > span:not(.ant-btn-icon) {
+            display: inline-flex;
+            min-width: 0;
+        }
+
+        .canvas-composer-tools .canvas-composer-model-picker {
+            width: auto;
+            min-width: 9rem;
+            justify-content: flex-start;
+            gap: 0.5rem;
+            padding-inline: 0.75rem;
+        }
+
+        .canvas-composer-tools .canvas-model-picker-text,
+        .canvas-composer-tools .canvas-select-chevron {
+            display: inline;
+        }
+    }
+
+    .canvas-control-select.ant-select-focused .ant-select-selector,
+    .canvas-control-number.ant-input-number-focused {
+        border-color: #a8a29e !important;
+    }
+
+    .dark .canvas-control-select.ant-select .ant-select-selector,
+    .dark .canvas-control-number.ant-input-number {
+        border-color: rgba(214, 211, 209, 0.2) !important;
+    }
+
+    .dark .canvas-control-select.ant-select-focused .ant-select-selector,
+    .dark .canvas-control-number.ant-input-number-focused {
+        border-color: #78716c !important;
+    }
+
+    .canvas-image-settings-popover .ant-popover-inner {
+        border-radius: 18px;
+        box-shadow: 0 18px 54px rgba(28, 25, 23, 0.16);
+        padding: 18px;
+    }
+
+    .canvas-image-settings-popover .ant-popover-inner-content {
+        max-height: calc(100vh - 96px);
+        overflow-y: auto;
+    }
+
+    .canvas-image-settings-popover .ant-segmented {
+        border-radius: 999px;
+        padding: 3px;
+    }
+
+    .canvas-image-settings-popover .ant-segmented-item {
+        border-radius: 999px;
+    }
+
+    .dark .canvas-image-settings-popover .ant-popover-inner {
+        box-shadow: 0 18px 54px rgba(0, 0, 0, 0.45);
+    }
+
+    .canvas-image-toolbar-settings-modal .ant-checkbox-wrapper {
+        color: inherit;
+    }
+
+    .canvas-image-toolbar-settings-modal .ant-checkbox-inner {
+        border-color: rgba(120, 113, 108, 0.72);
+    }
+
+    .canvas-image-toolbar-settings-modal .ant-checkbox-wrapper:hover .ant-checkbox-inner,
+    .canvas-image-toolbar-settings-modal .ant-checkbox:hover .ant-checkbox-inner {
+        border-color: #111827;
+    }
+
+    .canvas-image-toolbar-settings-modal .ant-checkbox-checked .ant-checkbox-inner {
+        background-color: #111827 !important;
+        border-color: #111827 !important;
+        box-shadow: 0 0 0 2px rgba(17, 24, 39, 0.16);
+    }
+
+    .canvas-image-toolbar-settings-modal .ant-checkbox-checked .ant-checkbox-inner::after {
+        border-color: #ffffff !important;
+        border-width: 2px;
+    }
+
+    .canvas-image-toolbar-settings-modal .ant-checkbox-disabled .ant-checkbox-inner {
+        background-color: rgba(120, 113, 108, 0.12);
+        border-color: rgba(120, 113, 108, 0.45);
+    }
+
+    .dark .canvas-image-toolbar-settings-modal .ant-checkbox-wrapper {
+        color: #e7e5e4;
+    }
+
+    .dark .canvas-image-toolbar-settings-modal .ant-checkbox-inner {
+        background-color: rgba(255, 255, 255, 0.06);
+        border-color: rgba(214, 211, 209, 0.72);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+    }
+
+    .dark .canvas-image-toolbar-settings-modal .ant-checkbox-wrapper:hover .ant-checkbox-inner,
+    .dark .canvas-image-toolbar-settings-modal .ant-checkbox:hover .ant-checkbox-inner {
+        background-color: rgba(255, 255, 255, 0.12);
+        border-color: #f8fafc;
+    }
+
+    .dark .canvas-image-toolbar-settings-modal .ant-checkbox-checked .ant-checkbox-inner {
+        background-color: #f8fafc !important;
+        border-color: #ffffff !important;
+        box-shadow: 0 0 0 2px rgba(248, 250, 252, 0.26);
+    }
+
+    .dark .canvas-image-toolbar-settings-modal .ant-checkbox-checked .ant-checkbox-inner::after {
+        border-color: #0f172a !important;
+    }
+
+    .dark .canvas-image-toolbar-settings-modal .ant-switch {
+        background: rgba(120, 113, 108, 0.72);
+        border: 1px solid rgba(231, 229, 228, 0.2);
+        min-width: 44px;
+    }
+
+    .dark .canvas-image-toolbar-settings-modal .ant-switch .ant-switch-handle::before {
+        background: #fafaf9;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.32);
+    }
+
+    .dark .canvas-image-toolbar-settings-modal .ant-switch:hover:not(.ant-switch-disabled) {
+        background: rgba(168, 162, 158, 0.82);
+    }
+
+    .dark .canvas-image-toolbar-settings-modal .ant-switch.ant-switch-checked {
+        background: #f8fafc;
+        border-color: #ffffff;
+    }
+
+    .dark .canvas-image-toolbar-settings-modal .ant-switch.ant-switch-checked:hover:not(.ant-switch-disabled) {
+        background: #ffffff;
+    }
+
+    .canvas-node-info-modal .ant-modal-header {
+        padding-right: 0;
+    }
+
+    .canvas-node-info-modal .ant-modal-title {
+        line-height: 1;
+    }
+
+    .canvas-node-info-modal .ant-modal-close {
+        top: 21px;
+    }
+
+    .ant-message {
+        box-sizing: border-box;
+        inset-inline: 0 !important;
+        max-width: 100vw;
+        padding-inline: 16px;
+        transform: none !important;
+        width: 100% !important;
+    }
+
+    .ant-message .ant-message-notice {
+        box-sizing: border-box;
+        margin-inline: auto;
+        max-width: calc(100vw - 32px);
+    }
+
+    .ant-message .ant-message-notice-content {
+        box-sizing: border-box;
+        border: 1px solid rgba(120, 113, 108, 0.18);
+        border-radius: 8px;
+        box-shadow: 0 12px 32px rgba(28, 25, 23, 0.14);
+        max-width: calc(100vw - 32px);
+        padding: 10px 14px;
+        white-space: normal;
+    }
+
+    .ant-message .ant-message-custom-content {
+        align-items: center;
+        display: inline-flex;
+        gap: 8px;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+    }
+
+    .dark .ant-message .ant-message-notice-content {
+        background: rgba(12, 10, 9, 0.96);
+        border-color: rgba(255, 255, 255, 0.12);
+        box-shadow: 0 14px 36px rgba(0, 0, 0, 0.38);
+        color: #fafaf9;
+    }
+
+    .ant-picker-dropdown .ant-picker-panel-container {
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        border-radius: 10px;
+        box-shadow: 0 18px 52px rgba(15, 23, 42, 0.14);
+        overflow: hidden;
+    }
+
+    .ant-picker-dropdown .ant-picker-header {
+        border-bottom-color: rgba(15, 23, 42, 0.08);
+    }
+
+    .ant-picker-dropdown .ant-picker-header-view,
+    .ant-picker-dropdown .ant-picker-content th {
+        color: #1f2937;
+        font-weight: 650;
+    }
+
+    .ant-picker-dropdown .ant-picker-cell::before,
+    .ant-picker-dropdown .ant-picker-cell-in-view.ant-picker-cell-in-range::before,
+    .ant-picker-dropdown .ant-picker-cell-in-view.ant-picker-cell-range-start::before,
+    .ant-picker-dropdown .ant-picker-cell-in-view.ant-picker-cell-range-end::before,
+    .ant-picker-dropdown .ant-picker-cell-in-view.ant-picker-cell-range-hover::before {
+        background: transparent !important;
+    }
+
+    .ant-picker-dropdown .ant-picker-cell-in-view.ant-picker-cell-in-range .ant-picker-cell-inner {
+        background: transparent !important;
+        color: #292524;
+    }
+
+    .ant-picker-dropdown .ant-picker-cell-in-view.ant-picker-cell-range-start .ant-picker-cell-inner,
+    .ant-picker-dropdown .ant-picker-cell-in-view.ant-picker-cell-range-end .ant-picker-cell-inner,
+    .ant-picker-dropdown .ant-picker-cell-in-view.ant-picker-cell-selected .ant-picker-cell-inner {
+        background: #111827 !important;
+        border-radius: 6px;
+        color: #ffffff !important;
+    }
+
+    .ant-picker-dropdown .ant-picker-cell-in-view.ant-picker-cell-today .ant-picker-cell-inner::before {
+        border-color: #111827;
+        border-radius: 6px;
+    }
+
+    html.dark .ant-picker-dropdown .ant-picker-panel-container {
+        background: #111113;
+        border-color: rgba(255, 255, 255, 0.12);
+        box-shadow: 0 20px 56px rgba(0, 0, 0, 0.5);
+    }
+
+    html.dark .ant-picker-dropdown .ant-picker-panel,
+    html.dark .ant-picker-dropdown .ant-picker-date-panel,
+    html.dark .ant-picker-dropdown .ant-picker-header {
+        background: #111113;
+        border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    html.dark .ant-picker-dropdown .ant-picker-header-view,
+    html.dark .ant-picker-dropdown .ant-picker-content th,
+    html.dark .ant-picker-dropdown .ant-picker-cell-in-view {
+        color: #e7e5e4;
+    }
+
+    html.dark .ant-picker-dropdown .ant-picker-cell {
+        color: rgba(231, 229, 228, 0.34);
+    }
+
+    html.dark .ant-picker-dropdown .ant-picker-cell-in-view.ant-picker-cell-in-range .ant-picker-cell-inner {
+        background: transparent !important;
+        color: #e7e5e4;
+    }
+
+    html.dark .ant-picker-dropdown .ant-picker-cell-in-view.ant-picker-cell-range-start .ant-picker-cell-inner,
+    html.dark .ant-picker-dropdown .ant-picker-cell-in-view.ant-picker-cell-range-end .ant-picker-cell-inner,
+    html.dark .ant-picker-dropdown .ant-picker-cell-in-view.ant-picker-cell-selected .ant-picker-cell-inner {
+        background: #f8fafc !important;
+        color: #111827 !important;
+    }
+
+    html.dark .ant-picker-dropdown .ant-picker-cell-in-view.ant-picker-cell-today .ant-picker-cell-inner::before {
+        border-color: #f8fafc;
+    }
+}
+
+
+/* ── Agent 呼吸球（画布底部工具栏右侧）─────────────────────────────────
+ * 按参考实现：球体本体做径向渐变，内部三个模糊色团以不同速度/方向绕
+ * 20.7% 50% 旋转，形成"能量在球里流动"的效果；外圈靠 breathe 缩放呼吸。
+ * 外层 wrapper 负责 hover 缩放，避免和 breathe 的 transform 打架。
+ */
+.canvas-agent-orb {
+    --orb-size: 44px;
+    --orb-color: #7fb6f5;
+    position: relative;
+    display: block;
+    width: var(--orb-size);
+    height: var(--orb-size);
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    overflow: hidden;
+    isolation: isolate;
+    cursor: pointer;
+    background: radial-gradient(circle at 50% 65%, var(--orb-color), color-mix(in srgb, var(--orb-color) 55%, transparent));
+    box-shadow: 0 0 calc(var(--orb-size) / 4.2) rgba(140, 190, 250, 0.5);
+    animation: canvas-agent-breathe 3.2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+    transition:
+        box-shadow 0.45s ease,
+        background 0.45s ease;
+}
+
+.canvas-agent-orb > span {
+    position: absolute;
+    left: 34.5%;
+    top: 12.5%;
+    width: 75%;
+    height: 75%;
+    border-radius: 50%;
+    background: var(--orb-color);
+    transform-origin: 20.7% 50%;
+    filter: blur(calc(var(--orb-size) / 9));
+    animation: canvas-agent-drift 3s linear infinite;
+}
+
+.canvas-agent-orb > span:nth-child(2) {
+    filter: blur(calc(var(--orb-size) / 9)) hue-rotate(50deg);
+    animation-duration: 4.2s;
+    animation-direction: reverse;
+    animation-delay: -1.4s;
+}
+
+.canvas-agent-orb > span:nth-child(3) {
+    filter: blur(calc(var(--orb-size) / 9)) hue-rotate(-45deg) brightness(1.3);
+    animation-duration: 5.4s;
+    animation-delay: -3.6s;
+}
+
+/* 顶部反光 + 一圈内描边，让球有玻璃壳的边界 */
+.canvas-agent-orb::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: 50%;
+    background: radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.55), transparent 38%);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+    pointer-events: none;
+}
+
+.canvas-agent-orb:hover {
+    box-shadow: 0 0 calc(var(--orb-size) / 3.4) rgba(120, 180, 250, 0.6);
+}
+
+.canvas-agent-orb[data-open="true"] {
+    box-shadow: 0 0 calc(var(--orb-size) / 3) rgba(120, 180, 250, 0.75);
+}
+
+@keyframes canvas-agent-drift {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes canvas-agent-breathe {
+    0%,
+    100% {
+        transform: scale(0.9);
+    }
+    50% {
+        transform: scale(1);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .canvas-agent-orb,
+    .canvas-agent-orb > span {
+        animation-duration: 3s;
+    }
+}
+
+/* ── 画布工具栏 / 缩放控件的玻璃质感 ──────────────────────────────────
+ * 这两个 dock 的背景和阴影由组件 inline style 给出（跟随深浅画布主题），
+ * 这里只补圆角、高度和内高光，用 !important 压过 inline 的 box-shadow。
+ */
+.canvas-zoom-dock {
+    border-radius: 18px !important;
+    height: 56px !important;
+}
+
+.canvas-toolbar-dock {
+    border-radius: 18px !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.95),
+        inset 0 -1px 0 rgba(15, 23, 42, 0.04),
+        0 20px 44px -22px rgba(15, 23, 42, 0.4),
+        0 2px 6px rgba(15, 23, 42, 0.06) !important;
+}
+
+.canvas-toolbar-dock {
+    height: 56px !important;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+}
+
+.dark .canvas-toolbar-dock,
+.dark .canvas-zoom-dock {
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.07),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.3),
+        0 20px 44px -20px rgba(0, 0, 0, 0.6),
+        0 2px 6px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* 缩放滑杆：原生 range 太简陋，换成细轨道 + 品牌色圆钮 */
+.canvas-zoom-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    border-radius: 9999px;
+    background: rgba(15, 23, 42, 0.12);
+    outline: none;
+    cursor: pointer;
+    transition: background-color 160ms ease;
+}
+
+.canvas-zoom-slider:hover {
+    background: rgba(15, 23, 42, 0.2);
+}
+
+.canvas-zoom-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 9999px;
+    background: linear-gradient(140deg, #ff9448 0%, #e2671f 100%);
+    border: 2px solid #fff;
+    box-shadow: 0 2px 6px rgba(226, 103, 31, 0.45);
+    transition: transform 140ms ease;
+}
+
+.canvas-zoom-slider:hover::-webkit-slider-thumb {
+    transform: scale(1.12);
+}
+
+.canvas-zoom-slider::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 9999px;
+    background: linear-gradient(140deg, #ff9448 0%, #e2671f 100%);
+    border: 2px solid #fff;
+    box-shadow: 0 2px 6px rgba(226, 103, 31, 0.45);
+}
+
+.dark .canvas-zoom-slider {
+    background: rgba(255, 255, 255, 0.16);
+}
+
+.dark .canvas-zoom-slider:hover {
+    background: rgba(255, 255, 255, 0.26);
+}
+
+.dark .canvas-zoom-slider::-webkit-slider-thumb,
+.dark .canvas-zoom-slider::-moz-range-thumb {
+    border-color: rgba(20, 20, 22, 0.9);
+}
+
+/* 贴边面板：纯白面板落在浅灰画布上，只补一层很薄的侧向投影，
+ * 不再做内侧渐隐（那道灰带看起来像脏边）。 */
+.canvas-assets-panel {
+    position: relative;
+    box-shadow: 10px 0 20px -16px rgba(15, 23, 42, 0.22);
+}
+
+.dark .canvas-assets-panel {
+    box-shadow: 10px 0 20px -16px rgba(0, 0, 0, 0.65);
+}
+
+
+/* ── Agent 浮层：玻璃化 + 气泡 + 输入卡 ───────────────────────────── */
+.canvas-agent-popover {
+    background: rgba(255, 255, 255, 0.86) !important;
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.85) !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.95),
+        0 0 0 1px rgba(15, 23, 42, 0.055),
+        0 28px 64px -26px rgba(15, 23, 42, 0.38),
+        0 3px 10px rgba(15, 23, 42, 0.07) !important;
+}
+
+.dark .canvas-agent-popover {
+    background: rgba(36, 36, 40, 0.92) !important;
+    border-color: rgba(255, 255, 255, 0.16) !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        0 0 0 1px rgba(0, 0, 0, 0.55),
+        0 30px 66px -24px rgba(0, 0, 0, 0.8) !important;
+}
+
+/* 用户气泡：白底圆角卡（参考极简对话样式），不再用品牌渐变 */
+.canvas-agent-user-bubble {
+    border-radius: 16px;
+    background: #ffffff;
+    border: 1px solid rgba(15, 23, 42, 0.07);
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+.dark .canvas-agent-user-bubble {
+    background: #2a2a2e;
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* 输入卡：内高光 + 聚焦时品牌色光环 */
+.canvas-agent-composer-card {
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.85),
+        0 10px 26px -18px rgba(15, 23, 42, 0.45);
+    transition:
+        box-shadow 180ms ease,
+        border-color 180ms ease;
+}
+
+.canvas-agent-composer-card:focus-within {
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.9),
+        0 0 0 3px rgba(226, 103, 31, 0.16),
+        0 14px 30px -18px rgba(15, 23, 42, 0.42);
+}
+
+.dark .canvas-agent-composer-card {
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.07),
+        0 10px 26px -16px rgba(0, 0, 0, 0.6);
+}
+
+.dark .canvas-agent-composer-card:focus-within {
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.09),
+        0 0 0 3px rgba(240, 128, 58, 0.2),
+        0 14px 30px -16px rgba(0, 0, 0, 0.6);
+}
+
+/* 资产缩略图：悬停抬升 + 品牌色描边，比单纯降透明度更有层次 */
+.canvas-asset-thumb:hover {
+    border-color: rgba(226, 103, 31, 0.35) !important;
+    box-shadow: 0 14px 28px -18px rgba(15, 23, 42, 0.55);
+}
+
+.dark .canvas-asset-thumb:hover {
+    border-color: rgba(240, 128, 58, 0.4) !important;
+}
+
+/* 资产面板展开：淡入 + 轻微右滑，避免硬切出现 */
+.canvas-assets-shell {
+    animation: canvas-assets-shell-in 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes canvas-assets-shell-in {
+    from {
+        opacity: 0;
+        transform: translateX(-14px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .canvas-assets-shell {
+        animation: none;
+    }
+}
+
+/* 球体托盘：参考图里球是放在一个白色圆形底座里的，底座比球大一圈 */
+.canvas-agent-orb-shell {
+    display: grid;
+    place-items: center;
+    width: 62px;
+    height: 62px;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    box-shadow:
+        inset 0 1px 0 #fff,
+        0 10px 24px -12px rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.dark .canvas-agent-orb-shell {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.12),
+        0 12px 26px -14px rgba(0, 0, 0, 0.7),
+        0 0 26px -8px rgba(120, 180, 250, 0.45);
+}
+
+/* 小地图：浮动层次感 */
+.canvas-minimap {
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.4),
+        0 18px 40px -24px rgba(15, 23, 42, 0.55);
+}
+
+.dark .canvas-minimap {
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.06),
+        0 18px 40px -22px rgba(0, 0, 0, 0.7);
+}
+
+/* ── 资产面板：靠底色深浅分隔，不再用描边线条 ─────────────────────── */
+/* 资产面板：色盘吸附的高不透明底（--rm-surface-bg），保证长列表可读 */
+.canvas-assets-surface {
+    background: var(--rm-surface-bg, #ffffff) !important;
+    border-right: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.dark .canvas-assets-surface {
+    border-right-color: rgba(255, 255, 255, 0.1);
+}
+
+/* 面板上的控件改成"白卡浮在灰底"的层次 */
+.canvas-assets-surface .canvas-asset-control {
+    background: #ffffff;
+    border-color: transparent !important;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+.dark .canvas-assets-surface .canvas-asset-control {
+    background: #232327;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+.canvas-assets-surface .canvas-asset-thumb {
+    border-color: transparent !important;
+    background: #ffffff;
+}
+
+.dark .canvas-assets-surface .canvas-asset-thumb {
+    background: #1d1d21;
+}
+
+/* 历史列表：去掉描边卡片，用底色与左侧品牌竖条表达选中 */
+.canvas-agent-history-item[data-active="true"] {
+    background: rgba(15, 23, 42, 0.05);
+}
+
+.dark .canvas-agent-history-item[data-active="true"] {
+    background: rgba(255, 255, 255, 0.07);
+}
+
+.canvas-agent-history-item[data-active="true"]::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 9px;
+    bottom: 9px;
+    width: 3px;
+    border-radius: 9999px;
+    background: #e2671f;
+}
+
+.dark .canvas-agent-history-item[data-active="true"]::before {
+    background: #f0803a;
+}
+
+/* ── 画布内的玻璃砖：菜单图标底、节点空态图标 ──────────────────────
+ * 中性色 + 内高光 + 外微影，靠明度差表达层次，不使用品牌色。
+ */
+.canvas-glass-tile {
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.55) 100%);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.98),
+        inset 0 0 0 1px rgba(15, 23, 42, 0.055),
+        0 1px 3px rgba(15, 23, 42, 0.07);
+    backdrop-filter: blur(10px) saturate(1.25);
+    -webkit-backdrop-filter: blur(10px) saturate(1.25);
+}
+
+.dark .canvas-glass-tile {
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.04) 100%);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.16),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.07),
+        0 1px 3px rgba(0, 0, 0, 0.38);
+}
+
+/* 建议胶囊：同样的玻璃处理，悬停轻微抬升 */
+.canvas-glass-chip {
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid rgba(15, 23, 42, 0.06);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.9),
+        0 1px 2px rgba(15, 23, 42, 0.05);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition:
+        transform 150ms ease,
+        box-shadow 150ms ease;
+}
+
+.canvas-glass-chip:hover {
+    transform: translateY(-1px);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.95),
+        0 6px 14px -8px rgba(15, 23, 42, 0.4);
+}
+
+.dark .canvas-glass-chip {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.12),
+        0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* ── 渐变画布上的悬浮面板：瓷白毛玻璃 ────────────────────────────────
+ * 画布改成渐变色盘后，纯白不透明面板会和背景明度打架，
+ * 统一成 82% 瓷白 + 20px 模糊 + 白亮描边，保证永远浮在画布之上。
+ */
+.canvas-toolbar-dock,
+.canvas-zoom-dock {
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    border-color: rgba(255, 255, 255, 0.75) !important;
+}
+
+.dark .canvas-toolbar-dock,
+.dark .canvas-zoom-dock {
+    border-color: rgba(255, 255, 255, 0.14) !important;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   节点 10 · 极简纯透亚克力玻璃
+   ─────────────────────────────────────────────────────────────────────
+   材质全部走 --rm-node-* 变量（由色盘注入），这里只负责结构与光学。
+   圆角由 className 的 rounded-[22px] 提供，伪元素用 inherit 跟随。
+   ══════════════════════════════════════════════════════════════════════ */
+.rm-node-glass {
+    position: relative;
+    background: var(--rm-node-bg, rgba(255, 255, 255, 0.16));
+    /* 不使用 backdrop-filter：
+     * 节点处在「世界层 transform + contain」之下，backdrop 采样拿不到画布渐变，
+     * 失效后会退化成不透明层（深色下表现为卡片整体发黑、底部更暗）。
+     * 渐变背景本身是低频的，blur 在此场景几乎不产生可见差异，
+     * 去掉后卡片直接透出画布，视觉更准、40+ 节点也不再有滤镜开销。
+     * 不用 contain: paint，否则会裁掉批量动画的溢出层。 */
+    contain: layout style;
+}
+
+/* 135° 菲涅尔非均匀光学描边：mask 挖空中心，只留 1px 渐变环，不占盒模型 */
+.rm-node-fresnel::before {
+    content: "";
+    position: absolute;
+    /* 外扩 2px 对齐 border 外沿：否则 inset:0 会缩进 padding-box，
+     * 和 border-2 之间留出一圈空槽，看起来像双层边框 */
+    inset: -2px;
+    border-radius: inherit;
+    padding: 1px;
+    background: var(--rm-node-rim, rgba(255, 255, 255, 0.6));
+    -webkit-mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    z-index: 4;
+}
+
+/* 状态描边：选中更亮，关联更弱 */
+.rm-node-fresnel[data-selected="true"]::before {
+    padding: 1.5px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, #38bdf8 50%, rgba(255, 255, 255, 1) 100%);
+}
+
+
+
+/* #2 斜向液态丝绸光波（生成态）
+ * 光带作为背景绘制，靠 background-position 位移：
+ * 不再需要超出节点的元素，因此天然不会溢出卡片（之前 inset:-50% 会漏到画布上）。
+ */
+.rm-node-silk-wave {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0;
+    z-index: 5;
+    border-radius: inherit;
+    overflow: hidden;
+    background-image: linear-gradient(
+        115deg,
+        transparent 34%,
+        var(--rm-node-shimmer, rgba(255, 255, 255, 0.55)) 47%,
+        rgba(255, 255, 255, 0.3) 50%,
+        var(--rm-node-shimmer, rgba(255, 255, 255, 0.55)) 53%,
+        transparent 66%
+    );
+    background-size: 260% 100%;
+    background-position: 165% 0;
+    background-repeat: no-repeat;
+    transition: opacity 0.35s ease;
+}
+
+.rm-node-glass[data-generating="true"] .rm-node-silk-wave {
+    opacity: 1;
+    animation: rmSilkSweep 2.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes rmSilkSweep {
+    0% {
+        background-position: 165% 0;
+    }
+    100% {
+        background-position: -65% 0;
+    }
+}
+
+[data-lod="low"] .rm-node-silk-wave {
+    /* 保留动画：一个 background-position 动画的开销远小于 backdrop-filter，
+     * 停掉反而会让远景下的生成态看起来"卡死不动"。 */
+    opacity: 0.6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .rm-node-glass[data-generating="true"] .rm-node-silk-wave {
+        animation: none;
+        opacity: 0.5;
+        background-position: 50% 0;
+    }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   悬浮 UI 面板吸附色盘色温
+   ─────────────────────────────────────────────────────────────────────
+   画布改成有色渐变后，固定中性黑/白面板会像贴上去的纸。
+   这里统一走 --rm-panel-* —— 深色各色盘输出「主色相极深暗调 + 72%」，
+   浅色统一瓷白 82%，极简瓷白单独提不透明度并换冷灰描边。
+   ══════════════════════════════════════════════════════════════════════ */
+.canvas-toolbar-dock,
+.canvas-zoom-dock {
+    background: var(--rm-panel-bg, rgba(255, 255, 255, 0.82)) !important;
+    border-color: var(--rm-panel-border, rgba(255, 255, 255, 0.86)) !important;
+    backdrop-filter: blur(24px) saturate(150%) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(150%) !important;
+}
+
+/* 落影合并：保留原有内高光，外投影换成色盘适配版 */
+.canvas-toolbar-dock {
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.9),
+        var(--rm-panel-shadow, 0 20px 44px -22px rgba(15, 23, 42, 0.34)) !important;
+}
+
+.canvas-zoom-dock {
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.9),
+        var(--rm-panel-shadow, 0 20px 44px -22px rgba(15, 23, 42, 0.34)) !important;
+}
+
+.dark .canvas-toolbar-dock,
+.dark .canvas-zoom-dock {
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        var(--rm-panel-shadow, 0 22px 48px -20px rgba(0, 0, 0, 0.66)) !important;
+}
+
+/* Agent 停靠面板同样吸附色温（原来是固定 #ffffff / #121214） */
+.canvas-agent-docked {
+    background: var(--rm-panel-bg, #ffffff) !important;
+}
+
+/* Agent 浮层：色盘面板底 + 更强的模糊，保持“浮起”语义 */
+.canvas-agent-popover {
+    background: var(--rm-panel-bg, rgba(255, 255, 255, 0.86)) !important;
+    border-color: var(--rm-panel-border, rgba(255, 255, 255, 0.85)) !important;
+    backdrop-filter: blur(28px) saturate(170%) !important;
+    -webkit-backdrop-filter: blur(28px) saturate(170%) !important;
+}
+
+

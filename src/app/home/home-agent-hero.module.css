@@ -1,0 +1,277 @@
+/* 首屏：单列布局，形态 1:1 对齐 Megick /official。
+ * 所有颜色集中在 .hero 变量里，下一轮换配色只改这一段。 */
+.hero {
+    /* 与 home.module.css 的 --brand-* 同源；正文改中性黑灰，
+     * 避免暖棕文字在纯白底上又带出「发黄」的观感。 */
+    --hero-text-primary: #16161a;
+    --hero-text-secondary: rgba(22, 22, 26, 0.72);
+    --hero-text-faint: rgba(22, 22, 26, 0.5);
+    --hero-border: rgba(20, 20, 24, 0.1);
+    --hero-accent: #e2671f;
+    --hero-accent-hover: #c95616;
+    --hero-accent-soft: rgba(226, 103, 31, 0.1);
+    --hero-accent-glow: rgba(226, 103, 31, 0.16);
+    --hero-accent-foreground: #ffffff;
+    --hero-surface: #ffffff;
+    --hero-glass: rgba(255, 255, 255, 0.62);
+    align-items: center;
+    background: transparent;
+    display: flex;
+    min-height: calc(100svh - 80px);
+    overflow: hidden;
+    padding: clamp(40px, 6vh, 80px) 0 clamp(56px, 8vh, 104px);
+    position: relative;
+}
+
+:global(.dark) .hero {
+    --hero-text-primary: #f6f2e9;
+    --hero-text-secondary: rgba(246, 242, 233, 0.72);
+    --hero-text-faint: rgba(246, 242, 233, 0.5);
+    --hero-border: rgba(246, 242, 233, 0.1);
+    --hero-accent: #e8b44a;
+    --hero-accent-hover: #f2c463;
+    --hero-accent-soft: rgba(232, 180, 74, 0.12);
+    --hero-accent-glow: rgba(232, 180, 74, 0.26);
+    --hero-accent-foreground: #1a1509;
+    --hero-surface: #1c1912;
+    --hero-glass: rgba(28, 25, 18, 0.5);
+}
+
+/* 与 .section 用同一套容器内边距（32px），首屏和下方区块的左边缘才对得齐：
+ * 之前 hero 是 48px、区块是 32px，标题和 h2 差了 16px。 */
+.heroInner {
+    display: block;
+    margin: 0 auto;
+    max-width: 1200px;
+    padding: 0 clamp(20px, 4vw, 32px);
+    position: relative;
+    width: 100%;
+    z-index: 1;
+}
+
+.heroCopy {
+    max-width: 1000px;
+    min-width: 0;
+}
+
+.heroKicker {
+    align-items: center;
+    background: var(--hero-glass);
+    border: 1px solid var(--hero-border);
+    border-radius: 999px;
+    color: var(--hero-text-primary);
+    display: inline-flex;
+    font-size: 11px;
+    font-weight: 500;
+    gap: 8px;
+    letter-spacing: 0.2em;
+    margin: 0 0 clamp(20px, 3vw, 28px);
+    padding: 6px 12px;
+    text-transform: uppercase;
+}
+
+.heroKickerDot {
+    background: var(--hero-accent);
+    border-radius: 50%;
+    box-shadow: 0 0 12px var(--hero-accent-glow);
+    flex: 0 0 auto;
+    height: 6px;
+    width: 6px;
+}
+
+.heroTitle {
+    color: var(--hero-text-primary);
+    font-size: clamp(3rem, 10vw, 8.6rem);
+    font-weight: 500;
+    /* 原版 -0.075em 是给拉丁展示体调的；中文是全角方块，收到这个值笔画就贴在一起了。
+     * 中文标题最多 -0.02em。 */
+    letter-spacing: -0.02em;
+    line-height: 0.88;
+    margin: 0;
+    max-width: 900px;
+}
+
+.heroTitleAccent,
+.heroTitleSub {
+    display: block;
+}
+
+.heroTitleAccent {
+    background-image: linear-gradient(135deg, var(--hero-accent) 0%, color-mix(in srgb, var(--hero-accent) 62%, #ffffff) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    /* 原版行高 0.88 会让中文字形下缘超出行盒；background-clip:text 的渐变
+     * 只绘制在行盒内，超出部分变透明（看起来像被裁掉）。用 padding 把背景绘制区
+     * 向下扩到完整字形，再用等量负 margin 抵消，保持两行行距与 1:1 形态不变。 */
+    margin-bottom: -0.3em;
+    padding-bottom: 0.3em;
+}
+
+.heroTitleSub {
+    font-size: clamp(2rem, 5vw, 5rem);
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 0.98;
+    margin-top: 0.08em;
+}
+
+.heroSubtitle {
+    color: var(--hero-text-secondary);
+    font-size: clamp(14px, 1.1vw, 16px);
+    line-height: 1.75;
+    margin: clamp(18px, 2.4vw, 26px) 0 0;
+    /* 36em + balance：之前在 42em 下第二行只剩一个「流。」，孤字很扎眼 */
+    max-width: 36em;
+    text-wrap: balance;
+}
+
+.heroActions {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px 20px;
+    margin-top: clamp(28px, 4vw, 40px);
+}
+
+.heroCta {
+    align-items: center;
+    background: var(--hero-accent);
+    border: 0;
+    border-radius: 999px;
+    box-shadow: 0 18px 60px -18px color-mix(in srgb, var(--hero-accent) 62%, transparent);
+    color: var(--hero-accent-foreground);
+    cursor: pointer;
+    display: inline-flex;
+    font-size: 14px;
+    font-weight: 500;
+    gap: 12px;
+    height: 48px;
+    padding: 0 8px 0 24px;
+    transition:
+        background 200ms ease,
+        transform 200ms ease,
+        box-shadow 200ms ease;
+}
+
+.heroCta:hover {
+    background: var(--hero-accent-hover);
+    box-shadow: 0 22px 64px -18px color-mix(in srgb, var(--hero-accent) 72%, transparent);
+    transform: translateY(-2px);
+}
+
+.heroCta:focus-visible {
+    outline: 2px solid var(--hero-accent);
+    outline-offset: 3px;
+}
+
+.heroCtaLabel {
+    display: block;
+    height: 20px;
+    overflow: hidden;
+}
+
+.heroCtaLabel span {
+    align-items: center;
+    display: flex;
+    height: 20px;
+    transition: transform 500ms cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+.heroCta:hover .heroCtaLabel span {
+    transform: translateY(-100%);
+}
+
+.heroCtaIcon {
+    align-items: center;
+    background: var(--hero-surface);
+    border-radius: 50%;
+    color: var(--hero-accent);
+    display: inline-flex;
+    height: 32px;
+    justify-content: center;
+    transition: transform 500ms cubic-bezier(0.25, 0.1, 0.25, 1);
+    width: 32px;
+}
+
+.heroCtaIcon svg {
+    height: 14px;
+    width: 14px;
+}
+
+.heroCta:hover .heroCtaIcon {
+    transform: rotate(-45deg);
+}
+
+/* ── 响应式 ───────────────────────────────────────────── */
+
+@media (max-width: 1023px) {
+    .hero {
+        min-height: 0;
+        padding: 60px 0 80px;
+    }
+
+    .heroTitle {
+        font-size: clamp(3rem, 9vw, 5.5rem);
+    }
+
+    .heroTitleSub {
+        font-size: clamp(1.8rem, 5.5vw, 3.2rem);
+    }
+}
+
+@media (max-width: 767px) {
+    .hero {
+        padding: 42px 0 64px;
+    }
+
+    .heroInner {
+        padding: 0 14px;
+    }
+
+    .heroKicker {
+        font-size: 10px;
+        letter-spacing: 0.18em;
+        margin-bottom: 18px;
+    }
+
+    .heroTitle {
+        font-size: clamp(2.6rem, 12vw, 3.6rem);
+        letter-spacing: -0.02em;
+        line-height: 0.92;
+    }
+
+    .heroTitleSub {
+        font-size: clamp(1.6rem, 7.4vw, 2.4rem);
+        letter-spacing: -0.02em;
+    }
+
+    .heroSubtitle {
+        font-size: 14px;
+        line-height: 1.7;
+        margin-top: 16px;
+    }
+
+    .heroActions {
+        gap: 14px;
+        margin-top: 26px;
+    }
+
+    .heroCta {
+        font-size: 13px;
+        height: 46px;
+        padding: 0 7px 0 20px;
+    }
+
+    .heroActions {
+        gap: 12px 14px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .heroCta,
+    .heroCtaLabel span,
+    .heroCtaIcon {
+        transition: none;
+    }
+}

@@ -1,0 +1,41 @@
+/* Scoped to prompt pages/cards and Modal portals; no workspace theme overrides. */
+.prompt-surface, .announcement-surface, .about-surface, .drama-library-surface {
+    --surface-panel: #fff;
+    --surface-soft: #f4f5f6;
+    --surface-inset: #eceef0;
+    --surface-hover: #e6e8eb;
+    --hairline: rgba(17, 17, 19, .07);
+    --ink-1: #18181b;
+    --ink-2: #5b5b64;
+    --ink-3: #8c8c95;
+    --brand-500: #e2671f;
+    --brand-600: #c95616;
+    --brand-soft: rgba(226, 103, 31, .1);
+    --brand-line: rgba(226, 103, 31, .26);
+}
+.dark .prompt-surface, .dark .announcement-surface, .dark .about-surface, .dark .drama-library-surface {
+    --surface-panel: #1a1a1a;
+    --surface-soft: #1f1f1f;
+    --surface-inset: #262626;
+    --surface-hover: #2c2c2c;
+    --hairline: rgba(255, 255, 255, .07);
+    --ink-1: #f4f4f5;
+    --ink-2: #a1a1aa;
+    --ink-3: #71717a;
+    --brand-500: #f0803a;
+    --brand-600: #ff9448;
+    --brand-soft: rgba(240, 128, 58, .14);
+    --brand-line: rgba(240, 128, 58, .32);
+}
+.prompt-surface .prompt-filter-tag {
+    margin: 0;
+    padding: 5px 12px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    color: var(--ink-2);
+}
+.prompt-surface .prompt-filter-tag.is-active {
+    background: var(--brand-soft);
+    border-color: var(--brand-line);
+    color: var(--brand-600);
+}

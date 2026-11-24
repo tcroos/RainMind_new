@@ -1,0 +1,1006 @@
+"use client";
+
+import { useVideoReferenceQuote } from "@/hooks/use-video-reference-quote";
+
+import { App, Button, Drawer, Grid } from "antd";
+import type { TextAreaRef } from "antd/es/input/TextArea";
+import { ChevronsDown, Clapperboard, FolderOpen, History, Play, Plus, ScanFace, ShoppingBag, Sparkles, X } from "lucide-react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+
+import { CREATIVE_UPLOAD_ACCEPT, creativeUploadKindForMime, creativeUploadMaxBytes, creativeUploadMaxMegabytes, isCreativeUploadMimeType } from "@/lib/creative-upload";
+import { creativeReferenceCounts, creativeReferenceSetError } from "@/lib/creative-reference-capabilities";
+import { estimateCreativeVideoCost } from "@/lib/creative-video-estimate";
+import { creativeSelectedModelProfile } from "@/lib/creative-model-capabilities";
+import type { CreateOverviewAsset } from "@/lib/create-workbench-overview";
+import type { CreativeAsset, CreativeGenerationMode, CreativeGenerationPreferences, CreativeMessage } from "@/lib/creative-runtime-contract";
+import { reconcileCreativeGenerationPreferences } from "@/lib/creative-model-capabilities";
+import { cn } from "@/lib/utils";
+import type { VideoGenerationReference, VideoReferenceRole } from "@/lib/video-reference-contract";
+import { useCreativeAgentModels } from "@/hooks/use-creative-agent-options";
+import { listAgentSkills, type AgentSkillSummary } from "@/services/api/agent-skills";
+import type { CreativeAgentRun } from "@/services/api/creative";
+import { optimizePrompt } from "@/services/api/prompt-optimization";
+import { usePublicSessionStore } from "@/stores/use-public-session-store";
+import { useConfigStore } from "@/stores/use-config-store";
+import type { PublicGalleryItem } from "@/services/api/work-governance";
+import { createAgentDraftFromHash } from "@/lib/create-agent-prompt";
+import { resolveSiteTitle } from "@/lib/site-brand";
+
+import { CreateDotField } from "./components/create-dot-field";
+import { CreativeComposer } from "./components/creative-composer";
+import { CreativeAssetsPanel } from "./components/creative-assets-panel";
+import { applyAgentGenerationCapability, shouldShowVideoFrameControls } from "./components/creative-composer-video-mode";
+import { CreativeConversationList } from "./components/creative-conversation-list";
+import { CreateInspirationGallery, CreateInspirationHeading } from "./components/create-inspiration-gallery";
+import { CreateSidePanel } from "./components/create-side-panel";
+import { CreativeEmptyChat } from "./components/creative-empty-chat";
+import { CreativeMessages } from "./components/creative-messages";
+import { CreateWorkbenchOverview } from "./components/create-workbench-overview";
+import { publicCreativeAssetPrompt, remapCreativeAssetReferences } from "./components/creative-asset-mention";
+import { createConversationHref, createConversationIdFromSearch } from "./create-conversation-navigation";
+import { creativeConversationScrollTransition } from "./create-conversation-scroll";
+import { homeComposerDocked } from "./create-home-dock";
+import { useCreateAgent } from "./use-create-agent";
+
+/* 功能胶囊：图标统一用主题橙（同一色相、只做点缀），
+ * 既不回到「天蓝/紫/翡翠/红四色」那种碎，也不至于整页只有黑白。 */
+const SKILL_VISUALS = [
+    { icon: ShoppingBag, iconClass: "text-[var(--brand-600)]", surfaceClass: "bg-[var(--brand-soft)]" },
+    { icon: ScanFace, iconClass: "text-[var(--brand-600)]", surfaceClass: "bg-[var(--brand-soft)]" },
+    { icon: Play, iconClass: "text-[var(--brand-600)]", surfaceClass: "bg-[var(--brand-soft)]" },
+    { icon: Clapperboard, iconClass: "text-[var(--brand-600)]", surfaceClass: "bg-[var(--brand-soft)]" },
+] as const;
+
+export default function CreatePage() {
+    const { message } = App.useApp();
+    const router = useRouter();
+    const inputRef = useRef<TextAreaRef>(null);
+    const referenceInputRef = useRef<HTMLInputElement>(null);
+    const frameInputRef = useRef<HTMLInputElement>(null);
+    const frameUploadRoleRef = useRef<FrameRole | undefined>(undefined);
+    const initialConversationRestoredRef = useRef(false);
+    const initialPromptRestoredRef = useRef(false);
+    const conversationScrollRef = useRef<HTMLElement>(null);
+    const composerHostRef = useRef<HTMLDivElement>(null);
+    const composerLayoutRef = useRef<DOMRect | null>(null);
+    const conversationWasLoadingRef = useRef(false);
+    const previousScrollTopRef = useRef(0);
+    const awayFromLatestRef = useRef(false);
+    const scrollingAwayFromLatestRef = useRef(false);
+    const touchScrollYRef = useRef<number | undefined>(undefined);
+    const promptValueRef = useRef("");
+    const promptRevisionRef = useRef(0);
+    const optimizingRef = useRef(false);
+    const [prompt, setPrompt] = useState("");
+    const [optimizingPrompt, setOptimizingPrompt] = useState(false);
+    const [skills, setSkills] = useState<AgentSkillSummary[]>([]);
+    const [skillsLoading, setSkillsLoading] = useState(true);
+    const [selectedSkillId, setSelectedSkillId] = useState<string>();
+    const [selectedModelIds, setSelectedModelIds] = useState<string[]>([]);
+    const [smartPlanning, setSmartPlanning] = useState(true);
+    const [creationMode, setCreationMode] = useState<"agent" | CreativeGenerationMode>("agent");
+    const [generationPreferences, setGenerationPreferences] = useState<CreativeGenerationPreferences>({});
+    const searchParams = useSearchParams();
+    /* ?new=1 表示「刚点过新建对话」：清空消息但留在对话视图，
+     * 用空状态引导填内容；不带任何参数才是主页。
+     * 这样侧栏点 Agent（/create 无参数）就能回到主页。 */
+    const searchKey = searchParams.toString();
+    const newChatMode = searchParams.get("new") === "1";
+    /* 点「新建对话」后消息立刻被清空，但 URL 还要等 router.replace 生效。
+     * 中间这一两帧 hasConversation 已经是 false、newChatMode 还没来，
+     * 会把主页渲染出来闪一下。用本地标记把这几十毫秒盖住。 */
+    const [newChatPending, setNewChatPending] = useState(false);
+    const [historyOpen, setHistoryOpen] = useState(false);
+    const [assetsOpen, setAssetsOpen] = useState(false);
+    const [awayFromLatest, setAwayFromLatest] = useState(false);
+    const [composerExpanded, setComposerExpanded] = useState(true);
+    const [homeDocked, setHomeDocked] = useState(false);
+    const [dockSpacerHeight, setDockSpacerHeight] = useState(0);
+    const dockAnchorRef = useRef<HTMLDivElement>(null);
+    const composerOriginRef = useRef(0);
+    const homeDockedRef = useRef(false);
+    const showConversationRef = useRef(false);
+    const composerMeasureRef = useRef<HTMLDivElement>(null);
+    const publicSettings = usePublicSessionStore((state) => state.payload?.settings);
+    const config = useConfigStore((state) => state.config);
+    const siteTitle = resolveSiteTitle(publicSettings?.site?.title);
+    const agent = useCreateAgent();
+    const openAgentConversation = agent.openConversation;
+    const newAgentConversation = agent.newConversation;
+    const hasConversation = agent.messages.length > 0;
+    const showConversation = hasConversation || agent.conversationLoading || newChatMode || newChatPending;
+    showConversationRef.current = showConversation;
+    homeDockedRef.current = homeDocked;
+    const selectedSkill = skills.find((skill) => skill.id === selectedSkillId);
+    const modelOptions = useCreativeAgentModels();
+    const selectedModels = modelOptions.filter((model) => selectedModelIds.includes(model.id));
+    const selectedVideoModels = selectedModels.filter((model) => model.capability === "video");
+    const defaultVideoModelId = config.videoModel || publicSettings?.defaultModels?.videoModel || "";
+    const defaultVideoModel = modelOptions.find((model) => model.id.toLowerCase() === defaultVideoModelId.toLowerCase());
+    const videoCapabilityModels = selectedVideoModels.length ? selectedVideoModels : defaultVideoModel ? [defaultVideoModel] : [];
+    const videoReferenceProfile = creativeSelectedModelProfile(videoCapabilityModels, "video");
+    const videoReferenceActive = creationMode === "video" || (selectedModels.length > 0 && selectedModels.every((model) => model.capability === "video"));
+    const billedVideoModel = videoCapabilityModels.length === 1 && videoCapabilityModels[0].capabilityProfile?.videoBilling?.referenceVideoSeconds ? videoCapabilityModels[0] : undefined;
+    const selectedVideoAssets = agent.selectedAssets.filter((asset) => asset.type === "image" || asset.type === "video" || asset.type === "audio");
+    const videoQuoteReferences: VideoGenerationReference[] = (["image", "video", "audio"] as const).flatMap((type) =>
+        selectedVideoAssets
+            .filter((asset) => asset.type === type)
+            .map((asset) => {
+                const url = asset.serverUrl || (asset.storageKey ? `/api/reference-assets/${asset.storageKey.split("/").map(encodeURIComponent).join("/")}` : asset.remoteUrl || "");
+                const role: VideoReferenceRole = type === "image" && asset.id === generationPreferences.video?.firstFrameAssetId ? "first_frame" : type === "image" && asset.id === generationPreferences.video?.lastFrameAssetId ? "last_frame" : "reference";
+                return url ? { type, url, role } : undefined;
+            })
+            .filter((reference): reference is NonNullable<typeof reference> => Boolean(reference)),
+    );
+    const videoQuote = useVideoReferenceQuote(
+        Boolean(videoReferenceActive && billedVideoModel),
+        {
+            model: billedVideoModel?.id || "",
+            size: generationPreferences.video?.size || config.size,
+            vquality: generationPreferences.video?.quality || config.vquality,
+            videoSeconds: String(generationPreferences.video?.seconds || config.videoSeconds),
+            videoGenerateAudio: String(generationPreferences.video?.generateAudio ?? config.videoGenerateAudio),
+            videoWatermark: String(generationPreferences.video?.watermark ?? config.videoWatermark),
+        },
+        videoQuoteReferences,
+    );
+    const estimatedVideoCost = videoQuote ? videoQuote.quote?.points : estimateCreativeVideoCost(config, videoCapabilityModels, generationPreferences);
+    const updatePrompt = useCallback((value: string) => {
+        promptValueRef.current = value;
+        promptRevisionRef.current += 1;
+        setPrompt(value);
+    }, []);
+
+    useEffect(() => {
+        let active = true;
+        void listAgentSkills("all")
+            .then((items) => {
+                if (active) setSkills(items);
+            })
+            .catch(() => {
+                if (active) setSkills([]);
+            })
+            .finally(() => {
+                if (active) setSkillsLoading(false);
+            });
+        return () => {
+            active = false;
+        };
+    }, []);
+
+    useEffect(() => {
+        if (initialConversationRestoredRef.current) return;
+        initialConversationRestoredRef.current = true;
+        const conversationId = createConversationIdFromSearch(window.location.search);
+        if (!conversationId) return;
+        void openAgentConversation(conversationId).catch((error) => {
+            message.error(error instanceof Error ? error.message : "恢复对话失败");
+            router.replace("/create");
+        });
+    }, [message, openAgentConversation, router]);
+
+    useEffect(() => {
+        if (initialPromptRestoredRef.current) return;
+        initialPromptRestoredRef.current = true;
+        const incomingDraft = createAgentDraftFromHash(window.location.hash);
+        if (!incomingDraft || (!incomingDraft.prompt && !incomingDraft.mode)) return;
+        if (incomingDraft.prompt) updatePrompt(incomingDraft.prompt);
+        if (incomingDraft.mode) {
+            setCreationMode(incomingDraft.mode);
+            setGenerationPreferences(incomingDraft.mode === "agent" ? {} : { mode: incomingDraft.mode });
+        }
+        router.replace("/create");
+        window.requestAnimationFrame(() => inputRef.current?.focus());
+        message.success(incomingDraft.prompt ? "已填入创作需求" : "已选择创作类型");
+    }, [message, router, updatePrompt]);
+
+    useEffect(() => {
+        if (!agent.conversationId || createConversationIdFromSearch(window.location.search) === agent.conversationId) return;
+        router.replace(createConversationHref(agent.conversationId), { scroll: false });
+    }, [agent.conversationId, router]);
+
+    /* 从「某条会话 / 新对话」回到不带参数的 /create，就是回主页：
+     * 侧栏点 Agent 走的就是这条路，此时把当前消息清掉，首屏的灵感与项目才会回来。 */
+    const previousSearchKeyRef = useRef(searchKey);
+    useEffect(() => {
+        const previous = previousSearchKeyRef.current;
+        previousSearchKeyRef.current = searchKey;
+        if (searchKey || !previous) return;
+        setNewChatPending(false);
+        newAgentConversation();
+        setHistoryOpen(false);
+        setAssetsOpen(false);
+    }, [newAgentConversation, searchKey]);
+
+    // URL 已经切到 ?new=1，本地标记就可以撤掉，后续完全由路由驱动
+    useEffect(() => {
+        if (newChatMode) setNewChatPending(false);
+    }, [newChatMode]);
+
+    useEffect(() => {
+        previousScrollTopRef.current = 0;
+        awayFromLatestRef.current = false;
+        scrollingAwayFromLatestRef.current = false;
+        touchScrollYRef.current = undefined;
+        setAwayFromLatest(false);
+        setComposerExpanded(true);
+        setHomeDocked(false);
+    }, [agent.conversationId]);
+
+    // 悬浮态需要知道输入区在流内时的高度，靠它占位，避免收起时整页跳动
+    useLayoutEffect(() => {
+        const element = composerMeasureRef.current;
+        if (!element || homeDocked) return;
+        const measure = () => setDockSpacerHeight(element.offsetHeight);
+        measure();
+        const observer = new ResizeObserver(measure);
+        observer.observe(element);
+        return () => observer.disconnect();
+    }, [homeDocked, showConversation]);
+
+    // 上方输入区真正滚到看不见（底边越过滚动区顶边）才浮出底部小胶囊，回滚留迟滞带防止抖动。
+    // 判定只用「滚动量 vs 输入区底边在内容坐标系里的位置」，不用输入的实时位置——否则收起瞬间
+    // 输入区被移到屏幕底部，再量一次就会被判成"没滚走"，于是来回抖。
+    // 这个回调必须保持稳定引用：它会被 resize effect 订阅，一旦随 homeDocked 变化就会在
+    // "改状态 → effect 重跑 → 再改状态" 之间自激。
+    const updateHomeDocked = useCallback((element: HTMLElement) => {
+        if (showConversationRef.current) return;
+        const docked = homeDockedRef.current;
+        if (!docked) {
+            const anchor = dockAnchorRef.current;
+            if (!anchor) return;
+            composerOriginRef.current = anchor.getBoundingClientRect().bottom - element.getBoundingClientRect().top + element.scrollTop;
+        }
+        const next = homeComposerDocked({ scrollTop: element.scrollTop, origin: composerOriginRef.current, docked });
+        if (next === docked) return;
+        homeDockedRef.current = next;
+        setHomeDocked(next);
+    }, []);
+
+    // 窗口尺寸变化会改变输入区底边的位置，立刻重算一次停靠状态
+    useEffect(() => {
+        const element = conversationScrollRef.current;
+        if (!element) return;
+        const sync = () => updateHomeDocked(element);
+        sync();
+        window.addEventListener("resize", sync);
+        return () => window.removeEventListener("resize", sync);
+    }, [updateHomeDocked]);
+
+    useEffect(() => {
+        const wasLoading = conversationWasLoadingRef.current;
+        conversationWasLoadingRef.current = agent.conversationLoading;
+        const element = conversationScrollRef.current;
+        if (!element || agent.conversationLoading || !agent.messages.length) return;
+        if (wasLoading) {
+            awayFromLatestRef.current = false;
+            setAwayFromLatest(false);
+            setComposerExpanded(true);
+        }
+        const content = element.querySelector<HTMLElement>('[data-testid="creative-message-list"]');
+        if (!content) return;
+        const settle = () => {
+            if (awayFromLatestRef.current) return;
+            element.scrollTop = element.scrollHeight;
+            previousScrollTopRef.current = element.scrollTop;
+        };
+        const resizeObserver = new ResizeObserver(settle);
+        resizeObserver.observe(content);
+        const frame = window.requestAnimationFrame(settle);
+        return () => {
+            window.cancelAnimationFrame(frame);
+            resizeObserver.disconnect();
+        };
+    }, [agent.conversationId, agent.conversationLoading, agent.messages.length]);
+
+    const openConversation = (id: string) => {
+        router.push(createConversationHref(id));
+        void openAgentConversation(id).catch((error) => {
+            message.error(error instanceof Error ? error.message : "打开对话失败");
+            router.replace("/create");
+        });
+    };
+
+    /* 「新建对话」= 清空当前消息、留在对话视图并显示引导，不退回主页 */
+    const newConversation = () => {
+        // 先立标记再清消息，避免清空到路由生效之间闪一帧主页
+        setNewChatPending(true);
+        newAgentConversation();
+        setHistoryOpen(false);
+        setAssetsOpen(false);
+        updatePrompt("");
+        router.replace("/create?new=1");
+    };
+
+    const submit = async () => {
+        if (!prompt.trim()) {
+            message.warning("请先描述你的创作需求");
+            inputRef.current?.focus();
+            return;
+        }
+        if (!smartPlanning && !selectedModelIds.length) {
+            message.warning("请选择一个模型，或重新开启智能规划");
+            return;
+        }
+        const videoPreference = generationPreferences.video;
+        const videoFrameModeActive = shouldShowVideoFrameControls(creationMode, generationPreferences);
+        if (videoFrameModeActive && videoPreference?.referenceMode === "first_frame" && !videoPreference.firstFrameAssetId) {
+            message.warning("请先选择视频首帧图片");
+            return;
+        }
+        if (videoFrameModeActive && videoPreference?.referenceMode === "first_last" && (!videoPreference.firstFrameAssetId || !videoPreference.lastFrameAssetId)) {
+            message.warning("请先同时选择视频首帧和尾帧图片");
+            return;
+        }
+        if (creationMode === "video" && videoPreference?.referenceMode !== "first_frame" && videoPreference?.referenceMode !== "first_last") {
+            const referenceCounts = creativeReferenceCounts(agent.selectedAssets);
+            const error = creativeReferenceSetError(videoReferenceProfile, referenceCounts);
+            if (error) {
+                message.warning(error);
+                return;
+            }
+        }
+        promptRevisionRef.current += 1;
+        try {
+            if (videoQuote && !videoQuote.quote) {
+                message.warning(videoQuote.error || "请等待参考视频计费核验完成");
+                return;
+            }
+            const preferences = { ...generationPreferences, ...(videoQuote?.quote ? { video: { ...generationPreferences.video, confirmedQuote: videoQuote.quote } } : {}), ...(creationMode !== "agent" ? { mode: creationMode } : {}) };
+            if (
+                await agent.submit(prompt, {
+                    publicPrompt: publicCreativeAssetPrompt(prompt),
+                    skillIds: selectedSkillId ? [selectedSkillId] : [],
+                    ...(!smartPlanning && selectedModelIds.length ? { modelIds: selectedModelIds } : {}),
+                    ...(Object.keys(preferences).length ? { preferences } : {}),
+                })
+            ) {
+                updatePrompt("");
+                setSelectedSkillId(undefined);
+                setGenerationPreferences((current) => (current.video ? { ...current, video: { ...current.video, firstFrameAssetId: undefined, lastFrameAssetId: undefined } } : current));
+            }
+        } catch (error) {
+            message.error(error instanceof Error ? error.message : "素材上传失败");
+        }
+    };
+
+    const retryRound = async (assistantMessage: CreativeMessage, run?: CreativeAgentRun) => {
+        try {
+            if (!run) return await agent.retrySubmission(assistantMessage.id);
+            const failedTasks = run.tasks.filter((task) => task.status === "failed");
+            if (failedTasks.length) {
+                await agent.retryTasks(
+                    run.id,
+                    failedTasks.map((task) => task.id),
+                );
+                return true;
+            }
+            await agent.retryRun(run.id);
+            return true;
+        } catch (error) {
+            message.error(error instanceof Error ? error.message : "重试失败");
+            return false;
+        }
+    };
+
+    const uploadAttachments = async (files: File[], successMessage?: string) => {
+        const unsupported = files.find((file) => !isCreativeUploadMimeType(file.type));
+        if (unsupported) {
+            message.error(`${unsupported.name} 不是支持的图片、视频或音频格式`);
+            return [] as CreativeAsset[];
+        }
+        const oversized = files.find((file) => file.size > creativeUploadMaxBytes(creativeUploadKindForMime(file.type)));
+        if (oversized) {
+            const kind = creativeUploadKindForMime(oversized.type);
+            message.error(`${oversized.name} 超过 ${creativeUploadMaxMegabytes(kind)}MB 上限`);
+            return [] as CreativeAsset[];
+        }
+        try {
+            const items = await agent.uploadAttachments(files);
+            if (items.length) message.success(successMessage || `已添加 ${items.length} 份素材`);
+            return items;
+        } catch (error) {
+            message.error(error instanceof Error ? error.message : "素材上传失败");
+            return [] as CreativeAsset[];
+        }
+    };
+
+    const uploadReferenceAttachments = async (files: File[]) => {
+        if (creationMode !== "video") {
+            await uploadAttachments(files);
+            return;
+        }
+        if (files.some((file) => !isCreativeUploadMimeType(file.type) || file.size > creativeUploadMaxBytes(creativeUploadKindForMime(file.type)))) {
+            await uploadAttachments(files);
+            return;
+        }
+        const currentCounts = creativeReferenceCounts(agent.selectedAssets);
+        const nextCounts = { ...currentCounts };
+        for (const file of files) {
+            const type = file.type.split("/")[0];
+            if (type === "image" || type === "video" || type === "audio") nextCounts[type] += 1;
+        }
+        const error = creativeReferenceSetError(videoReferenceProfile, nextCounts);
+        if (error) {
+            message.warning(error);
+            return;
+        }
+        await uploadAttachments(files, `已添加 ${files.length} 份参考素材`);
+    };
+
+    const usePublicPrompt = (value: string) => {
+        updatePrompt(value);
+        window.requestAnimationFrame(() => inputRef.current?.focus());
+        message.success("已填入公开提示词");
+    };
+
+    const optimizeCurrentPrompt = async () => {
+        const source = promptValueRef.current.trim();
+        if (!source || optimizingRef.current) return;
+        const revision = promptRevisionRef.current;
+        optimizingRef.current = true;
+        setOptimizingPrompt(true);
+        try {
+            const optimized = await optimizePrompt({ requestId: `prompt-${crypto.randomUUID()}`, prompt: source, mode: creationMode });
+            if (promptRevisionRef.current !== revision) {
+                message.info("输入内容已变化，未覆盖当前提示词");
+                return;
+            }
+            updatePrompt(optimized);
+            window.requestAnimationFrame(() => inputRef.current?.focus());
+            message.success("提示词已优化");
+        } catch (error) {
+            message.error(error instanceof Error ? error.message : "提示词优化失败");
+        } finally {
+            optimizingRef.current = false;
+            setOptimizingPrompt(false);
+        }
+    };
+
+    const importReferenceMedia = async (input: { url: string; mimeType?: string; fileStem: string }) => {
+        try {
+            const response = await fetch(input.url);
+            if (!response.ok) throw new Error("读取参考素材失败");
+            const blob = await response.blob();
+            const mimeType = blob.type || input.mimeType || "";
+            if (!isCreativeUploadMimeType(mimeType)) throw new Error("该媒体格式暂不支持作为参考素材");
+            const extension = mimeType.split("/")[1]?.replace("jpeg", "jpg") || "png";
+            const referenced = await uploadAttachments([new File([blob], `${input.fileStem}.${extension}`, { type: mimeType })], "已引用到 Agent 输入框");
+            if (referenced.length) window.requestAnimationFrame(() => inputRef.current?.focus());
+        } catch (error) {
+            message.error(error instanceof Error ? error.message : "引用素材失败");
+        }
+    };
+
+    const usePublicImage = async (item: PublicGalleryItem) => {
+        const preview = item.preview;
+        if (!preview || preview.mediaType !== "image") return;
+        await importReferenceMedia({ url: preview.url, mimeType: preview.mimeType, fileStem: item.slug });
+    };
+
+    const selectSkill = (skill: AgentSkillSummary) => {
+        setSelectedSkillId(skill.id);
+        window.requestAnimationFrame(() => inputRef.current?.focus());
+    };
+
+    const selectModel = (model: (typeof modelOptions)[number]) => {
+        setSelectedModelIds([model.id]);
+        setSmartPlanning(false);
+        setGenerationPreferences((preferences) => reconcileCreativeGenerationPreferences(preferences, [model]));
+        window.requestAnimationFrame(() => inputRef.current?.focus());
+    };
+
+    const changeCreationMode = (mode: "agent" | CreativeGenerationMode) => {
+        setCreationMode(mode);
+        setGenerationPreferences((current) => {
+            const automaticPreferences = { ...current };
+            delete automaticPreferences.mode;
+            const next: CreativeGenerationPreferences = mode === "agent" ? automaticPreferences : { ...current, mode };
+            if (mode === "video" || !next.video) return next;
+            return { ...next, video: { ...next.video, referenceMode: "reference", firstFrameAssetId: undefined, lastFrameAssetId: undefined } };
+        });
+        if (mode === "agent") {
+            setSelectedModelIds([]);
+            setSmartPlanning(true);
+            return;
+        }
+        setSelectedModelIds([]);
+        setSmartPlanning(true);
+    };
+
+    const changeGenerationCapability = (capability: CreativeGenerationMode) => {
+        setGenerationPreferences((current) => {
+            const next = { ...current, mode: capability };
+            if (capability === "video" || !current.video) return next;
+            return { ...next, video: { ...current.video, referenceMode: "reference", firstFrameAssetId: undefined, lastFrameAssetId: undefined } };
+        });
+    };
+
+    const changeGenerationPreference = (capability: "image" | "video" | "audio", patch: Record<string, string | number | boolean>) => {
+        setGenerationPreferences((current) => {
+            const activePreferences = applyAgentGenerationCapability(creationMode, capability, current);
+            if (capability !== "video") return { ...activePreferences, [capability]: { ...activePreferences[capability], ...patch } };
+            const nextVideo = { ...activePreferences.video, ...patch };
+            if (patch.referenceMode === "reference") return { ...activePreferences, video: { ...nextVideo, firstFrameAssetId: undefined, lastFrameAssetId: undefined } };
+            if (patch.referenceMode === "first_frame") return { ...activePreferences, video: { ...nextVideo, lastFrameAssetId: undefined } };
+            return { ...activePreferences, video: nextVideo };
+        });
+    };
+
+    const selectVideoFrame = (role: FrameRole, assetId: string) => {
+        const otherId = role === "first_frame" ? generationPreferences.video?.lastFrameAssetId : generationPreferences.video?.firstFrameAssetId;
+        if (otherId === assetId) {
+            message.warning("首帧和尾帧不能使用同一张图片");
+            return;
+        }
+        setGenerationPreferences((current) => {
+            const video = current.video || {};
+            return {
+                ...current,
+                video: {
+                    ...video,
+                    referenceMode: role === "last_frame" ? "first_last" : video.referenceMode === "first_last" ? "first_last" : "first_frame",
+                    ...(role === "first_frame" ? { firstFrameAssetId: assetId } : { lastFrameAssetId: assetId }),
+                },
+            };
+        });
+    };
+
+    const removeVideoFrame = (role: FrameRole) => {
+        setGenerationPreferences((current) =>
+            current.video
+                ? {
+                      ...current,
+                      video: {
+                          ...current.video,
+                          ...(role === "first_frame" ? { firstFrameAssetId: undefined } : { lastFrameAssetId: undefined }),
+                      },
+                  }
+                : current,
+        );
+    };
+
+    const removeAttachment = (id: string) => {
+        const currentAssetIds = agent.selectedAssetIds;
+        const nextAssetIds = currentAssetIds.filter((assetId) => assetId !== id);
+        const nextPrompt = remapCreativeAssetReferences(promptValueRef.current, [...agent.assets, ...agent.selectedAssets], currentAssetIds, nextAssetIds);
+        agent.removeAttachment(id);
+        if (nextPrompt !== promptValueRef.current) updatePrompt(nextPrompt);
+        setGenerationPreferences((current) =>
+            current.video
+                ? {
+                      ...current,
+                      video: {
+                          ...current.video,
+                          ...(current.video.firstFrameAssetId === id ? { firstFrameAssetId: undefined } : {}),
+                          ...(current.video.lastFrameAssetId === id ? { lastFrameAssetId: undefined } : {}),
+                      },
+                  }
+                : current,
+        );
+    };
+
+    const toggleReferencedAsset = (id: string) => {
+        const currentAssetIds = agent.selectedAssetIds;
+        const nextAssetIds = currentAssetIds.includes(id) ? currentAssetIds.filter((assetId) => assetId !== id) : [...currentAssetIds, id];
+        const nextPrompt = remapCreativeAssetReferences(promptValueRef.current, [...agent.assets, ...agent.selectedAssets], currentAssetIds, nextAssetIds);
+        agent.toggleAsset(id);
+        if (nextPrompt !== promptValueRef.current) updatePrompt(nextPrompt);
+    };
+
+    const setAwayFromLatestState = (away: boolean) => {
+        if (away === awayFromLatestRef.current) return;
+        awayFromLatestRef.current = away;
+        setAwayFromLatest(away);
+    };
+
+    const updateConversationScrollState = (element: HTMLElement) => {
+        const scrollTop = element.scrollTop;
+        const distanceFromLatest = Math.max(0, element.scrollHeight - element.clientHeight - scrollTop);
+        const transition = creativeConversationScrollTransition({
+            scrollTop,
+            previousScrollTop: previousScrollTopRef.current,
+            distanceFromLatest,
+            userScrollingAway: scrollingAwayFromLatestRef.current,
+        });
+        if (Math.abs(scrollTop - previousScrollTopRef.current) > 3) scrollingAwayFromLatestRef.current = false;
+        previousScrollTopRef.current = scrollTop;
+        if (transition === "collapse") {
+            setAwayFromLatestState(true);
+            setComposerExpanded(false);
+        } else if (transition === "expand") {
+            scrollingAwayFromLatestRef.current = false;
+            setAwayFromLatestState(false);
+            setComposerExpanded(true);
+        }
+    };
+
+    const scrollToLatest = () => {
+        scrollingAwayFromLatestRef.current = false;
+        awayFromLatestRef.current = false;
+        setAwayFromLatest(false);
+        setComposerExpanded(true);
+        const element = conversationScrollRef.current;
+        if (!element) return;
+        previousScrollTopRef.current = element.scrollTop;
+        const settle = (behavior: ScrollBehavior = "smooth") => element.scrollTo({ top: element.scrollHeight, behavior });
+        const resizeObserver = new ResizeObserver(() => settle("auto"));
+        resizeObserver.observe(element);
+        window.requestAnimationFrame(() => {
+            settle();
+            window.requestAnimationFrame(() => settle());
+            window.setTimeout(() => {
+                settle("auto");
+                resizeObserver.disconnect();
+            }, 500);
+        });
+    };
+
+    const composerCompact = showConversation && awayFromLatest && !composerExpanded;
+    useLayoutEffect(() => {
+        const host = composerHostRef.current;
+        if (!host) return;
+        const next = host.getBoundingClientRect();
+        const previous = composerLayoutRef.current;
+        if (previous && (Math.abs(previous.top - next.top) > 1 || Math.abs(previous.left - next.left) > 1)) {
+            host.animate([{ transform: `translate(${previous.left - next.left}px, ${previous.top - next.top}px)` }, { transform: "translate(0, 0)" }], { duration: 280, easing: "cubic-bezier(.2,.8,.2,1)" });
+        }
+        composerLayoutRef.current = next;
+    }, [showConversation]);
+    const composer = (
+        <CreativeComposer
+            inputRef={inputRef}
+            value={prompt}
+            busy={agent.sending}
+            optimizing={optimizingPrompt}
+            centered={!showConversation}
+            onChange={updatePrompt}
+            onOptimize={() => void optimizeCurrentPrompt()}
+            onSubmit={() => void submit()}
+            onCancel={() => void agent.cancel().catch((error) => message.error(error instanceof Error ? error.message : "停止任务失败"))}
+            attachments={agent.selectedAssets}
+            skills={skills}
+            skillsLoading={skillsLoading}
+            selectedSkill={selectedSkill}
+            models={modelOptions}
+            selectedModels={selectedModels}
+            smartPlanning={smartPlanning}
+            creationMode={creationMode}
+            generationPreferences={generationPreferences}
+            referenceProfile={videoReferenceActive ? videoReferenceProfile : undefined}
+            estimatedVideoCost={videoReferenceActive ? estimatedVideoCost : undefined}
+            uploading={agent.uploading}
+            compact={composerCompact || (!showConversation && homeDocked)}
+            floating={!showConversation && homeDocked}
+            onExpand={() => {
+                setComposerExpanded(true);
+                if (!showConversation) {
+                    setHomeDocked(false);
+                    conversationScrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+                }
+                window.requestAnimationFrame(() => inputRef.current?.focus());
+            }}
+            onRemoveAttachment={removeAttachment}
+            onSelectSkill={selectSkill}
+            onRemoveSkill={() => setSelectedSkillId(undefined)}
+            onSelectModel={selectModel}
+            onClearModels={() => {
+                setSelectedModelIds([]);
+                setSmartPlanning(true);
+            }}
+            onToggleSmartPlanning={() => {
+                setSmartPlanning((enabled) => {
+                    if (!enabled) setSelectedModelIds([]);
+                    return !enabled;
+                });
+            }}
+            onChangeCreationMode={changeCreationMode}
+            onChangeGenerationCapability={changeGenerationCapability}
+            onChangeGenerationPreference={changeGenerationPreference}
+            onSelectVideoFrame={selectVideoFrame}
+            onUploadVideoFrame={(role) => {
+                frameUploadRoleRef.current = role;
+                frameInputRef.current?.click();
+            }}
+            onRemoveVideoFrame={removeVideoFrame}
+            onReferenceUpload={() => referenceInputRef.current?.click()}
+            onPasteImages={(files) => void uploadAttachments(files)}
+            referenceAssets={agent.assets}
+            selectedAssetIds={agent.selectedAssetIds}
+            onReferenceAsset={agent.selectAsset}
+        />
+    );
+
+    /* 历史记录用统一的右侧浮层外壳：位置、宽度、圆角、投影对齐「消息中心」，
+     * 点 × 或面板外任意位置都会关闭。 */
+    const historyList = (
+        <div className="flex h-full min-h-0 flex-col pt-1">
+            <CreativeConversationList
+                items={agent.conversations}
+                activeId={agent.conversationId}
+                loading={agent.historyLoading}
+                hasMore={agent.historyHasMore}
+                loadingMore={agent.historyLoadingMore}
+                onLoadMore={() => void agent.loadMoreConversations()}
+                onNew={() => {
+                    newConversation();
+                    setHistoryOpen(false);
+                }}
+                onOpen={(id) => {
+                    openConversation(id);
+                    setHistoryOpen(false);
+                }}
+                onRename={async (id, title) => {
+                    try {
+                        await agent.renameConversation(id, title);
+                        message.success("标题已更新");
+                    } catch (error) {
+                        message.error(error instanceof Error ? error.message : "修改标题失败");
+                        throw error;
+                    }
+                }}
+                onDelete={async (ids) => {
+                    try {
+                        await agent.deleteConversations(ids);
+                        message.success(ids.length > 1 ? `已删除 ${ids.length} 条对话` : "对话已删除");
+                    } catch (error) {
+                        message.error(error instanceof Error ? error.message : "删除对话失败");
+                        throw error;
+                    }
+                }}
+            />
+        </div>
+    );
+
+    return (
+        <main className="relative flex h-full min-h-0 flex-col overflow-hidden text-[var(--ink-1)]">
+            <CreateDotField />
+            <div className="relative flex min-h-0 flex-1">
+                {/* 右侧浮层展开时给对话让出宽度，消息不会被面板压住 */}
+                <div className={cn("relative flex min-w-0 flex-1 flex-col transition-[padding] duration-200", (historyOpen || assetsOpen) && "lg:pr-[calc(var(--announcement-drawer-width,340px)+28px)]")}>
+                    {/* 主页只留首屏内容：历史 / 资产是「对话里」的工具，进了对话才出现 */}
+                    <div className={cn("pointer-events-none absolute right-3 top-3 z-30 flex items-center gap-0.5 sm:right-5", !showConversation && "hidden")} data-testid="creative-page-tools">
+                        {hasConversation ? (
+                            <Button
+                                type="text"
+                                shape="circle"
+                                className="pointer-events-auto !size-9 !min-w-9 !text-[var(--ink-2)] hover:!bg-[var(--surface-soft)] hover:!text-[var(--ink-1)]"
+                                icon={<Plus className="size-4" />}
+                                onClick={newConversation}
+                                aria-label="新建对话"
+                                title="新建对话"
+                            />
+                        ) : null}
+                        <Button
+                            type="text"
+                            shape="circle"
+                            className={
+                                historyOpen ? "pointer-events-auto !size-9 !min-w-9 !bg-[var(--surface-inset)] !text-[var(--ink-1)]" : "pointer-events-auto !size-9 !min-w-9 !text-[var(--ink-2)] hover:!bg-[var(--surface-soft)] hover:!text-[var(--ink-1)]"
+                            }
+                            icon={<History className="size-4" />}
+                            onClick={() => {
+                                setHistoryOpen((current) => !current);
+                                setAssetsOpen(false);
+                            }}
+                            aria-label={historyOpen ? "关闭创作历史" : "打开创作历史"}
+                            aria-expanded={historyOpen}
+                            title="创作历史"
+                        />
+                        <Button
+                            type="text"
+                            shape="circle"
+                            icon={<FolderOpen className="size-4" />}
+                            className={
+                                assetsOpen ? "pointer-events-auto !size-9 !min-w-9 !bg-[var(--surface-inset)] !text-[var(--ink-1)]" : "pointer-events-auto !size-9 !min-w-9 !text-[var(--ink-2)] hover:!bg-[var(--surface-soft)] hover:!text-[var(--ink-1)]"
+                            }
+                            onClick={() => {
+                                setAssetsOpen((current) => !current);
+                                setHistoryOpen(false);
+                            }}
+                            aria-label={assetsOpen ? "关闭资产面板" : "打开资产面板"}
+                            aria-expanded={assetsOpen}
+                            title="资产"
+                        />
+                    </div>
+
+                    <section
+                        ref={conversationScrollRef}
+                        data-testid="creative-conversation-scroll"
+                        className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto"
+                        onScroll={(event) => {
+                            updateConversationScrollState(event.currentTarget);
+                            updateHomeDocked(event.currentTarget);
+                        }}
+                        onWheelCapture={(event) => {
+                            if (event.deltaY < 0) scrollingAwayFromLatestRef.current = true;
+                            else if (event.deltaY > 0) scrollingAwayFromLatestRef.current = false;
+                        }}
+                        onTouchStart={(event) => {
+                            touchScrollYRef.current = event.touches[0]?.clientY;
+                        }}
+                        onTouchMove={(event) => {
+                            const nextY = event.touches[0]?.clientY;
+                            const previousY = touchScrollYRef.current;
+                            if (nextY === undefined || previousY === undefined) return;
+                            if (nextY > previousY) scrollingAwayFromLatestRef.current = true;
+                            else if (nextY < previousY) scrollingAwayFromLatestRef.current = false;
+                            touchScrollYRef.current = nextY;
+                        }}
+                        onTouchEnd={() => {
+                            touchScrollYRef.current = undefined;
+                        }}
+                        onKeyDownCapture={(event) => {
+                            if (["ArrowUp", "PageUp", "Home"].includes(event.key) || (event.key === " " && event.shiftKey)) scrollingAwayFromLatestRef.current = true;
+                            else if (["ArrowDown", "PageDown", "End"].includes(event.key) || event.key === " ") scrollingAwayFromLatestRef.current = false;
+                        }}
+                    >
+                        {showConversation && !hasConversation && !agent.conversationLoading ? (
+                            <CreativeEmptyChat
+                                siteTitle={siteTitle}
+                                onPick={(value) => {
+                                    updatePrompt(value);
+                                    window.requestAnimationFrame(() => inputRef.current?.focus());
+                                }}
+                            />
+                        ) : showConversation ? (
+                            <CreativeMessages
+                                messages={agent.messages}
+                                assets={agent.assets}
+                                loading={agent.conversationLoading}
+                                projectLinks={agent.projectLinks}
+                                projectErrors={agent.projectErrors}
+                                runDetails={agent.runDetails}
+                                materializingProjectId={agent.materializingProjectId}
+                                onMaterializeProject={agent.materializeProject}
+                                onRetryMessage={retryRound}
+                                onConfirmRunQuote={(runId) => void agent.confirmRunQuote(runId)}
+                                onCancelRun={(runId) => void agent.cancelRun(runId)}
+                                quoteActionRunId={agent.quoteActionRunId}
+                                quoteActionKind={agent.quoteActionKind}
+                                quoteActionErrors={agent.quoteActionError}
+                                selectedAssetIds={agent.selectedAssetIds}
+                                onToggleAsset={toggleReferencedAsset}
+                                hasOlder={agent.hasOlderMessages}
+                                olderLoading={agent.olderMessagesLoading}
+                                onLoadOlder={() => void agent.loadOlderMessages()}
+                                followLatest={!awayFromLatest}
+                            />
+                        ) : (
+                            <>
+                                <div
+                                    className="mx-auto flex min-h-full w-full min-w-0 max-w-[1240px] flex-col items-center px-2.5 pb-3 pt-5 sm:px-8 sm:pb-6 sm:pt-12 lg:pt-[clamp(36px,13.5vh,132px)]"
+                                    style={homeDocked ? { paddingBottom: 104 } : undefined}
+                                >
+                                    <div className="text-center">
+                                        <h1 className="text-[23px] font-semibold leading-tight sm:text-[31px]">{siteTitle} 创作 Agent</h1>
+                                        <p className="mt-2 text-sm text-[#8b949f] dark:text-[#7f8996]">从一个想法开始</p>
+                                    </div>
+                                    <div
+                                        ref={composerHostRef}
+                                        data-testid="creative-composer-dock"
+                                        data-compact={homeDocked ? "true" : "false"}
+                                        className={cn("w-full", homeDocked ? "pointer-events-none absolute inset-x-0 bottom-0 z-30 px-2.5 pb-3 sm:px-8 sm:pb-5" : "relative z-20 mt-4 sm:mt-6")}
+                                    >
+                                        <div ref={composerMeasureRef} className={cn("relative", homeDocked && "pointer-events-auto mx-auto w-full max-w-[620px]")}>
+                                            {composer}
+                                        </div>
+                                    </div>
+                                    {/* 占位锚点：任何时候都留在输入区原位，既托住滚动位置，也作为“输入框底边”的测量基准 */}
+                                    <div ref={dockAnchorRef} aria-hidden data-testid="creative-composer-dock-anchor" className={cn("w-full shrink-0", homeDocked && "mt-5 sm:mt-8")} style={{ height: homeDocked ? dockSpacerHeight : 0 }} />
+                                    <div className="mt-2.5 flex w-full max-w-[900px] min-w-0 items-center gap-2 sm:mt-3">
+                                        <span className="hidden shrink-0 pl-1 text-[13px] font-medium text-[var(--ink-3)] sm:inline">快捷</span>
+                                        <div className="hide-scrollbar scroll-fade-x flex min-w-0 flex-1 items-center gap-2 overflow-x-auto py-0.5">
+                                            {skillsLoading ? <span className="shrink-0 px-1 text-xs text-[#9aa2ad]">正在加载 Skill…</span> : null}
+                                            {skills.map((skill, index) => {
+                                                const visual = skillVisual(skill, index);
+                                                const Icon = visual.icon;
+                                                return (
+                                                    <button
+                                                        key={skill.id}
+                                                        type="button"
+                                                        aria-label={`使用 ${skill.name} Skill`}
+                                                        title={skill.description}
+                                                        className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-[7px] bg-[var(--surface-panel)] pr-2.5 pl-1 text-[13px] text-[var(--ink-1)] shadow-[0_1px_2px_rgba(17,17,19,0.05)] transition-colors hover:bg-[var(--surface-inset)]"
+                                                        onClick={() => selectSkill(skill)}
+                                                    >
+                                                        <span className={cn("grid size-5 shrink-0 place-items-center rounded-[5px]", visual.surfaceClass)}>
+                                                            <Icon className={cn("size-3.5", visual.iconClass)} />
+                                                        </span>
+                                                        <span>{skill.name}</span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                    <CreateWorkbenchOverview />
+                                    <CreateInspirationHeading />
+                                </div>
+                                {/* 灵感列表放在首屏容器之外：标题行贴住首屏底部，作品列表必须滚动才进入视口 */}
+                                <div className="mx-auto w-full max-w-[1240px] px-2.5 pb-12 sm:px-8">
+                                    <CreateInspirationGallery onUsePrompt={usePublicPrompt} onUseImage={usePublicImage} />
+                                </div>
+                            </>
+                        )}
+                    </section>
+
+                    {showConversation ? (
+                        <div
+                            ref={composerHostRef}
+                            data-testid="creative-composer-dock"
+                            data-compact={composerCompact ? "true" : "false"}
+                            className={cn("relative shrink-0", composerCompact && "pointer-events-none absolute inset-x-0 bottom-0 z-20 bg-transparent")}
+                        >
+                            {awayFromLatest ? (
+                                <Button
+                                    type="text"
+                                    icon={<ChevronsDown className="size-4" />}
+                                    className="!pointer-events-auto !absolute !-top-11 !left-1/2 !z-20 !h-9 !-translate-x-1/2 !rounded-lg !border !border-[#e1e5e9] !bg-white !px-3 !text-sm !font-medium !text-[#596572] !shadow-[0_6px_20px_rgba(32,36,42,0.08)] hover:!bg-[#f4f6f8] hover:!text-[#20242a] dark:!border-[#343a42] dark:!bg-[#1c2025] dark:!text-[#b7c0ca] dark:!shadow-black/25 dark:hover:!bg-[#272c33] dark:hover:!text-white"
+                                    onClick={scrollToLatest}
+                                >
+                                    回到底部
+                                </Button>
+                            ) : null}
+                            {composer}
+                        </div>
+                    ) : null}
+                </div>
+                <CreativeAssetsPanel
+                    open={assetsOpen}
+                    conversationId={agent.conversationId}
+                    assets={agent.assets}
+                    selectedAssetIds={agent.selectedAssetIds}
+                    onToggleAsset={toggleReferencedAsset}
+                    onUsePrompt={(value) => {
+                        updatePrompt(value);
+                        window.requestAnimationFrame(() => inputRef.current?.focus());
+                        message.success("已填入提示词");
+                    }}
+                    onClose={() => setAssetsOpen(false)}
+                />
+            </div>
+            <input
+                ref={referenceInputRef}
+                type="file"
+                multiple
+                accept={CREATIVE_UPLOAD_ACCEPT}
+                className="hidden"
+                onChange={(event) => {
+                    const files = Array.from(event.target.files || []);
+                    event.target.value = "";
+                    if (files.length) void uploadReferenceAttachments(files);
+                }}
+            />
+            <input
+                ref={frameInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(event) => {
+                    const role = frameUploadRoleRef.current;
+                    const file = event.target.files?.[0];
+                    event.target.value = "";
+                    if (!role || !file) return;
+                    void uploadAttachments([file]).then((items) => {
+                        const image = items.find((item) => item.type === "image");
+                        if (image) selectVideoFrame(role, image.id);
+                    });
+                }}
+            />
+
+            <CreateSidePanel open={historyOpen} title="创作历史" icon={<History className="size-4" />} onClose={() => setHistoryOpen(false)}>
+                {historyList}
+            </CreateSidePanel>
+        </main>
+    );
+}
+
+function skillVisual(skill: AgentSkillSummary, index: number) {
+    if (skill.id === "ecommerce-image") return SKILL_VISUALS[0];
+    if (skill.id === "character-design") return SKILL_VISUALS[1];
+    if (skill.id === "image-motion") return SKILL_VISUALS[2];
+    if (skill.id === "drama-planning") return SKILL_VISUALS[3];
+    return { ...SKILL_VISUALS[index % SKILL_VISUALS.length], icon: Sparkles };
+}
+
+type FrameRole = Extract<VideoReferenceRole, "first_frame" | "last_frame">;

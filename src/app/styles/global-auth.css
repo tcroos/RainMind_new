@@ -1,0 +1,995 @@
+@layer utilities {
+    .landing-feature-panel,
+    .landing-stat-pill,
+    .landing-auth-shell,
+    .auth-panel {
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        background: rgba(255, 255, 255, 0.82);
+        box-shadow: 0 20px 80px rgba(15, 23, 42, 0.08);
+        backdrop-filter: blur(18px);
+    }
+
+    .dark .landing-auth-shell,
+    .dark .auth-panel {
+        border-color: rgba(255, 255, 255, 0.1);
+        background: linear-gradient(180deg, rgba(15, 23, 42, 0.74), rgba(2, 6, 23, 0.66));
+        box-shadow: 0 20px 80px rgba(2, 132, 199, 0.12);
+    }
+
+    .landing-feature-panel,
+    .landing-stat-pill {
+        color: #0f172a;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(248, 250, 252, 0.72));
+        border-color: rgba(14, 165, 233, 0.12);
+        box-shadow:
+            0 18px 44px rgba(15, 23, 42, 0.055),
+            inset 0 1px 0 rgba(255, 255, 255, 0.88);
+    }
+
+    .dark .landing-feature-panel,
+    .dark .landing-stat-pill {
+        color: #ffffff;
+        background: linear-gradient(180deg, rgba(15, 23, 42, 0.74), rgba(2, 6, 23, 0.66));
+        border-color: rgba(255, 255, 255, 0.1);
+        box-shadow: 0 20px 80px rgba(2, 132, 199, 0.12);
+    }
+
+    .landing-hero-copy {
+        background: transparent;
+        padding: clamp(8px, 2vw, 24px) 0;
+    }
+
+    .landing-capability-stage {
+        background: radial-gradient(circle at 50% 0%, rgba(14, 165, 233, 0.1), transparent 38%), linear-gradient(180deg, rgba(255, 255, 255, 0.64), rgba(248, 250, 252, 0.38));
+        border: 1px solid rgba(226, 232, 240, 0.72);
+        border-radius: 18px;
+        box-shadow:
+            0 30px 80px rgba(15, 23, 42, 0.07),
+            inset 0 1px 0 rgba(255, 255, 255, 0.82);
+        padding: 18px;
+        position: relative;
+    }
+
+    .landing-capability-stage::before {
+        background: linear-gradient(90deg, transparent, rgba(14, 165, 233, 0.28), rgba(168, 85, 247, 0.16), transparent);
+        content: "";
+        height: 1px;
+        left: 24px;
+        position: absolute;
+        right: 24px;
+        top: 0;
+    }
+
+    .dark .landing-capability-stage {
+        background: radial-gradient(circle at 50% 0%, rgba(34, 211, 238, 0.13), transparent 42%), linear-gradient(180deg, rgba(15, 23, 42, 0.62), rgba(2, 6, 23, 0.34));
+        border-color: rgba(255, 255, 255, 0.08);
+        box-shadow:
+            0 30px 100px rgba(0, 0, 0, 0.26),
+            inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    .landing-auth-column {
+        min-height: min(680px, calc(100dvh - 8rem));
+        padding: clamp(22px, 4vw, 58px) clamp(10px, 2vw, 32px);
+    }
+
+
+    /* /login、/register、/forgot-password 的整页登录：满屏左右分栏。
+     * 不再是浮在灰底上的一张居中圆角卡，而是占满整个视口的两栏：
+     * 左栏视频/视觉铺满，右栏纯色底 + 登录组件居中。
+     * 好处是视频不再被 420px 的小窗框住，大屏下也不会有大片空灰底。 */
+    .auth-page-shell {
+        align-items: stretch;
+        display: flex;
+        flex-direction: column;
+        min-height: 100dvh;
+        width: 100%;
+    }
+
+    .auth-page-card {
+        background: #ffffff;
+        display: grid;
+        flex: 1 1 auto;
+        grid-template-columns: minmax(0, 55%) minmax(0, 45%);
+        min-height: 100dvh;
+        overflow: hidden;
+        padding: 0;
+        width: 100%;
+    }
+
+    .dark .auth-page-card {
+        background: #141416;
+    }
+
+    /* 视频铺满左栏：object-fit cover 由栏位决定裁切，视频永不变形。
+       底下的渐变既是加载中的占位，也是视频挂掉时的兜底，所以按主题给中性色，
+       免得浅色页面上出现一块突兀的黑板。 */
+    .auth-split-media {
+        background: linear-gradient(165deg, #ececee 0%, #dcdcdf 55%, #cfcfd3 100%);
+        min-height: 0;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .dark .auth-split-media {
+        background: radial-gradient(circle at 50% 0%, #2a2a2e, #101012 70%);
+    }
+
+    .auth-split-video {
+        display: block;
+        height: 100%;
+        inset: 0;
+        object-fit: cover;
+        object-position: center;
+        opacity: 0;
+        position: absolute;
+        transition: opacity 420ms ease;
+        width: 100%;
+    }
+
+    .auth-split-video[data-state="ready"] {
+        opacity: 1;
+    }
+
+    /* 右栏：登录组件在栏内水平垂直居中。
+       内边距用 clamp 随视口伸缩，高度上留足呼吸，避免表单贴着上下边。
+       居中用子元素 margin:auto 而不是 justify-content:center：
+       后者在内容超过容器时会把上半截裁掉（flex 居中溢出的老问题）。
+       内容特别高时（注册页字段多）交给外层 .app-scroll-page 滚动。 */
+    .auth-page-card-content {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        padding: clamp(32px, 6vh, 72px) clamp(24px, 5vw, 64px);
+        position: relative;
+    }
+
+    /* 登录组件本体：宽度收到 400px 以内、随窄屏收缩，
+       表单行长度可控、视线不用横扫；高度交给内容，居中交给 margin:auto。 */
+    .auth-page-card-inner {
+        margin: auto;
+        max-width: 384px;
+        width: 100%;
+    }
+
+    /* 窄屏放弃分栏：视频不出现，登录组件占满一行居中 */
+    @media (max-width: 1023px) {
+        .auth-split-media {
+            display: none;
+        }
+
+        .auth-page-card {
+            grid-template-columns: minmax(0, 1fr);
+            min-height: 100dvh;
+        }
+    }
+
+    @media (max-width: 640px) {
+        /* 手机上内边距收紧，登录组件仍限宽、不会撑满整行 */
+        .auth-page-card-content {
+            padding: 28px 18px 32px;
+        }
+    }
+
+    .auth-page-logo-link {
+        display: block;
+        margin: 0 auto 22px;
+        width: 32px;
+    }
+
+    .auth-page-logo {
+        background: #111111;
+        display: block;
+        height: 32px;
+        width: 32px;
+    }
+
+    .dark .auth-page-logo {
+        background: #f5f5f5;
+    }
+
+    .auth-page-card .auth-panel {
+        backdrop-filter: none;
+        background: transparent;
+        border: 0;
+        box-shadow: none;
+        padding: 0;
+    }
+
+    .auth-page-card .auth-form-header {
+        margin-bottom: 4px;
+        text-align: left;
+    }
+
+    /* 表头只留标题 + 一句说明，和弹窗保持一致 */
+    .auth-page-card .auth-form-kicker {
+        display: none;
+    }
+
+    .auth-page-card .auth-form-header h2 {
+        color: #111111;
+        font-size: 1.75rem;
+        font-weight: 600;
+        letter-spacing: -0.035em;
+        line-height: 1.15;
+        margin: 0;
+        text-wrap: balance;
+    }
+
+    .dark .auth-page-card .auth-form-header h2 {
+        color: #f5f5f5;
+    }
+
+    .auth-page-card .auth-form-description {
+        color: rgba(17, 17, 17, 0.46);
+        font-size: 13px;
+        line-height: 1.6;
+        margin: 10px 0 0;
+        max-width: 30em;
+        text-wrap: pretty;
+    }
+
+    .dark .auth-page-card .auth-form-description {
+        color: rgba(255, 255, 255, 0.44);
+    }
+
+    /* 页面版字段间距统一 16：字段少了，间距给足，整张表单才不挤。
+     * 注册页字段更多，收紧到 14px，避免一屏排不下。 */
+    .auth-page-card .auth-form-body > * {
+        margin-block: 0;
+    }
+
+    .auth-page-card .auth-form-body > * + * {
+        margin-block-start: 16px;
+    }
+
+    .auth-page-card .auth-form-body.auth-form-register > * + * {
+        margin-block-start: 16px;
+    }
+
+    /* 标签比正文小一号、颜色压淡：一屏里不再出现四行等重的黑字 */
+    .auth-page-card .auth-panel label > span:first-child {
+        color: rgba(17, 17, 17, 0.52);
+        font-size: 12px;
+        font-weight: 500;
+        letter-spacing: 0.01em;
+    }
+
+    .dark .auth-page-card .auth-panel label > span:first-child {
+        color: rgba(255, 255, 255, 0.55);
+    }
+
+    /* 邀请码是可选项：底部一行不起眼的文字入口，展开后才出现输入框 */
+    .auth-page-card .auth-referral-toggle {
+        background: none;
+        border: 0;
+        color: rgba(17, 17, 17, 0.5);
+        cursor: pointer;
+        font-size: inherit;
+        padding: 0;
+        transition: color 160ms ease;
+    }
+
+    .auth-page-card .auth-referral-toggle:hover {
+        color: #111111;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+    }
+
+    .dark .auth-page-card .auth-referral-toggle {
+        color: rgba(255, 255, 255, 0.44);
+    }
+
+    .dark .auth-page-card .auth-referral-toggle:hover {
+        color: #f5f5f5;
+    }
+
+    /* 「返回首页」钉在右栏右上角：满屏设计里它不再是卡片下方的一行小字 */
+    .auth-page-back {
+        align-items: center;
+        color: rgba(17, 17, 17, 0.46);
+        display: inline-flex;
+        font-size: 13px;
+        gap: 6px;
+        padding: 4px 6px;
+        position: absolute;
+        right: clamp(14px, 2.4vw, 28px);
+        top: clamp(12px, 2.2vh, 24px);
+        transition: color 160ms ease;
+        z-index: 2;
+    }
+
+    .auth-page-back:hover {
+        color: #111111;
+    }
+
+    .dark .auth-page-back {
+        color: rgba(255, 255, 255, 0.44);
+    }
+
+    .dark .auth-page-back:hover {
+        color: #f5f5f5;
+    }
+
+    .auth-page-title {
+        color: #111111;
+        font-size: 1.75rem;
+        font-weight: 600;
+        letter-spacing: -0.035em;
+        line-height: 1.15;
+        margin: 0;
+        text-align: left;
+    }
+
+    .dark .auth-page-title {
+        color: #f5f5f5;
+    }
+
+    .auth-page-desc {
+        color: rgba(17, 17, 17, 0.46);
+        font-size: 13px;
+        line-height: 1.6;
+        margin: 10px 0 24px;
+        text-align: left;
+        text-wrap: pretty;
+    }
+
+    .dark .auth-page-desc {
+        color: rgba(255, 255, 255, 0.44);
+    }
+
+    /* 旧设计系统遗留的紫灰强调色，统一到中性灰 */
+    .auth-form-kicker {
+        color: rgba(17, 17, 17, 0.5);
+        font-size: 12px;
+        font-weight: 500;
+        letter-spacing: 0.06em;
+    }
+
+    .dark .auth-form-kicker {
+        color: rgba(255, 255, 255, 0.52);
+    }
+
+    /* 输入控件统一 46px 高、10px 圆角，边框压到极浅；
+     * focus 用中性黑细环，不再出现 antd 默认的蓝框。 */
+    .auth-page-card .ant-input-affix-wrapper,
+    .auth-page-card .ant-input:not(textarea) {
+        border-radius: 10px;
+        border-color: rgba(17, 17, 17, 0.12);
+    }
+
+    .auth-page-card .ant-input-affix-wrapper {
+        align-items: center;
+        height: 46px;
+        min-height: 46px;
+        padding: 0 12px;
+    }
+
+    /* 输入文字 14px 和 12px 标签成比例；高度交给 wrapper，
+     * input 只占一行 22px 并垂直居中——之前给 input 直接设 46px，
+     * 叠上 antd 的内边距把框子撑到 56px，文字还偏上。 */
+    .auth-page-card input.ant-input {
+        font-size: 14px !important;
+        height: 46px;
+        line-height: 22px;
+        padding: 0 12px;
+    }
+
+    .auth-page-card .ant-input-affix-wrapper .ant-input {
+        height: 22px;
+        padding: 0;
+    }
+
+    .auth-page-card .ant-input::placeholder {
+        color: rgba(17, 17, 17, 0.3);
+    }
+
+    .dark .auth-page-card .ant-input::placeholder {
+        color: rgba(255, 255, 255, 0.28);
+    }
+
+    .dark .auth-page-card .ant-input-affix-wrapper,
+    .dark .auth-page-card .ant-input:not(textarea) {
+        border-color: rgba(255, 255, 255, 0.14);
+    }
+
+    .auth-page-card .ant-input-affix-wrapper:focus-within,
+    .auth-page-card .ant-input-affix-wrapper-focused,
+    .auth-page-card .ant-input:not(textarea):focus {
+        border-color: rgba(17, 17, 17, 0.42);
+        box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.05);
+    }
+
+    .dark .auth-page-card .ant-input-affix-wrapper:focus-within,
+    .dark .auth-page-card .ant-input-affix-wrapper-focused,
+    .dark .auth-page-card .ant-input:not(textarea):focus {
+        border-color: rgba(255, 255, 255, 0.45);
+        box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.06);
+    }
+
+    /* 密码行：标签与「忘记密码」同一条基线 */
+    .auth-page-card .auth-label-row {
+        align-items: baseline;
+        display: flex;
+        gap: 12px;
+        justify-content: space-between;
+    }
+
+    .auth-page-card .auth-label-row > span {
+        color: rgba(17, 17, 17, 0.52);
+        font-size: 12px;
+        font-weight: 500;
+        letter-spacing: 0.01em;
+    }
+
+    .dark .auth-page-card .auth-label-row > span {
+        color: rgba(255, 255, 255, 0.55);
+    }
+
+    .auth-page-card .auth-inline-link {
+        color: rgba(17, 17, 17, 0.5);
+        font-size: 12px;
+        transition: color 160ms ease;
+    }
+
+    .auth-page-card .auth-inline-link:hover {
+        color: #111111;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+    }
+
+    .dark .auth-page-card .auth-inline-link {
+        color: rgba(255, 255, 255, 0.44);
+    }
+
+    .dark .auth-page-card .auth-inline-link:hover {
+        color: #f5f5f5;
+    }
+
+    /* 验证码按钮收进输入框右侧，不再用一整块黑色 enterButton 抢视线 */
+    .auth-page-card .auth-code-button {
+        background: none;
+        border: 0;
+        color: #111111;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 500;
+        padding: 0 2px 0 8px;
+        white-space: nowrap;
+    }
+
+    .auth-page-card .auth-code-button:hover {
+        text-decoration: underline;
+        text-underline-offset: 3px;
+    }
+
+    .auth-page-card .auth-code-button:disabled {
+        color: rgba(17, 17, 17, 0.28);
+        cursor: not-allowed;
+        text-decoration: none;
+    }
+
+    .dark .auth-page-card .auth-code-button {
+        color: #f5f5f5;
+    }
+
+    .dark .auth-page-card .auth-code-button:disabled {
+        color: rgba(255, 255, 255, 0.28);
+    }
+
+    .auth-page-card .auth-field-error {
+        color: #c0392b;
+        font-size: 12px;
+        line-height: 1.5;
+    }
+
+    .dark .auth-page-card .auth-field-error {
+        color: #ff9f92;
+    }
+
+    .auth-submit-button.ant-btn {
+        height: 46px;
+        margin-top: 4px;
+        border-radius: 10px !important;
+        border-color: #111111 !important;
+        background: #111111 !important;
+        color: #ffffff !important;
+    }
+
+    .auth-submit-button.ant-btn:hover,
+    .auth-submit-button.ant-btn:focus-visible {
+        border-color: #2a2a2a !important;
+        background: #2a2a2a !important;
+        color: #ffffff !important;
+    }
+
+    .dark .auth-submit-button.ant-btn {
+        border-color: #f5f5f5 !important;
+        background: #f5f5f5 !important;
+        color: #111111 !important;
+    }
+
+    .dark .auth-submit-button.ant-btn:hover,
+    .dark .auth-submit-button.ant-btn:focus-visible {
+        border-color: #e2e2e2 !important;
+        background: #e2e2e2 !important;
+        color: #111111 !important;
+    }
+
+    /* 禁用态不用实心灰块：它和「加载中」长得一样，读起来像按钮坏了。
+       改成浅底 + 极淡描边 + 更灰的字，读成「还差一步」。 */
+    .auth-submit-button.ant-btn:disabled,
+    .auth-submit-button.ant-btn:disabled:hover {
+        cursor: not-allowed;
+        border-color: rgba(17, 17, 17, 0.1) !important;
+        background: #fafafa !important;
+        color: rgba(17, 17, 17, 0.34) !important;
+    }
+
+    .dark .auth-submit-button.ant-btn:disabled,
+    .dark .auth-submit-button.ant-btn:disabled:hover {
+        border-color: rgba(255, 255, 255, 0.1) !important;
+        background: rgba(255, 255, 255, 0.035) !important;
+        color: rgba(255, 255, 255, 0.34) !important;
+    }
+
+    .auth-form-header {
+        padding-bottom: 8px;
+    }
+
+    .auth-panel label {
+        row-gap: 10px;
+    }
+
+    .auth-switch-link {
+        margin-top: 4px;
+    }
+}
+
+/* ── 首屏登录弹窗 ────────────────────────────────────────────────────────
+ * 必须放在 @layer utilities 之外。antd 6 的样式是运行时注入的「无层级」规则，
+ * 而层级内的声明无论在层级内特异性多高，都输给任何无层级声明 —— 这就是之前
+ * 弹窗一直是 antd 默认白卡片、旧配色，怎么改 CSS 都不生效的原因。
+ * 选择器统一用 .ant-modal.landing-auth-modal 前缀把特异性提到 0,3,0，
+ * 压过 antd 的 :where(...).ant-modal .ant-modal-container（0,2,0）。
+ */
+.ant-modal.landing-auth-modal {
+    max-width: calc(100vw - 24px);
+}
+
+.ant-modal.landing-auth-modal .ant-modal-container {
+    background: #ffffff;
+    border: 1px solid rgba(17, 17, 17, 0.07);
+    border-radius: 16px;
+    box-shadow:
+        0 24px 64px rgba(17, 17, 17, 0.13),
+        0 1px 3px rgba(17, 17, 17, 0.05);
+    overflow: hidden;
+    padding: 0;
+}
+
+.dark .ant-modal.landing-auth-modal .ant-modal-container {
+    background: #171717;
+    border-color: rgba(255, 255, 255, 0.07);
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.56);
+}
+
+.landing-auth-root .ant-modal-mask {
+    background: rgba(17, 17, 17, 0.36);
+    backdrop-filter: blur(4px);
+}
+
+.dark .landing-auth-root .ant-modal-mask {
+    background: rgba(0, 0, 0, 0.62);
+}
+
+.ant-modal.landing-auth-modal .ant-modal-body {
+    padding: 0;
+}
+
+.ant-modal.landing-auth-modal .ant-modal-close {
+    border-radius: 8px;
+    color: rgba(17, 17, 17, 0.42);
+    inset-inline-end: 12px;
+    top: 12px;
+    transition:
+        background-color 160ms ease,
+        color 160ms ease;
+    z-index: 3;
+}
+
+.ant-modal.landing-auth-modal .ant-modal-close:hover {
+    background: rgba(17, 17, 17, 0.05);
+    color: #111111;
+}
+
+.dark .ant-modal.landing-auth-modal .ant-modal-close {
+    color: rgba(255, 255, 255, 0.48);
+}
+
+.dark .ant-modal.landing-auth-modal .ant-modal-close:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #f5f5f5;
+}
+
+/* 纯白单列：只有两个字段的登录不需要分栏 —— 分栏只在左侧有真实视觉
+ * （产品截图 / 作品图 / 品牌摄影）时才成立，否则就是一整块空洞。
+ * 这里改成「Logo + 一句话 + 表单」的居中窄卡，和 Linear / Vercel / Notion
+ * 的登录浮层是同一套路。宽度收到 440，视线不用左右跳。 */
+.landing-auth-modal-shell {
+    background: #ffffff;
+    padding: 36px 32px 30px;
+}
+
+.dark .landing-auth-modal-shell {
+    background: #171717;
+}
+
+.landing-auth-modal-head {
+    text-align: center;
+}
+
+.landing-auth-head-logo {
+    background: #111111;
+    border-radius: 9px;
+    display: block;
+    height: 32px;
+    margin: 0 auto;
+    width: 32px;
+}
+
+.dark .landing-auth-head-logo {
+    background: #f5f5f5;
+}
+
+.landing-auth-modal-head h2 {
+    color: #111111;
+    font-size: 1.35rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.3;
+    margin: 16px 0 0;
+    text-wrap: balance;
+}
+
+.dark .landing-auth-modal-head h2 {
+    color: #f5f5f5;
+}
+
+.landing-auth-modal-head p {
+    color: rgba(17, 17, 17, 0.46);
+    font-size: 12.5px;
+    line-height: 1.7;
+    margin: 8px 0 0;
+    text-wrap: pretty;
+}
+
+.dark .landing-auth-modal-head p {
+    color: rgba(255, 255, 255, 0.44);
+}
+
+.landing-auth-modal-form {
+    padding-top: 28px;
+}
+
+.ant-modal.landing-auth-modal .auth-panel {
+    backdrop-filter: none;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    padding: 0;
+}
+
+.ant-modal.landing-auth-modal .auth-panel form {
+    margin-inline: auto;
+    max-width: 336px;
+    width: 100%;
+}
+
+/* 「登录 VOZEB PRO」这类标题在弹窗里是重复信息：表头已经说了品牌与场景，整段隐藏 */
+.ant-modal.landing-auth-modal .auth-form-header {
+    display: none;
+}
+
+.ant-modal.landing-auth-modal .auth-panel label > span:first-child {
+    color: rgba(17, 17, 17, 0.72);
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.dark .ant-modal.landing-auth-modal .auth-panel label > span:first-child {
+    color: rgba(255, 255, 255, 0.72);
+}
+
+.ant-modal.landing-auth-modal .auth-panel .ant-input,
+.ant-modal.landing-auth-modal .auth-panel .ant-input-affix-wrapper {
+    background: #ffffff;
+    border-color: rgba(17, 17, 17, 0.13);
+    border-radius: 10px;
+}
+
+.ant-modal.landing-auth-modal .auth-panel .ant-input-affix-wrapper:focus-within,
+.ant-modal.landing-auth-modal .auth-panel .ant-input:focus {
+    border-color: rgba(17, 17, 17, 0.55);
+    box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.06);
+}
+
+.ant-modal.landing-auth-modal .auth-panel .ant-input::placeholder,
+.ant-modal.landing-auth-modal .auth-panel .ant-input-affix-wrapper input::placeholder {
+    color: rgba(17, 17, 17, 0.34);
+}
+
+.dark .ant-modal.landing-auth-modal .auth-panel .ant-input,
+.dark .ant-modal.landing-auth-modal .auth-panel .ant-input-affix-wrapper {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.13);
+}
+
+.dark .ant-modal.landing-auth-modal .auth-panel .ant-input-affix-wrapper:focus-within,
+.dark .ant-modal.landing-auth-modal .auth-panel .ant-input:focus {
+    border-color: rgba(255, 255, 255, 0.5);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
+}
+
+.dark .ant-modal.landing-auth-modal .auth-panel .ant-input::placeholder,
+.dark .ant-modal.landing-auth-modal .auth-panel .ant-input-affix-wrapper input::placeholder {
+    color: rgba(255, 255, 255, 0.46);
+}
+
+.ant-modal.landing-auth-modal .auth-panel .ant-btn {
+    border-radius: 10px;
+    height: 44px;
+}
+
+.ant-modal.landing-auth-modal .auth-panel .ant-btn-primary {
+    background: #111111 !important;
+    border-color: #111111 !important;
+    box-shadow: none !important;
+    color: #ffffff !important;
+    font-weight: 500;
+}
+
+.ant-modal.landing-auth-modal .auth-panel .ant-btn-primary:not(:disabled):hover {
+    background: #2a2a2a !important;
+    border-color: #2a2a2a !important;
+}
+
+.dark .ant-modal.landing-auth-modal .auth-panel .ant-btn-primary {
+    background: #f5f5f5 !important;
+    border-color: #f5f5f5 !important;
+    color: #111111 !important;
+}
+
+.dark .ant-modal.landing-auth-modal .auth-panel .ant-btn-primary:not(:disabled):hover {
+    background: #e2e2e2 !important;
+    border-color: #e2e2e2 !important;
+    color: #111111 !important;
+}
+
+.ant-modal.landing-auth-modal .auth-switch-link {
+    color: rgba(17, 17, 17, 0.45);
+    padding-top: 2px;
+}
+
+.dark .ant-modal.landing-auth-modal .auth-switch-link {
+    color: rgba(255, 255, 255, 0.45);
+}
+
+.ant-modal.landing-auth-modal .auth-switch-link a {
+    color: #111111;
+    font-weight: 500;
+}
+
+.dark .ant-modal.landing-auth-modal .auth-switch-link a {
+    color: #f5f5f5;
+}
+
+@media (max-width: 767px) {
+    .landing-auth-modal-shell {
+        padding: 30px 20px 24px;
+    }
+
+    .landing-auth-modal-form {
+        padding-top: 22px;
+    }
+
+    .landing-auth-head-logo {
+        height: 28px;
+        width: 28px;
+    }
+
+    .landing-auth-modal-head h2 {
+        font-size: 1.2rem;
+        line-height: 1.3;
+    }
+
+    /* 移动端空间有限，副标题交给标题本身表达，避免又一次文字堆叠 */
+    .landing-auth-modal-head p {
+        display: none;
+    }
+
+    .ant-modal.landing-auth-modal .auth-form-body {
+        row-gap: 14px;
+    }
+
+    .ant-modal.landing-auth-modal .auth-panel label {
+        row-gap: 6px;
+    }
+
+    .ant-modal.landing-auth-modal .ant-modal-container {
+        max-height: calc(100dvh - 28px);
+        overflow-y: auto;
+    }
+}
+
+
+/* ── 整页登录 / 注册 / 找回密码：antd 组件层 ─────────────────────────────
+ * 同样必须放在 @layer 之外：antd 6 的组件样式是运行时注入的无层规则，
+ * 层级内的声明压不住它（按钮高度、焦点色、边框都会被 antd 默认值盖掉）。
+ * 链接色也是同一类：antd 给容器里所有 <a> 注入 color:var(--ant-color-link)，
+ * 层级里的 text-stone-950 / dark:text-white 全部输它 —— 深色态下
+ * 「立即注册 / 忘记密码 / 服务条款 / 返回首页」就会变成背景色上的一块黑。
+ */
+.auth-page-card .auth-page-back {
+    color: rgba(17, 17, 17, 0.46);
+}
+
+.dark .auth-page-card .auth-page-back {
+    color: rgba(255, 255, 255, 0.44);
+}
+
+.auth-page-card .auth-page-back:hover {
+    color: #111111;
+}
+
+.dark .auth-page-card .auth-page-back:hover {
+    color: #f5f5f5;
+}
+
+.auth-page-card .auth-switch-link a,
+.auth-page-card .ant-checkbox-wrapper a {
+    color: #111111;
+    font-weight: 500;
+}
+
+.dark .auth-page-card .auth-switch-link a,
+.dark .auth-page-card .ant-checkbox-wrapper a {
+    color: #f5f5f5;
+}
+
+.auth-page-card .auth-submit-button.ant-btn {
+    height: 46px;
+    margin-top: 20px;
+}
+
+
+/* antd 的 Checkbox 是标签页里的直接子元素，但它的 margin 是无层规则，
+ * 层级里的 `> * + *` 压不住，导致协议行紧贴密码框 */
+.auth-page-card .ant-checkbox-wrapper {
+    margin-block-start: 20px;
+}
+
+.auth-page-card .ant-checkbox-wrapper + .ant-btn {
+    margin-top: 14px;
+}
+
+.auth-page-card .ant-input,
+.auth-page-card .ant-input-affix-wrapper {
+    border-color: rgba(17, 17, 17, 0.13);
+    border-radius: 10px;
+}
+
+.auth-page-card .ant-input-affix-wrapper:focus-within,
+.auth-page-card .ant-input:focus {
+    border-color: rgba(17, 17, 17, 0.55);
+    box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.06);
+}
+
+.dark .auth-page-card .ant-input,
+.dark .auth-page-card .ant-input-affix-wrapper {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.13);
+}
+
+/* affix wrapper 里还有一层 input：两层 3% 白叠起来是 6%，
+ * 在深色底上会在文字背后显出一条比外框亮的横带。内层一律透明，只由 wrapper 出底色。 */
+.auth-page-card .ant-input-affix-wrapper > input.ant-input,
+.auth-page-card .ant-input-affix-wrapper input.ant-input:hover,
+.auth-page-card .ant-input-affix-wrapper input.ant-input:focus {
+    background: transparent;
+}
+
+.dark .auth-page-card .ant-input-affix-wrapper:focus-within,
+.dark .auth-page-card .ant-input:focus {
+    border-color: rgba(255, 255, 255, 0.5);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
+}
+
+.auth-page-card .ant-input::placeholder,
+.auth-page-card .ant-input-affix-wrapper input::placeholder {
+    color: rgba(17, 17, 17, 0.34);
+}
+
+.dark .auth-page-card .ant-input::placeholder,
+.dark .auth-page-card .ant-input-affix-wrapper input::placeholder {
+    color: rgba(255, 255, 255, 0.46);
+}
+
+.auth-page-card .ant-input-group-addon .ant-btn {
+    border-radius: 0 10px 10px 0;
+}
+
+/* 验证码按钮别和主按钮抢黑色：做成贴边的次级按钮 */
+.auth-page-card .ant-input-search-btn.ant-btn {
+    background: #f5f5f5;
+    border-color: rgba(17, 17, 17, 0.13);
+    border-radius: 0 10px 10px 0;
+    box-shadow: none;
+    color: #111111;
+    font-weight: 500;
+}
+
+.auth-page-card .ant-input-search-btn.ant-btn:not(:disabled):hover {
+    background: #ececec;
+    border-color: rgba(17, 17, 17, 0.24);
+    color: #111111;
+}
+
+.dark .auth-page-card .ant-input-search-btn.ant-btn {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.13);
+    color: #f5f5f5;
+}
+
+.dark .auth-page-card .ant-input-search-btn.ant-btn:not(:disabled):hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.22);
+    color: #ffffff;
+}
+
+
+/* ── 浏览器自动填充的蓝条 ───────────────────────────────────────────────
+ * Chrome / Edge 给 :-webkit-autofill 的 input 注入一层浅蓝(#e8f0fe)背景，
+ * 那是 UA 样式、优先级高于普通声明，antd 的透明输入框挡不住它；
+ * 而蓝底只刷在 input 本身、刷不到外层 .ant-input-affix-wrapper，
+ * 于是一整行里只有中间一截变蓝，看起来就是「一条蓝条」。
+ * 用一层 inset box-shadow 把 input 重新刷成面板底色，再强制文字/光标色；
+ * 放在 @layer 之外，避免被层级顺序或 antd 的运行时无层规则压掉。
+ */
+.auth-panel input:-webkit-autofill,
+.auth-panel input:-webkit-autofill:hover,
+.auth-panel input:-webkit-autofill:focus,
+.auth-panel input:-webkit-autofill:active,
+.auth-page-card input:-webkit-autofill,
+.auth-page-card input:-webkit-autofill:hover,
+.auth-page-card input:-webkit-autofill:focus,
+.auth-page-card input:-webkit-autofill:active {
+    -webkit-text-fill-color: #111111;
+    -webkit-box-shadow: 0 0 0 1000px var(--auth-autofill-surface, #ffffff) inset;
+    box-shadow: 0 0 0 1000px var(--auth-autofill-surface, #ffffff) inset;
+    caret-color: #111111;
+    /* 阻止 Chrome 在填充动画的过渡里把蓝底重新露出来 */
+    transition: background-color 9999s ease-out 0s;
+}
+
+.dark .auth-panel input:-webkit-autofill,
+.dark .auth-panel input:-webkit-autofill:hover,
+.dark .auth-panel input:-webkit-autofill:focus,
+.dark .auth-panel input:-webkit-autofill:active,
+.dark .auth-page-card input:-webkit-autofill,
+.dark .auth-page-card input:-webkit-autofill:hover,
+.dark .auth-page-card input:-webkit-autofill:focus,
+.dark .auth-page-card input:-webkit-autofill:active {
+    -webkit-text-fill-color: #f5f5f5;
+    caret-color: #f5f5f5;
+    --auth-autofill-surface: #1c1c1c;
+}
+
+/* 弹窗的输入框是纯白实底，深色下也要跟着面板走，别和卡片底错开 */
+.ant-modal.landing-auth-modal .auth-panel input:-webkit-autofill {
+    --auth-autofill-surface: #ffffff;
+}
+
+.dark .ant-modal.landing-auth-modal .auth-panel input:-webkit-autofill {
+    --auth-autofill-surface: #1c1c1c;
+}

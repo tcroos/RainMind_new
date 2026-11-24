@@ -1,0 +1,2554 @@
+.root {
+    /* 底色改成纯白：原来的 #ffffff 米黄 + 暖棕阴影会让整屏发黄、发闷。
+     * 分割改用中性灰（#ececee），卡片刻度靠 1px 描边和极轻的中性阴影。 */
+    --home-bg: #ffffff;
+    --home-section-bg: rgba(255, 255, 255, 0.94);
+    --home-surface: rgba(255, 255, 255, 0.72);
+    --home-surface-strong: #ffffff;
+    --home-text: #16161a;
+    --home-muted: #6b6b73;
+    --home-border: #ececee;
+    --home-card-border: #ececee;
+    --home-control-border: #e4e4e8;
+    --home-divider: rgba(20, 20, 24, 0.07);
+    --home-card-highlight: rgba(255, 255, 255, 0.96);
+    /* 纯白页面里卡片不再靠「更白的纸」区分，改为极浅的中性灰阶过渡。 */
+    --home-card-top: #ffffff;
+    --home-card-bottom: #fbfbfc;
+    --home-ring-core: rgba(255, 255, 255, 0.9);
+    --home-ring-blue: rgba(226, 103, 31, 0.1);
+    --home-ring-violet: rgba(226, 103, 31, 0.05);
+    --home-nav-glass: rgba(255, 255, 255, 0.82);
+    --home-nav-glass-border: rgba(20, 20, 24, 0.08);
+    /* 品牌色：同一个色相（≈22°）只保留三档，全站从这里取色。
+     * 500 用于大色块 / CTA / 活性态填充；600 是 hover；
+     * 700 用于小字、图标、描边等需要对比度的场合。
+     * 首屏标题、CTA 与液态玻璃 shader 用的也是这三档，不再各写一个橙。 */
+    --brand-500: #e2671f;
+    --brand-600: #c95616;
+    --brand-700: #a9520c;
+    --brand-soft: rgba(226, 103, 31, 0.1);
+    --home-accent: var(--brand-700);
+    --home-accent-hover: #8f4409;
+    --home-accent-soft: var(--brand-soft);
+    --home-accent-foreground: #ffffff;
+    --home-primary-start: var(--brand-700);
+    --home-primary-end: #c25a12;
+    --home-glow: rgba(226, 103, 31, 0.14);
+    --home-shadow: 0 18px 48px rgba(20, 20, 24, 0.08);
+    --home-header: rgba(255, 255, 255, 0.88);
+    /* 导航总高（上留白 + 胶囊高度）。首屏外壳靠它把自己顶到视口最上沿，
+     * 让液态玻璃继续铺在导航背后，而不是从导航下方才开始。 */
+    --home-header-h: 84px;
+    background: var(--home-bg);
+    color: var(--home-text);
+    letter-spacing: 0;
+    scroll-behavior: smooth;
+}
+
+:global(.dark) .root {
+    --home-bg: #14120e;
+    --home-section-bg: rgba(20, 18, 14, 0.94);
+    --home-surface: rgba(28, 25, 20, 0.72);
+    --home-surface-strong: #1b1814;
+    --home-text: #f6f2e9;
+    --home-muted: #9c958a;
+    --home-border: #2c2820;
+    --home-card-border: #2c2820;
+    --home-control-border: #322d24;
+    --home-divider: rgba(246, 242, 233, 0.08);
+    --home-card-highlight: rgba(246, 242, 233, 0.06);
+    --home-card-top: #221e18;
+    --home-card-bottom: #1a1712;
+    --home-ring-core: rgba(246, 242, 233, 0.14);
+    --home-ring-blue: rgba(232, 180, 74, 0.24);
+    --home-ring-violet: rgba(232, 180, 74, 0.12);
+    --home-nav-glass: rgba(28, 25, 20, 0.82);
+    --home-nav-glass-border: rgba(246, 242, 233, 0.09);
+    /* 深色态沿用同一色相，只把明度抬上去 —— 之前 hero 是 #f4955c、
+     * shader 是 #f08a4b、区块是 #f4955c，三种黄在同一屏里互相打架。 */
+    /* 深色态沿用金色（用户指定保留），只把明度抬上去。 */
+    --brand-500: #e8b44a;
+    --brand-600: #f2c463;
+    --brand-700: #f0ca74;
+    --brand-soft: rgba(232, 180, 74, 0.14);
+    --home-accent: var(--brand-700);
+    --home-accent-hover: #f6d488;
+    --home-accent-soft: var(--brand-soft);
+    --home-accent-foreground: #1a1509;
+    --home-primary-start: var(--brand-500);
+    --home-primary-end: var(--brand-600);
+    --home-glow: rgba(232, 180, 74, 0.3);
+    --home-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+    --home-header: rgba(20, 18, 14, 0.8);
+    background: var(--home-bg);
+}
+
+.root *,
+.root *::before,
+.root *::after {
+    box-sizing: border-box;
+}
+
+.root button,
+.root a,
+.root textarea,
+.root select {
+    letter-spacing: 0;
+}
+
+.root button:focus-visible,
+.root a:focus-visible,
+.root textarea:focus-visible,
+.root select:focus-visible {
+    outline: 2px solid var(--home-accent);
+    outline-offset: 3px;
+}
+
+/* 首屏外壳：让液态玻璃背景同时铺到导航后面，不与 hero 分开。
+ * 不再叠静态光带层 —— 那层会在浅色态形成「左白右黄」的硬边三角底图。 */
+.heroShell {
+    isolation: isolate;
+    /* 上移一个导航高度再补回内边距：外壳的盒子回到 y=0，玻璃画布继续盖住导航背后，
+     * 内部 hero 的起始位置不变（原来导航在 shell 内部时就是这个几何关系）。 */
+    margin-top: calc(-1 * var(--home-header-h));
+    padding-top: var(--home-header-h);
+    position: relative;
+}
+
+/* 首屏底部只留一层很薄的收口：高度压到 88px 以内、起点完全透明、
+ * 到最底边才吃满页面底色。不用 canvas 的 mask-image，
+ * 蒙版会让整块 WebGL 画布走一遍合成，条纹动画明显不如没有蒙版时顺。 */
+.heroShell::after {
+    background: linear-gradient(to bottom, transparent 0%, color-mix(in srgb, var(--home-bg) 34%, transparent) 58%, color-mix(in srgb, var(--home-bg) 92%, transparent) 100%);
+    bottom: 0;
+    content: "";
+    height: clamp(48px, 7vh, 88px);
+    left: 0;
+    pointer-events: none;
+    position: absolute;
+    right: 0;
+    z-index: 0;
+}
+
+.header {
+    /* 悬浮玻璃胶囊需要离顶留白：贴着视口上沿时，胶囊的投影和顶部高光会被切掉。
+     * 这个值同时决定移动菜单的起始位置，改一处即可。 */
+    --header-gap-top: 20px;
+    background: transparent;
+    border: 0;
+    padding: var(--header-gap-top) 24px 0;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+}
+
+/* 常驻后页面内容会从胶囊上方和两侧的透明缝隙里滑过，加一层「顶部渐隐」：
+ * 只在滚过首屏后出现，把钻进去的文字压回背景色，避免顶部看起来是脏的。 */
+.header::before {
+    /* 不再用 backdrop blur：顶部直接用实色底压住滚过去的内容，
+     * 否则按钮/标题会从胶囊上方透出来，看着像没擦干净的残影。 */
+    background: linear-gradient(to bottom, var(--home-bg) 0%, var(--home-bg) 78%, transparent 100%);
+    content: "";
+    inset: 0;
+    opacity: 0;
+    pointer-events: none;
+    position: absolute;
+    transition: opacity 240ms ease;
+    z-index: -1;
+}
+
+.headerScrolled::before {
+    opacity: 1;
+}
+
+.headerInner {
+    align-items: center;
+    background: var(--home-nav-glass);
+    border: 1px solid var(--home-nav-glass-border);
+    border-radius: 999px;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.28),
+        var(--home-shadow);
+    display: flex;
+    gap: 14px;
+    height: 56px;
+    justify-content: space-between;
+    margin: 0 auto;
+    max-width: 1280px;
+    padding: 0 8px 0 22px;
+    transition:
+        max-width 380ms cubic-bezier(0.16, 1, 0.3, 1),
+        background 260ms ease,
+        border-color 260ms ease,
+        box-shadow 260ms ease;
+}
+
+/* 滚过首屏后变成「浮在内容上」：胶囊向中间收窄，像把导航收进视野中心。
+ * 不再加深边框（之前 border-color ×140% 会读成一条黑边），只保留底色与投影层级。 */
+.headerScrolled .headerInner {
+    background: color-mix(in srgb, var(--home-bg) 88%, transparent);
+    max-width: 880px;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.34),
+        0 18px 44px -26px rgba(20, 20, 24, 0.42);
+}
+
+:global(.dark) .headerScrolled .headerInner {
+    background: rgba(24, 21, 16, 0.86);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.06),
+        0 18px 44px -22px rgba(0, 0, 0, 0.6);
+}
+
+.brand,
+.footerLogo {
+    align-items: center;
+    color: var(--home-text);
+    display: inline-flex;
+    font-size: 16px;
+    font-weight: 700;
+    gap: 9px;
+    min-width: 0;
+}
+
+.brand span,
+.footerLogo span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* 恢复图标后字标与 30px 图形之间留 9px；字号仍比默认大一档，
+ * 避免 18px 全大写英文配小图标显得头重脚轻。 */
+.brand {
+    font-size: 18px;
+    gap: 9px;
+    letter-spacing: -0.012em;
+}
+
+/* 导航与账号动作合成右侧一组，左品牌、右导航，官方站常见的两端式结构 */
+.headerRight {
+    align-items: center;
+    display: flex;
+    gap: 16px;
+    justify-content: flex-end;
+    min-width: 0;
+}
+
+.brandLogo {
+    height: 30px;
+    width: 30px;
+}
+
+.desktopNav {
+    align-items: center;
+    display: flex;
+    gap: 2px;
+    isolation: isolate;
+    justify-content: flex-end;
+    padding: 3px;
+    position: relative;
+}
+
+.navLink {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    border-radius: 999px;
+    color: var(--home-muted);
+    cursor: pointer;
+    display: inline-flex;
+    font-size: 14px;
+    font-weight: 500;
+    height: 36px;
+    padding: 0 14px;
+    position: relative;
+    transition: color 160ms ease;
+    white-space: nowrap;
+    z-index: 1;
+}
+
+.navLink:hover {
+    color: var(--home-text);
+}
+
+.headerActions {
+    align-items: center;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    min-width: 0;
+}
+
+/* 右侧分成「工具 / 账号」两组：一条 1px 竖线比堆四个等权按钮更像官网。 */
+.headerDivider {
+    background: var(--home-border);
+    flex: 0 0 1px;
+    height: 16px;
+    width: 1px;
+}
+
+.loginLink {
+    background: transparent;
+    border: 0;
+    color: var(--home-muted);
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    height: 36px;
+    padding: 0 6px;
+    transition: color 160ms ease;
+    white-space: nowrap;
+}
+
+.loginLink:hover {
+    color: var(--home-text);
+}
+
+.themeButton,
+.mobileMenuButton {
+    align-items: center;
+    background: var(--home-surface);
+    border: 1px solid var(--home-border);
+    border-radius: 999px;
+    color: var(--home-muted);
+    cursor: pointer;
+    display: inline-flex;
+    height: 38px;
+    justify-content: center;
+    transition:
+        background 160ms ease,
+        border-color 160ms ease;
+    width: 38px;
+}
+
+.themeButton svg,
+.mobileMenuButton svg {
+    height: 18px;
+    width: 18px;
+}
+
+/* 主题切换只是辅助工具，降成无底图标，不与账号按钮抢层级 */
+.headerActions .themeButton {
+    background: transparent;
+    border-color: transparent;
+    height: 34px;
+    width: 34px;
+}
+
+.headerActions .themeButton:hover {
+    background: var(--home-accent-soft);
+}
+
+.primarySmallButton {
+    align-items: center;
+    border-radius: 999px;
+    cursor: pointer;
+    display: inline-flex;
+    font-size: 15px;
+    font-weight: 650;
+    height: 46px;
+    justify-content: center;
+    transition:
+        opacity 160ms ease,
+        transform 160ms ease;
+    white-space: nowrap;
+}
+
+.primarySmallButton {
+    background: var(--home-accent);
+    border: 0;
+    box-shadow: 0 10px 26px color-mix(in srgb, var(--home-glow) 70%, transparent);
+    color: var(--home-accent-foreground);
+    min-width: 104px;
+    padding: 0 20px;
+}
+
+.primarySmallButton svg {
+    height: 15px;
+    width: 15px;
+}
+
+.primarySmallButton:hover {
+    background: var(--home-accent-hover);
+    transform: translateY(-1px);
+}
+
+/* 顶栏只留一个实心主 CTA。hero 的按钮更大，两者不会再互相抢焦点；
+ * 之前把它降级成描边后，右侧没有任何视觉落点，导航看起来像没做完。 */
+.headerActions .primarySmallButton {
+    background: var(--home-accent);
+    border: 0;
+    box-shadow: 0 8px 20px color-mix(in srgb, var(--home-glow) 55%, transparent);
+    color: var(--home-accent-foreground);
+    font-size: 14px;
+    font-weight: 600;
+    height: 40px;
+    min-width: 104px;
+    padding: 0 18px;
+}
+
+.headerActions .primarySmallButton:hover {
+    background: var(--home-accent-hover);
+}
+
+.mobileMenuButton,
+.mobileNav {
+    display: none;
+}
+
+/* ── 联系我们弹窗 ─────────────────────────────────────────────
+ * 图片由后台配置，固定 3:4 竖版；弹窗渲染到 body，
+ * 因此这里只用 global token（--surface-panel / --ink-* / --hairline）。 */
+.contactOverlay {
+    align-items: center;
+    animation: contact-overlay-in 180ms ease-out;
+    background: rgba(17, 17, 19, 0.5);
+    backdrop-filter: blur(10px);
+    display: flex;
+    inset: 0;
+    justify-content: center;
+    padding: 20px;
+    position: fixed;
+    z-index: 90;
+}
+
+/* 相框式卡片：白卡托住一张 3:4 图片，标题区压成一行，
+ * 视觉重心落在图片上，不再像一张贴了标题的截图。 */
+.contactDialog {
+    animation: contact-dialog-in 240ms cubic-bezier(0.16, 1, 0.3, 1);
+    background: var(--surface-panel);
+    border: 1px solid var(--hairline);
+    border-radius: 26px;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.9),
+        0 2px 6px rgba(20, 20, 24, 0.04),
+        0 32px 90px -28px rgba(20, 20, 24, 0.5);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-height: calc(100dvh - 40px);
+    padding: 18px;
+    width: min(404px, calc(100vw - 32px));
+}
+
+:global(.dark) .contactDialog {
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.06),
+        0 2px 6px rgba(0, 0, 0, 0.3),
+        0 32px 90px -28px rgba(0, 0, 0, 0.65);
+}
+
+.contactHead {
+    align-items: flex-start;
+    display: flex;
+    gap: 12px;
+    justify-content: space-between;
+    padding: 2px 4px 0;
+}
+
+.contactEyebrow {
+    color: var(--brand-500);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+}
+
+.contactTitle {
+    color: var(--ink-1);
+    font-size: 18px;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+    line-height: 1.25;
+    margin-top: 4px;
+}
+
+.contactClose {
+    align-items: center;
+    background: var(--surface-soft);
+    border: 0;
+    border-radius: 999px;
+    color: var(--ink-2);
+    cursor: pointer;
+    display: inline-flex;
+    height: 32px;
+    justify-content: center;
+    transition:
+        background 160ms ease,
+        color 160ms ease,
+        transform 160ms ease;
+    width: 32px;
+}
+
+.contactClose:hover {
+    background: var(--surface-hover);
+    color: var(--ink-1);
+    transform: rotate(90deg);
+}
+
+:global(.dark) .contactClose {
+    background: rgba(255, 255, 255, 0.07);
+    color: var(--ink-2);
+}
+
+:global(.dark) .contactClose:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: var(--ink-1);
+}
+
+.contactClose svg {
+    height: 14px;
+    width: 14px;
+}
+
+.contactMedia {
+    align-self: center;
+    aspect-ratio: 3 / 4;
+    background: var(--surface-soft);
+    border-radius: 18px;
+    box-shadow:
+        0 0 0 1px rgba(17, 17, 19, 0.05),
+        0 18px 40px -24px rgba(20, 20, 24, 0.45);
+    max-height: min(70vh, 540px);
+    overflow: hidden;
+    width: min(340px, 100%);
+}
+
+.contactMedia img {
+    display: block;
+    height: 100%;
+    object-fit: contain;
+    width: 100%;
+}
+
+.contactEmpty {
+    align-items: center;
+    align-self: center;
+    background: var(--surface-soft);
+    border: 1px dashed var(--hairline);
+    border-radius: 18px;
+    color: var(--ink-3);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    justify-content: center;
+    min-height: 220px;
+    padding: 24px;
+    text-align: center;
+    width: min(340px, 100%);
+}
+
+.contactEmpty p {
+    color: var(--ink-1);
+    font-size: 14px;
+    font-weight: 550;
+}
+
+.contactEmpty span {
+    font-size: 12px;
+    line-height: 1.7;
+}
+
+@keyframes contact-overlay-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes contact-dialog-in {
+    from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.97);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .contactDialog {
+        border-radius: 22px;
+        gap: 14px;
+        padding: 14px;
+    }
+
+    .contactMedia {
+        width: min(300px, 100%);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .contactOverlay,
+    .contactDialog {
+        animation: none;
+    }
+}
+
+.contentBand {
+    background: var(--home-bg);
+    isolation: isolate;
+    position: relative;
+}
+
+/* 常驻的环境光：sticky 在内容带顶部随页面一直悬着，
+ * 让首屏那块液态玻璃「延伸」到下面，而不是到 hero 底边就被截断。
+ * 负 margin 让后续内容从同一位置开始排，所以它不占文档高度。 */
+.contentAura {
+    height: 100vh;
+    margin-bottom: -100vh;
+    overflow: hidden;
+    pointer-events: none;
+    position: sticky;
+    top: 0;
+    z-index: 0;
+}
+
+.contentAura span {
+    border-radius: 50%;
+    display: block;
+    position: absolute;
+}
+
+.auraWarm {
+    animation: aura-drift-warm 28s ease-in-out infinite alternate;
+    background: radial-gradient(closest-side, color-mix(in srgb, var(--home-accent) 20%, transparent), transparent 72%);
+    height: 820px;
+    left: -16%;
+    opacity: 0.5;
+    top: -18%;
+    width: 820px;
+}
+
+.auraCool {
+    animation: aura-drift-cool 34s ease-in-out infinite alternate;
+    background: radial-gradient(closest-side, color-mix(in srgb, var(--home-accent) 12%, transparent), transparent 74%);
+    height: 960px;
+    opacity: 0.44;
+    right: -20%;
+    top: 26%;
+    width: 960px;
+}
+
+.auraVeil {
+    animation: aura-drift-veil 40s ease-in-out infinite alternate;
+    background: radial-gradient(60% 50% at 50% 50%, color-mix(in srgb, var(--home-surface-strong) 55%, transparent), transparent 76%);
+    height: 640px;
+    left: 22%;
+    opacity: 0.5;
+    top: 56%;
+    width: 640px;
+}
+
+:global(.dark) .auraWarm {
+    opacity: 0.34;
+}
+
+:global(.dark) .auraCool {
+    opacity: 0.28;
+}
+
+:global(.dark) .auraVeil {
+    opacity: 0.2;
+}
+
+/* 极低对比的大面积径向渐变在 8bit 屏上会出现「横带」（渐变被量化成台阶）。
+ * 铺一层几乎看不见的噪声打散台阶，比把光斑调浓更不脏。 */
+.contentAura::after {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 140px 140px;
+    content: "";
+    inset: 0;
+    mix-blend-mode: soft-light;
+    opacity: 0.05;
+    pointer-events: none;
+    position: absolute;
+}
+
+@keyframes aura-drift-warm {
+    from {
+        transform: translate3d(0, 0, 0) scale(1);
+    }
+    to {
+        transform: translate3d(9%, 7%, 0) scale(1.12);
+    }
+}
+
+@keyframes aura-drift-cool {
+    from {
+        transform: translate3d(0, 0, 0) scale(1.06);
+    }
+    to {
+        transform: translate3d(-8%, -6%, 0) scale(0.96);
+    }
+}
+
+@keyframes aura-drift-veil {
+    from {
+        transform: translate3d(-4%, 2%, 0) scale(0.94);
+    }
+    to {
+        transform: translate3d(5%, -5%, 0) scale(1.1);
+    }
+}
+
+.section {
+    margin: 0 auto;
+    max-width: 1200px;
+    padding: clamp(76px, 9vw, 108px) 32px 0;
+    position: relative;
+    z-index: 1;
+}
+
+.contentBand > .section:first-child {
+    padding-top: 24px;
+}
+
+.contentBand > .section:first-child .stepsGrid {
+    margin-top: 40px;
+}
+
+/* 表头左对齐：首屏大标题本来就是左对齐，下方全部居中会读成两个产品。 */
+.sectionHeading {
+    max-width: 720px;
+}
+
+.sectionEyebrow {
+    align-items: center;
+    color: var(--home-muted);
+    display: inline-flex;
+    font-size: 11px;
+    font-weight: 600;
+    gap: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+}
+
+.sectionEyebrowIndex {
+    color: var(--home-accent);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.08em;
+}
+
+.sectionEyebrow::after {
+    background: linear-gradient(90deg, color-mix(in srgb, var(--home-accent) 45%, transparent), transparent);
+    content: "";
+    height: 1px;
+    width: 48px;
+}
+
+.sectionHeading h2 {
+    color: var(--home-text);
+    font-size: clamp(28px, 3vw, 40px);
+    font-weight: 760;
+    letter-spacing: -0.028em;
+    line-height: 1.16;
+    margin: 18px 0 0;
+    text-wrap: balance;
+}
+
+.sectionHeading p {
+    color: var(--home-muted);
+    font-size: 16px;
+    line-height: 1.7;
+    margin: 14px 0 0;
+    max-width: 33em;
+    text-wrap: pretty;
+}
+
+.stepsGrid {
+    display: grid;
+    gap: 18px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin-top: 44px;
+}
+
+/* 动效外壳跟着 grid 拉伸，卡片才能等高 */
+.revealItem {
+    display: flex;
+    min-width: 0;
+}
+
+.revealItem > * {
+    flex: 1 1 auto;
+}
+
+/* ── 指针柔光 ───────────────────────────────────────────────
+ * 坐标由 home-motion 写在行内 --spot-x/--spot-y 上，这里只负责画。
+ * 只有真正支持 hover 的设备才挂，触屏上不会留下跟着乱跑的光斑。 */
+@media (hover: hover) {
+    .stepCard::after,
+    .advantageCard::after,
+    .starterCard::after {
+        background: radial-gradient(200px circle at var(--spot-x, 50%) var(--spot-y, -20%), color-mix(in srgb, var(--home-accent) 11%, transparent), transparent 66%);
+        border-radius: inherit;
+        content: "";
+        inset: 0;
+        opacity: 0;
+        pointer-events: none;
+        position: absolute;
+        transition: opacity 260ms ease;
+        z-index: 1;
+    }
+
+    .stepCard:hover::after,
+    .advantageCard:hover::after,
+    .starterCard:hover::after {
+        opacity: 1;
+    }
+}
+
+.stepCard {
+    background: linear-gradient(168deg, var(--home-card-top), var(--home-card-bottom));
+    border: 1px solid var(--home-border);
+    border-radius: 22px;
+    box-shadow:
+        inset 0 1px 0 var(--home-card-highlight),
+        0 1px 2px rgba(20, 20, 24, 0.05),
+        0 26px 52px -40px rgba(20, 20, 24, 0.38);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    isolation: isolate;
+    overflow: hidden;
+    padding: 10px 10px 24px;
+    position: relative;
+    transition:
+        border-color 260ms ease,
+        box-shadow 260ms ease,
+        transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.stepCard:hover {
+    border-color: color-mix(in srgb, var(--home-accent) 32%, var(--home-border));
+    box-shadow:
+        inset 0 1px 0 var(--home-card-highlight),
+        0 34px 64px -40px color-mix(in srgb, var(--home-accent) 62%, transparent);
+    transform: translateY(-4px);
+}
+
+/* 卡片内部的「微缩画面」：一张浅底，加一点从右上角渗进来的暖光。
+ * 这是整张卡片的视觉重心 —— 有它之后，卡片才不是一张写满字的白纸。 */
+.stepVisual {
+    background:
+        radial-gradient(120% 120% at 84% 4%, color-mix(in srgb, var(--home-accent) 18%, transparent), transparent 56%),
+        linear-gradient(158deg, color-mix(in srgb, var(--home-bg) 88%, var(--brand-500)), color-mix(in srgb, var(--home-bg) 97%, var(--home-surface-strong)));
+    border: 1px solid color-mix(in srgb, var(--home-border) 82%, transparent);
+    border-radius: 15px;
+    align-items: center;
+    display: flex;
+    height: 126px;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+    box-shadow: inset 0 1px 2px rgba(20, 20, 24, 0.05);
+}
+
+.stepCard:hover .stepVisual {
+    border-color: color-mix(in srgb, var(--home-accent) 22%, var(--home-border));
+}
+
+/* ── 微缩画面里的小零件 ─────────────────────────────── */
+.sceneChips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    justify-content: center;
+    padding: 0 12px;
+}
+
+.sceneChips span {
+    background: color-mix(in srgb, var(--home-text) 5%, transparent);
+    border: 1px solid color-mix(in srgb, var(--home-border) 90%, transparent);
+    border-radius: 999px;
+    color: var(--home-muted);
+    font-size: 11.5px;
+    padding: 5px 11px;
+    transition:
+        background 240ms ease,
+        color 240ms ease;
+}
+
+.sceneChips span[data-active="true"] {
+    background: var(--home-accent);
+    border-color: transparent;
+    box-shadow: 0 10px 20px -12px color-mix(in srgb, var(--home-accent) 92%, transparent);
+    color: var(--home-accent-foreground);
+}
+
+.sceneField {
+    align-items: center;
+    background: var(--home-surface-strong);
+    border: 1px solid var(--home-border);
+    border-radius: 12px;
+    box-shadow: 0 10px 22px -16px rgba(20, 20, 24, 0.62);
+    display: flex;
+    gap: 10px;
+    padding: 11px 11px 11px 14px;
+    width: calc(100% - 36px);
+}
+
+.sceneLines {
+    display: grid;
+    flex: 1;
+    gap: 7px;
+}
+
+.sceneLines i {
+    background: color-mix(in srgb, var(--home-text) 13%, transparent);
+    border-radius: 999px;
+    display: block;
+    height: 6px;
+}
+
+.sceneLines i:first-child {
+    width: 84%;
+}
+
+.sceneLines i:last-child {
+    background: color-mix(in srgb, var(--home-text) 7%, transparent);
+    width: 56%;
+}
+
+.sceneThumb {
+    background: linear-gradient(142deg, var(--brand-500), var(--home-accent));
+    border-radius: 9px;
+    box-shadow: 0 8px 16px -10px color-mix(in srgb, var(--home-accent) 90%, transparent);
+    flex: 0 0 auto;
+    height: 40px;
+    width: 40px;
+}
+
+.sceneRun {
+    display: grid;
+    gap: 14px;
+    padding: 0 26px;
+    width: 100%;
+}
+
+.sceneTags {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+}
+
+.sceneTags span {
+    background: var(--home-surface-strong);
+    border: 1px solid color-mix(in srgb, var(--home-border) 90%, transparent);
+    border-radius: 7px;
+    color: var(--home-muted);
+    font-size: 11px;
+    padding: 5px 10px;
+}
+
+.sceneTrack {
+    background: color-mix(in srgb, var(--home-text) 9%, transparent);
+    border-radius: 999px;
+    display: block;
+    height: 6px;
+    overflow: hidden;
+}
+
+.sceneTrack i {
+    background: linear-gradient(90deg, var(--brand-500), var(--home-accent));
+    border-radius: inherit;
+    display: block;
+    height: 100%;
+    width: 58%;
+}
+
+.stepCard .sceneTrack i {
+    animation: sceneFill 5s ease-in-out infinite;
+}
+
+@keyframes sceneFill {
+    0%,
+    100% {
+        width: 42%;
+    }
+    50% {
+        width: 76%;
+    }
+}
+
+.sceneTiles {
+    display: grid;
+    gap: 6px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin: 0 auto;
+    max-width: 208px;
+    padding: 0;
+    width: 100%;
+}
+
+.sceneTiles i {
+    background: linear-gradient(150deg, color-mix(in srgb, var(--home-accent) 16%, var(--home-surface-strong)), var(--home-surface-strong));
+    border: 1px solid color-mix(in srgb, var(--home-border) 90%, transparent);
+    border-radius: 7px;
+    display: block;
+    height: 34px;
+    position: relative;
+}
+
+.sceneTiles i[data-tone="1"] {
+    background: linear-gradient(150deg, color-mix(in srgb, var(--home-accent) 34%, var(--home-surface-strong)), color-mix(in srgb, var(--home-accent) 8%, var(--home-surface-strong)));
+}
+
+.sceneTiles i[data-tone="2"] {
+    background: linear-gradient(150deg, color-mix(in srgb, var(--home-text) 9%, var(--home-surface-strong)), var(--home-surface-strong));
+}
+
+.sceneTiles i[data-play="true"]::after {
+    border-bottom: 4px solid transparent;
+    border-left: 7px solid var(--home-accent-foreground);
+    border-top: 4px solid transparent;
+    content: "";
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
+    left: 50%;
+    position: absolute;
+    top: 50%;
+    transform: translate(-36%, -50%);
+}
+
+.stepNumber {
+    color: var(--home-muted);
+    font-size: 10.5px;
+    font-variant-numeric: tabular-nums;
+    font-weight: 650;
+    left: 12px;
+    letter-spacing: 0.16em;
+    position: absolute;
+    top: 11px;
+    transition: color 260ms ease;
+    z-index: 2;
+}
+
+.stepCard:hover .stepNumber {
+    color: var(--home-accent);
+}
+
+.stepCard h3,
+.advantages h3,
+.workTitle {
+    color: var(--home-text);
+}
+
+.stepCard h3 {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 0;
+}
+
+.stepCopy {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: auto;
+    padding: 0 10px;
+}
+
+.stepCard p {
+    color: var(--home-muted);
+    font-size: 13px;
+    line-height: 1.65;
+    margin: 0;
+}
+
+/* 图标不再是裸 svg，而是带柔光底的小方块：和首屏那颗玻璃徽标同一套语言 */
+.advantageIcon {
+    align-items: center;
+    background: linear-gradient(150deg, color-mix(in srgb, var(--home-accent) 15%, transparent), color-mix(in srgb, var(--home-accent) 4%, transparent));
+    border: 1px solid color-mix(in srgb, var(--home-accent) 20%, var(--home-border));
+    border-radius: 14px;
+    color: var(--home-accent);
+    display: flex;
+    flex: 0 0 auto;
+    height: 44px;
+    justify-content: center;
+    transition:
+        background 260ms ease,
+        box-shadow 260ms ease,
+        transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+    width: 44px;
+}
+
+.advantageIcon svg {
+    height: 20px;
+    width: 20px;
+}
+
+.advantageCard:hover .advantageIcon {
+    box-shadow: 0 10px 24px -14px color-mix(in srgb, var(--home-accent) 80%, transparent);
+    transform: translateY(-2px) scale(1.05);
+}
+
+.galleryMore a {
+    align-items: center;
+    border: 1px solid var(--home-border);
+    border-radius: 10px;
+    color: var(--home-text);
+    display: inline-flex;
+    font-size: 13px;
+    font-weight: 650;
+    gap: 6px;
+    height: 38px;
+    padding: 0 14px;
+    transition:
+        background 160ms ease,
+        transform 160ms ease;
+}
+
+.galleryMore a:hover {
+    background: color-mix(in srgb, var(--home-text) 7%, transparent);
+    transform: translateY(-1px);
+}
+
+.galleryMore svg {
+    height: 14px;
+    transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+    width: 14px;
+}
+
+.galleryMore a:hover svg {
+    transform: translateX(3px);
+}
+
+.galleryTabs {
+    display: flex;
+    gap: 9px;
+    justify-content: flex-start;
+    margin: 28px 0 0;
+    overflow-x: auto;
+    padding: 3px;
+    scrollbar-width: none;
+}
+
+.galleryTabs::-webkit-scrollbar {
+    display: none;
+}
+
+.galleryTabs button {
+    background: transparent;
+    border: 1px solid var(--home-border);
+    border-radius: 999px;
+    color: var(--home-muted);
+    cursor: pointer;
+    flex: 0 0 auto;
+    font-size: 13px;
+    height: 38px;
+    min-width: 90px;
+    padding: 0 17px;
+    position: relative;
+    transition:
+        background 160ms ease,
+        color 160ms ease,
+        border-color 160ms ease;
+}
+
+.galleryTabs button:hover {
+    color: var(--home-text);
+}
+
+/* 选中的胶囊用 motion 的 layoutId 做位置过渡：
+ * 切换分类时高亮是「滑」过去的，不是原地闪一下 */
+.galleryTabPill {
+    background: linear-gradient(120deg, var(--home-primary-start), var(--home-primary-end));
+    border-radius: 999px;
+    box-shadow: 0 10px 24px -14px color-mix(in srgb, var(--home-glow) 120%, transparent);
+    inset: -1px;
+    position: absolute;
+    z-index: 0;
+}
+
+.galleryTabLabel {
+    position: relative;
+    z-index: 1;
+}
+
+.galleryTabs button.galleryTabActive,
+.galleryTabs button.galleryTabActive:hover,
+.galleryTabs button.galleryTabActive:focus-visible,
+.galleryTabs button[aria-selected="true"] {
+    border-color: transparent;
+    color: #ffffff;
+}
+
+.galleryPanel {
+    min-height: 310px;
+    margin-top: 24px;
+}
+
+.galleryGrid {
+    display: grid;
+    gap: 18px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.galleryGrid > :nth-child(n + 9) {
+    display: none;
+}
+
+.workCard {
+    background: var(--home-surface);
+    border: 1px solid var(--home-border);
+    border-radius: 16px;
+    box-shadow: 0 8px 22px rgba(20, 20, 24, 0.07);
+    min-width: 0;
+    overflow: hidden;
+    position: relative;
+    transition:
+        border-color 260ms ease,
+        box-shadow 260ms ease,
+        transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.workCard:hover {
+    border-color: color-mix(in srgb, var(--home-accent) 34%, var(--home-border));
+    box-shadow: 0 22px 44px -22px color-mix(in srgb, var(--home-accent) 40%, transparent);
+    transform: translateY(-4px);
+}
+
+.workMedia {
+    aspect-ratio: 4 / 3;
+    background: color-mix(in srgb, var(--home-surface-strong) 94%, var(--home-accent) 6%);
+    border: 0;
+    color: inherit;
+    cursor: pointer;
+    display: block;
+    font: inherit;
+    overflow: hidden;
+    padding: 0;
+    position: relative;
+    text-align: left;
+    width: 100%;
+}
+
+/* 标题只在悬停时出现，没有压暗层的话白底作品上的白字读不出来 */
+.workMedia::after {
+    background: linear-gradient(to top, rgba(20, 20, 24, 0.82) 0%, rgba(20, 20, 24, 0.42) 34%, transparent 72%);
+    bottom: 0;
+    content: "";
+    height: 62%;
+    left: 0;
+    opacity: 0;
+    pointer-events: none;
+    position: absolute;
+    right: 0;
+    transition: opacity 220ms ease;
+    z-index: 1;
+}
+
+.workCard:hover .workMedia::after,
+.workCard:focus-within .workMedia::after {
+    opacity: 1;
+}
+
+.workImageWrap {
+    height: 100%;
+    min-height: 0;
+    width: 100%;
+}
+
+.workImage {
+    height: 100%;
+    object-fit: cover;
+    transition: transform 300ms ease;
+    width: 100%;
+}
+
+.workCard:hover .workImage {
+    transform: scale(1.025);
+}
+
+.duration {
+    background: rgba(20, 20, 24, 0.74);
+    border-radius: 6px;
+    color: #ffffff;
+    bottom: 8px;
+    font-size: 10px;
+    line-height: 1;
+    padding: 5px 7px;
+    position: absolute;
+    right: 8px;
+    z-index: 2;
+}
+
+.playIcon {
+    align-items: center;
+    background: rgba(20, 20, 24, 0.46);
+    border: 1px solid rgba(255, 255, 255, 0.78);
+    border-radius: 50%;
+    color: #ffffff;
+    display: flex;
+    height: 44px;
+    justify-content: center;
+    left: 50%;
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    transition:
+        background 220ms ease,
+        transform 220ms ease;
+    width: 44px;
+    z-index: 2;
+}
+
+.workCard:hover .playIcon {
+    background: rgba(20, 20, 24, 0.62);
+    transform: translate(-50%, -50%) scale(1.06);
+}
+
+.playIcon svg {
+    height: 17px;
+    margin-left: 2px;
+    width: 17px;
+}
+
+.mediaFallback {
+    align-items: center;
+    color: var(--home-muted);
+    display: flex;
+    flex-direction: column;
+    font-size: 12px;
+    gap: 8px;
+    height: 100%;
+    justify-content: center;
+}
+
+.mediaFallback svg {
+    height: 24px;
+    width: 24px;
+}
+
+.workBody {
+    background: none;
+    bottom: 0;
+    left: 0;
+    opacity: 0;
+    padding: 16px 14px 14px;
+    pointer-events: none;
+    position: absolute;
+    right: 0;
+    transform: translateY(8px);
+    transition:
+        opacity 220ms ease,
+        transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+    z-index: 2;
+}
+
+.workCard:hover .workBody,
+.workCard:focus-within .workBody {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.workTitle {
+    display: block;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 680;
+    overflow: hidden;
+    text-shadow: 0 1px 4px rgba(6, 13, 34, 0.72);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.gallerySkeleton {
+    animation: home-skeleton 1.35s ease-in-out infinite;
+    aspect-ratio: 4 / 3;
+    background: color-mix(in srgb, var(--home-surface-strong) 94%, var(--home-accent) 6%);
+    border: 1px solid var(--home-border);
+    border-radius: 16px;
+    height: auto;
+    overflow: hidden;
+}
+
+.gallerySkeleton span {
+    background: color-mix(in srgb, var(--home-text) 7%, transparent);
+    display: block;
+    height: 72%;
+}
+.gallerySkeleton i {
+    background: color-mix(in srgb, var(--home-text) 8%, transparent);
+    border-radius: 999px;
+    display: block;
+    height: 8px;
+    margin: 12px;
+    width: 70%;
+}
+.gallerySkeleton i:last-child {
+    margin-top: -5px;
+    width: 42%;
+}
+
+/* 作品广场为空时的场景入口：沿用步骤卡的卡片语言，避免又造一套视觉 */
+.starterGrid {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-top: 40px;
+}
+
+.starterCard {
+    background: linear-gradient(168deg, var(--home-card-top), var(--home-card-bottom));
+    border: 1px solid var(--home-border);
+    border-radius: 18px;
+    box-shadow:
+        inset 0 1px 0 var(--home-card-highlight),
+        0 1px 2px rgba(20, 20, 24, 0.05),
+        0 26px 52px -40px rgba(20, 20, 24, 0.34);
+    color: inherit;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    isolation: isolate;
+    overflow: hidden;
+    padding: 8px 8px 18px;
+    position: relative;
+    text-align: left;
+    width: 100%;
+    transition:
+        border-color 220ms ease,
+        box-shadow 220ms ease,
+        transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.starterCard:hover {
+    border-color: color-mix(in srgb, var(--home-accent) 32%, var(--home-border));
+    box-shadow: 0 32px 60px -40px color-mix(in srgb, var(--home-accent) 62%, transparent);
+    transform: translateY(-4px);
+}
+
+.starterCard:focus-visible {
+    outline: 2px solid var(--home-accent);
+    outline-offset: 3px;
+}
+
+/* 空态封面：暖色底 + 一组抽象构图。六个场景各有一种，
+ * 比一张纯色块更像「作品缩略图」，也不会让人误以为是没加载完的骨架。 */
+.starterCover {
+    background: linear-gradient(140deg, color-mix(in srgb, var(--home-bg) 88%, var(--brand-500)), color-mix(in srgb, var(--home-bg) 58%, var(--brand-500)));
+    border-radius: 12px;
+    display: block;
+    height: 108px;
+    overflow: hidden;
+    position: relative;
+    transition: transform 460ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.starterCover[data-tone="1"] {
+    background: linear-gradient(150deg, color-mix(in srgb, var(--home-bg) 84%, var(--brand-500)), color-mix(in srgb, var(--home-bg) 50%, var(--home-accent)));
+}
+
+.starterCover[data-tone="2"] {
+    background: linear-gradient(160deg, color-mix(in srgb, var(--home-bg) 80%, var(--brand-500)), color-mix(in srgb, var(--home-bg) 40%, var(--home-accent)));
+}
+
+.starterCover i,
+.starterCover b {
+    display: block;
+    inset: 0;
+    position: absolute;
+}
+
+.starterCard:hover .starterCover {
+    transform: scale(1.025);
+}
+
+/* 00 品牌视觉：一个大圆 + 一条粗横线 */
+.starterCover[data-motif="0"] i::before {
+    background: color-mix(in srgb, var(--home-bg) 88%, #fff);
+    border-radius: 999px;
+    content: "";
+    height: 78px;
+    opacity: 0.9;
+    position: absolute;
+    right: -14px;
+    top: -22px;
+    width: 78px;
+}
+
+.starterCover[data-motif="0"] i::after {
+    background: color-mix(in srgb, var(--home-text) 22%, transparent);
+    border-radius: 999px;
+    bottom: 24px;
+    content: "";
+    height: 3px;
+    left: 16px;
+    position: absolute;
+    width: 44px;
+}
+
+.starterCover[data-motif="0"] b {
+    background: color-mix(in srgb, var(--home-bg) 70%, #fff);
+    border-radius: 999px;
+    bottom: 22px;
+    height: 10px;
+    inset: auto 18px 22px auto;
+    opacity: 0.6;
+    position: absolute;
+    width: 10px;
+}
+
+/* 01 分镜：三张错开的画格 */
+.starterCover[data-motif="1"] i::before,
+.starterCover[data-motif="1"] i::after,
+.starterCover[data-motif="1"] b {
+    background: color-mix(in srgb, var(--home-bg) 84%, #fff);
+    border-radius: 6px;
+    box-shadow: 0 8px 16px -10px rgba(20, 20, 24, 0.7);
+    content: "";
+    height: 56px;
+    position: absolute;
+    top: 50%;
+    width: 42px;
+}
+
+.starterCover[data-motif="1"] i::before {
+    left: 16px;
+    transform: translateY(-50%) rotate(-7deg);
+}
+
+.starterCover[data-motif="1"] i::after {
+    left: 50%;
+    transform: translate(-50%, -54%);
+    z-index: 2;
+}
+
+.starterCover[data-motif="1"] b {
+    right: 16px;
+    transform: translateY(-50%) rotate(7deg);
+}
+
+/* 02 插画：两个交叠的软圆 */
+.starterCover[data-motif="2"] i::before,
+.starterCover[data-motif="2"] i::after {
+    border-radius: 999px;
+    content: "";
+    height: 62px;
+    position: absolute;
+    top: 50%;
+    width: 62px;
+}
+
+.starterCover[data-motif="2"] i::before {
+    background: color-mix(in srgb, var(--home-bg) 82%, #fff);
+    left: 28px;
+    transform: translateY(-50%);
+}
+
+.starterCover[data-motif="2"] i::after {
+    background: color-mix(in srgb, var(--home-text) 24%, transparent);
+    left: 62px;
+    opacity: 0.5;
+    transform: translateY(-50%);
+}
+
+.starterCover[data-motif="2"] b {
+    background: color-mix(in srgb, var(--home-bg) 92%, #fff);
+    border-radius: 999px;
+    height: 10px;
+    inset: auto auto 20px 30px;
+    position: absolute;
+    width: 10px;
+}
+
+/* 03 电商主图：一个产品方块 + 倒影 */
+.starterCover[data-motif="3"] i::before {
+    background: color-mix(in srgb, var(--home-bg) 88%, #fff);
+    border-radius: 12px;
+    box-shadow: 0 12px 22px -14px rgba(20, 20, 24, 0.8);
+    content: "";
+    height: 52px;
+    left: 50%;
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -56%);
+    width: 52px;
+}
+
+.starterCover[data-motif="3"] i::after {
+    background: linear-gradient(to bottom, color-mix(in srgb, var(--home-text) 16%, transparent), transparent);
+    border-radius: 999px;
+    bottom: 18px;
+    content: "";
+    height: 4px;
+    left: 50%;
+    position: absolute;
+    transform: translateX(-50%);
+    width: 64px;
+}
+
+.starterCover[data-motif="3"] b {
+    background: color-mix(in srgb, var(--home-text) 9%, transparent);
+    border-radius: 12px;
+    height: 24px;
+    left: 50%;
+    position: absolute;
+    top: 62%;
+    transform: translateX(-50%) scaleY(0.7);
+    width: 52px;
+}
+
+/* 04 配乐：一排音量柱 */
+.starterCover[data-motif="4"] i {
+    background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--home-bg) 86%, #fff) 0 6px, transparent 6px 14px);
+    bottom: 26px;
+    height: 46px;
+    inset: auto 22px 24px;
+    mask-image: repeating-linear-gradient(90deg, #000 0 6px, transparent 6px 14px);
+    position: absolute;
+}
+
+.starterCover[data-motif="4"] i::before {
+    background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--home-text) 30%, transparent) 0 6px, transparent 6px 14px);
+    content: "";
+    height: 6px;
+    inset: auto 0 0 0;
+    position: absolute;
+}
+
+/* 05 Agent：三个节点 + 连线 */
+.starterCover[data-motif="5"] i::before {
+    background: color-mix(in srgb, var(--home-bg) 86%, #fff);
+    border-radius: 999px;
+    box-shadow:
+        34px 26px 0 color-mix(in srgb, var(--home-bg) 86%, #fff),
+        68px 0 0 color-mix(in srgb, var(--home-text) 34%, transparent);
+    content: "";
+    height: 18px;
+    left: 34px;
+    position: absolute;
+    top: 44px;
+    width: 18px;
+}
+
+.starterCover[data-motif="5"] i::after {
+    background: color-mix(in srgb, var(--home-bg) 66%, #fff);
+    content: "";
+    height: 1px;
+    left: 50px;
+    opacity: 0.75;
+    position: absolute;
+    top: 59px;
+    transform: rotate(38deg);
+    transform-origin: left center;
+    width: 30px;
+}
+
+.starterCover[data-motif="5"] b {
+    background: color-mix(in srgb, var(--home-bg) 66%, #fff);
+    content: "";
+    height: 1px;
+    left: 74px;
+    opacity: 0.75;
+    position: absolute;
+    top: 74px;
+    transform: rotate(-38deg);
+    transform-origin: left center;
+    width: 30px;
+}
+
+.starterMeta {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+    margin: 12px 10px 0;
+}
+
+.starterIndex {
+    color: var(--home-muted);
+    font-size: 10.5px;
+    font-weight: 650;
+    letter-spacing: 0.16em;
+}
+
+.starterGo {
+    color: var(--home-accent);
+    display: grid;
+    height: 26px;
+    opacity: 0.55;
+    place-items: center;
+    transition:
+        opacity 200ms ease,
+        transform 200ms ease;
+    width: 26px;
+}
+
+.starterGo svg {
+    height: 15px;
+    width: 15px;
+}
+
+.starterCard:hover .starterGo,
+.starterCard:focus-visible .starterGo {
+    opacity: 1;
+    transform: translate(2px, -2px);
+}
+
+.starterTitle {
+    color: var(--home-text);
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 6px 10px 0;
+}
+
+.starterDesc {
+    color: var(--home-muted);
+    font-size: 12.5px;
+    line-height: 1.6;
+    margin: 5px 10px 0;
+}
+
+.galleryMore {
+    border-top: 1px solid var(--home-border);
+    display: flex;
+    justify-content: flex-start;
+    margin-top: 28px;
+    padding-top: 20px;
+}
+
+/* 平台能力：和上面两段共用 .section 的容器与表头，只是卡片更紧凑 */
+.advantages {
+    /* 间距交给 .section 的 padding-top，这里不再叠一层 */
+    margin-top: 0;
+}
+
+.advantagesGrid {
+    display: grid;
+    gap: 18px;
+    /* 2×2 而不是 1×4：每张卡有横向空间放一块微缩画面，
+     * 版面也从「一排小卡」变成有分量的方块，和首屏的体量更接近。 */
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-top: 44px;
+}
+
+.advantageCard {
+    background: linear-gradient(168deg, var(--home-card-top), var(--home-card-bottom));
+    border: 1px solid var(--home-border);
+    border-radius: 22px;
+    box-shadow:
+        inset 0 1px 0 var(--home-card-highlight),
+        0 1px 2px rgba(20, 20, 24, 0.05),
+        0 26px 52px -40px rgba(20, 20, 24, 0.38);
+    align-items: center;
+    display: flex;
+    gap: 22px;
+    height: 100%;
+    isolation: isolate;
+    overflow: hidden;
+    padding: 22px 22px 22px 24px;
+    position: relative;
+    transition:
+        border-color 240ms ease,
+        box-shadow 240ms ease,
+        transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.advantageCard:hover {
+    border-color: color-mix(in srgb, var(--home-accent) 30%, var(--home-border));
+    box-shadow:
+        inset 0 1px 0 var(--home-card-highlight),
+        0 34px 64px -40px color-mix(in srgb, var(--home-accent) 62%, transparent);
+    transform: translateY(-4px);
+}
+
+.advantageCopy {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.advantages h3 {
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 16px 0 0;
+}
+
+.advantages p {
+    color: var(--home-muted);
+    font-size: 13px;
+    line-height: 1.6;
+    margin: 7px 0 0;
+}
+
+.advantageVisual {
+    background:
+        radial-gradient(120% 120% at 82% 8%, color-mix(in srgb, var(--home-accent) 18%, transparent), transparent 58%),
+        linear-gradient(158deg, color-mix(in srgb, var(--home-bg) 88%, var(--brand-500)), color-mix(in srgb, var(--home-bg) 97%, var(--home-surface-strong)));
+    border: 1px solid color-mix(in srgb, var(--home-border) 82%, transparent);
+    border-radius: 14px;
+    box-shadow: inset 0 1px 2px rgba(20, 20, 24, 0.05);
+    flex: 0 0 auto;
+    height: 120px;
+    overflow: hidden;
+    position: relative;
+    width: 152px;
+}
+
+.advantageCard:hover .advantageVisual {
+    border-color: color-mix(in srgb, var(--home-accent) 22%, var(--home-border));
+}
+
+/* 深色态里卡片本身就暗，画布要和卡片拉开一档，否则图示会糊成一片 */
+:global(.dark) .stepVisual,
+:global(.dark) .advantageVisual {
+    background:
+        radial-gradient(120% 120% at 84% 4%, color-mix(in srgb, var(--home-accent) 16%, transparent), transparent 56%),
+        linear-gradient(158deg, color-mix(in srgb, var(--home-bg) 74%, var(--brand-500)), var(--home-card-top));
+}
+
+:global(.dark) .sceneTiles i {
+    background: linear-gradient(150deg, color-mix(in srgb, var(--brand-500) 20%, var(--home-card-top)), var(--home-card-top));
+}
+
+:global(.dark) .sceneTiles i[data-tone="1"] {
+    background: linear-gradient(150deg, color-mix(in srgb, var(--brand-500) 42%, var(--home-card-top)), color-mix(in srgb, var(--brand-500) 16%, var(--home-card-top)));
+}
+
+:global(.dark) .sceneTiles i[data-tone="2"] {
+    background: linear-gradient(150deg, color-mix(in srgb, var(--brand-500) 10%, var(--home-card-top)), var(--home-card-top));
+}
+
+.sceneCards i {
+    background: linear-gradient(150deg, var(--home-surface-strong), color-mix(in srgb, var(--brand-500) 26%, var(--home-surface-strong)));
+    border: 1px solid color-mix(in srgb, var(--brand-500) 18%, var(--home-border));
+    border-radius: 8px;
+    box-shadow: 0 10px 18px -14px rgba(20, 20, 24, 0.7);
+    height: 48%;
+    left: 50%;
+    position: absolute;
+    top: 50%;
+    width: 30%;
+}
+
+.sceneCards i[data-tone="0"] {
+    opacity: 0.55;
+    transform: translate(-98%, -50%) rotate(-13deg);
+}
+
+.sceneCards i[data-tone="1"] {
+    transform: translate(-50%, -58%) rotate(-1deg);
+    z-index: 2;
+}
+
+.sceneCards i[data-tone="2"] {
+    opacity: 0.8;
+    transform: translate(-2%, -46%) rotate(11deg);
+}
+
+.sceneStack i {
+    aspect-ratio: 1;
+    background: radial-gradient(circle at 34% 26%, color-mix(in srgb, var(--brand-500) 74%, var(--home-surface-strong)), color-mix(in srgb, var(--brand-500) 34%, var(--home-surface-strong)));
+    border: 1px solid color-mix(in srgb, var(--brand-500) 42%, transparent);
+    border-radius: 999px;
+    height: auto;
+    position: absolute;
+    top: 50%;
+    width: 33%;
+}
+
+.sceneStack i[data-tone="0"] {
+    left: 8%;
+    opacity: 0.45;
+    transform: translateY(-50%);
+}
+
+.sceneStack i[data-tone="1"] {
+    left: 30%;
+    opacity: 0.72;
+    transform: translateY(-60%);
+    z-index: 2;
+}
+
+.sceneStack i[data-tone="2"] {
+    left: 52%;
+    transform: translateY(-46%);
+    z-index: 3;
+}
+
+.sceneProgress {
+    align-content: center;
+    display: grid;
+    gap: 14px;
+    height: 100%;
+    padding: 0 14%;
+}
+
+.sceneProgress .sceneTrack {
+    height: 6px;
+}
+
+.sceneProgress .sceneTrack i {
+    animation: sceneFill 5s ease-in-out infinite;
+    width: 64%;
+}
+
+.sceneDot {
+    background: var(--home-accent);
+    border-radius: 999px;
+    box-shadow: 0 0 0 5px color-mix(in srgb, var(--home-accent) 14%, transparent);
+    display: block;
+    height: 8px;
+    justify-self: start;
+    margin-left: 62%;
+    width: 8px;
+}
+
+.scenePlates i {
+    background: linear-gradient(150deg, color-mix(in srgb, var(--home-surface-strong) 80%, var(--brand-500) 20%), var(--home-surface-strong));
+    border: 1px solid color-mix(in srgb, var(--brand-500) 22%, var(--home-border));
+    border-radius: 7px;
+    box-shadow: 0 6px 12px -10px rgba(20, 20, 24, 0.7);
+    height: 20px;
+    left: 50%;
+    position: absolute;
+    transform: translateX(-50%);
+}
+
+.scenePlates i:nth-child(1) {
+    opacity: 0.5;
+    top: 24%;
+    width: 50%;
+}
+
+.scenePlates i:nth-child(2) {
+    opacity: 0.75;
+    top: 44%;
+    width: 63%;
+}
+
+.scenePlates i:nth-child(3) {
+    top: 64%;
+    width: 76%;
+}
+
+.cta {
+    align-items: center;
+    background:
+        radial-gradient(ellipse 74% 130% at 50% -10%, color-mix(in srgb, var(--home-accent) 18%, transparent), transparent 72%),
+        var(--home-surface);
+    border: 1px solid color-mix(in srgb, var(--home-accent) 26%, var(--home-border));
+    border-radius: 32px;
+    box-shadow:
+        inset 0 1px 0 color-mix(in srgb, var(--home-surface-strong) 70%, transparent),
+        0 40px 90px -70px color-mix(in srgb, var(--home-accent) 90%, transparent);
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    isolation: isolate;
+    justify-content: center;
+    margin: clamp(76px, 9vw, 108px) auto;
+    max-width: 1000px;
+    min-height: 0;
+    overflow: hidden;
+    padding: 60px 48px 64px;
+    position: relative;
+    text-align: center;
+    width: calc(100% - 64px);
+}
+
+/* 缓慢呼吸的暖光，和首屏那块会随指针流动的玻璃呼应：
+ * 静止时整块 CTA 也在轻轻明暗，不会像一张贴纸。 */
+.cta::before {
+    animation: cta-breathe 9s ease-in-out infinite;
+    background: radial-gradient(closest-side, color-mix(in srgb, var(--home-accent) 26%, transparent), transparent 72%);
+    border-radius: 50%;
+    content: "";
+    height: 460px;
+    left: 50%;
+    margin-left: -340px;
+    pointer-events: none;
+    position: absolute;
+    top: -180px;
+    width: 680px;
+    z-index: 0;
+}
+
+@keyframes cta-breathe {
+    0%,
+    100% {
+        opacity: 0.55;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.92;
+        transform: scale(1.08);
+    }
+}
+
+.cta > div {
+    position: relative;
+    z-index: 2;
+}
+.cta h2 {
+    color: var(--home-text);
+    font-size: clamp(28px, 3.4vw, 40px);
+    font-weight: 760;
+    letter-spacing: -0.03em;
+    line-height: 1.16;
+    margin: 0;
+    text-wrap: balance;
+}
+.cta p {
+    color: var(--home-muted);
+    font-size: 16px;
+    line-height: 1.7;
+    margin: 16px auto 0;
+    max-width: 32em;
+}
+.cta > button {
+    align-items: center;
+    background: var(--home-accent);
+    border: 0;
+    border-radius: 999px;
+    box-shadow: 0 18px 44px -18px color-mix(in srgb, var(--home-accent) 68%, transparent);
+    color: var(--home-accent-foreground);
+    cursor: pointer;
+    display: flex;
+    flex: 0 0 auto;
+    font-size: 15px;
+    font-weight: 620;
+    gap: 8px;
+    height: 54px;
+    margin-top: 32px;
+    padding: 0 28px;
+    position: relative;
+    transition:
+        background 200ms ease,
+        transform 200ms ease;
+    z-index: 2;
+}
+.cta > button:hover {
+    background: color-mix(in srgb, var(--home-accent) 88%, #000000);
+    transform: translateY(-1px);
+}
+.cta button svg {
+    height: 16px;
+    transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+    width: 16px;
+}
+.cta > button:hover svg {
+    transform: translateX(4px);
+}
+.footer {
+    border-top: 1px solid var(--home-border);
+    margin-top: 46px;
+    padding: 46px 32px 28px;
+    position: relative;
+    z-index: 1;
+}
+
+.footerGrid {
+    display: grid;
+    gap: clamp(52px, 7vw, 112px);
+    grid-template-columns: minmax(260px, 1.15fr) minmax(480px, 1fr);
+    margin: 0 auto;
+    max-width: 1316px;
+}
+
+.footerBrand {
+    min-width: 0;
+}
+
+.footerBrand p {
+    color: var(--home-muted);
+    font-size: 13px;
+    line-height: 1.8;
+    margin: 16px 0 0;
+    max-width: 420px;
+}
+.footerSocials {
+    display: flex;
+    gap: 8px;
+    margin-top: 18px;
+}
+.footerSocials a {
+    align-items: center;
+    border: 1px solid var(--home-border);
+    border-radius: 50%;
+    color: var(--home-muted);
+    display: flex;
+    height: 36px;
+    justify-content: center;
+    transition:
+        background 160ms ease,
+        color 160ms ease;
+    width: 36px;
+}
+.footerSocials a:hover {
+    background: color-mix(in srgb, var(--home-text) 7%, transparent);
+    color: var(--home-text);
+}
+.footerSocials svg {
+    height: 15px;
+    width: 15px;
+}
+.footerNavigation {
+    display: grid;
+    gap: 36px;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+}
+
+.footerColumn {
+    align-items: flex-start;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.footerColumn h2 {
+    color: var(--home-text);
+    font-size: 14px;
+    font-weight: 720;
+    margin: 0 0 3px;
+}
+.footerColumn a,
+.footerColumn button {
+    background: transparent;
+    border: 0;
+    color: var(--home-muted);
+    cursor: pointer;
+    font-size: 13px;
+    line-height: 1.4;
+    padding: 0;
+    text-align: left;
+    transition: color 160ms ease;
+}
+.footerColumn a:hover,
+.footerColumn button:hover {
+    color: var(--home-text);
+}
+
+/* 页脚链接的下划线从左侧划出，而不是整段变色 */
+.footerColumn a,
+.footerColumn button,
+.footerBottom a {
+    background-image: linear-gradient(currentColor, currentColor);
+    background-position: 0 100%;
+    background-repeat: no-repeat;
+    background-size: 0 1px;
+    transition:
+        background-size 220ms cubic-bezier(0.22, 1, 0.36, 1),
+        color 160ms ease;
+}
+
+.footerColumn a:hover,
+.footerColumn button:hover,
+.footerBottom a:hover {
+    background-size: 100% 1px;
+}
+
+.footerBottom {
+    align-items: center;
+    border-top: 1px solid var(--home-border);
+    color: var(--home-muted);
+    display: flex;
+    font-size: 12px;
+    gap: 22px;
+    justify-content: space-between;
+    margin: 36px auto 0;
+    max-width: 1316px;
+    padding-top: 22px;
+}
+
+.footerBottom div {
+    display: flex;
+    gap: 20px;
+    margin-left: auto;
+}
+.footerBottom a {
+    color: var(--home-muted);
+}
+.footerBottom a:hover {
+    color: var(--home-text);
+}
+
+@keyframes home-skeleton {
+    0%,
+    100% {
+        opacity: 0.58;
+    }
+    50% {
+        opacity: 1;
+    }
+}
+
+@media (max-width: 1180px) {
+    .headerInner {
+        gap: 10px;
+        padding: 0 22px;
+    }
+    .navLink {
+        font-size: 13px;
+        padding: 0 9px;
+    }
+    .brand {
+        font-size: 18px;
+    }
+    .primarySmallButton {
+        padding: 0 14px;
+    }
+    .stepsGrid {
+        gap: 24px;
+    }
+    .stepCard {
+        padding: 10px 10px 20px;
+    }
+    .galleryGrid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .galleryGrid > :nth-child(n + 7) {
+        display: none;
+    }
+    .footerGrid {
+        gap: 28px;
+    }
+}
+
+@media (max-width: 920px) {
+    .root {
+        --home-header-h: 86px;
+    }
+    .headerInner {
+        height: 58px;
+    }
+    .headerRight {
+        gap: 8px;
+    }
+    .desktopNav {
+        display: none;
+    }
+    .mobileMenuButton {
+        display: inline-flex;
+    }
+    .mobileNav {
+        /* 导航常驻后菜单会盖在滚动的内容上，这里比原来更实一点，避免卡片从面板里透出来 */
+        background: color-mix(in srgb, var(--home-bg) 94%, transparent);
+        border-bottom: 1px solid var(--home-border);
+        display: grid;
+        gap: 3px;
+        left: 0;
+        padding: 10px 22px 18px;
+        position: absolute;
+        right: 0;
+        /* 跟着头部的上留白走，否则胶囊被顶下来后会被菜单盖住 */
+        top: calc(var(--header-gap-top) + 58px);
+    }
+    .mobileNav > a,
+    .mobileNav > button {
+        align-items: center;
+        background: transparent;
+        border: 0;
+        border-radius: 8px;
+        color: var(--home-text);
+        display: flex;
+        font-size: 14px;
+        height: 46px;
+        justify-content: space-between;
+        padding: 0 10px;
+    }
+    .mobileNav > a:hover,
+    .mobileNav > button:hover {
+        background: color-mix(in srgb, var(--home-text) 6%, transparent);
+    }
+    .mobileNav svg {
+        height: 16px;
+        width: 16px;
+    }
+    /* 小屏顶栏隐藏了实心 CTA，主入口收进菜单底部，否则未登录只剩一个「登录」文字 */
+    .mobileNavFooter {
+        padding: 10px 10px 0;
+    }
+    .mobileNavCta {
+        align-items: center;
+        background: var(--home-accent);
+        border: 0;
+        border-radius: 999px;
+        color: var(--home-accent-foreground);
+        cursor: pointer;
+        display: flex;
+        font-size: 14px;
+        font-weight: 600;
+        gap: 8px;
+        height: 46px;
+        justify-content: center;
+        width: 100%;
+    }
+    .mobileNavCta:hover {
+        background: var(--home-accent-hover);
+    }
+    .stepsGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .starterGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .advantageCard {
+        padding: 20px;
+    }
+    .footerGrid {
+        gap: 34px;
+        grid-template-columns: 1fr;
+    }
+    .footerNavigation {
+        max-width: 680px;
+    }
+}
+
+@media (max-width: 767px) {
+    .header {
+        /* 小屏高度紧张，留白收到 14px 仍然能让胶囊离开视口上沿 */
+        --header-gap-top: 14px;
+        padding-inline: 14px;
+    }
+    .root {
+        --home-header-h: 76px;
+    }
+    .headerInner {
+        height: 54px;
+        padding: 0 12px;
+    }
+    .brandLogo {
+        height: 30px;
+        width: 30px;
+    }
+    .brand {
+        font-size: 17px;
+    }
+    .loginLink {
+        font-size: 13px;
+        padding: 0 4px;
+    }
+    .headerActions > .primarySmallButton {
+        display: none;
+    }
+    .themeButton,
+    .mobileMenuButton {
+        height: 44px;
+        width: 44px;
+    }
+    .mobileNav {
+        padding-inline: 14px;
+        top: calc(var(--header-gap-top) + 54px);
+    }
+    .contentBand {
+        background: var(--home-bg);
+    }
+    .section {
+        padding: 60px 14px 0;
+    }
+    .sectionHeading h2 {
+        font-size: 28px;
+    }
+    .sectionHeading p {
+        font-size: 14px;
+        margin-top: 8px;
+    }
+    .stepsGrid {
+        gap: 14px;
+        grid-template-columns: 1fr;
+        margin-top: 28px;
+    }
+    .stepVisual {
+        height: 112px;
+    }
+    .starterGrid {
+        gap: 12px;
+        margin-top: 28px;
+    }
+    .starterCard {
+        padding: 8px 8px 16px;
+    }
+    .starterCover {
+        height: 92px;
+    }
+    /* 手机上让高度跟着内容走：固定 min-height 会在图示和标题之间留下一段空白 */
+    .stepCard {
+        padding: 8px 8px 18px;
+    }
+    .stepCopy {
+        padding: 0 8px;
+    }
+    .galleryTabs {
+        justify-content: flex-start;
+        margin-inline: -14px;
+        padding-inline: 14px;
+    }
+    .galleryTabs button {
+        height: 44px;
+        min-width: 90px;
+    }
+    .galleryPanel {
+        min-height: 230px;
+        margin-top: 18px;
+    }
+    .galleryGrid {
+        gap: 12px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .galleryGrid > :nth-child(n + 5) {
+        display: none;
+    }
+    .advantages {
+        margin-top: 0;
+    }
+    .advantagesGrid {
+        gap: 12px;
+        grid-template-columns: 1fr;
+        margin-top: 28px;
+    }
+    .advantageCard {
+        min-height: 0;
+        padding: 18px;
+    }
+    .advantageVisual {
+        height: 104px;
+        width: 126px;
+    }
+    .advantageIcon {
+        height: 40px;
+        width: 40px;
+    }
+    .advantageIcon svg {
+        height: 19px;
+        width: 19px;
+    }
+    .advantages h3 {
+        font-size: 15px;
+    }
+    .advantages p {
+        font-size: 12px;
+    }
+    .cta {
+        align-items: center;
+        flex-direction: column;
+        gap: 0;
+        margin: 64px auto 72px;
+        min-height: 0;
+        padding: 40px 22px 44px;
+        width: calc(100% - 28px);
+    }
+    .cta h2 {
+        font-size: 26px;
+    }
+    .cta p {
+        font-size: 14px;
+        line-height: 1.7;
+    }
+    .cta > button {
+        height: 50px;
+        margin-top: 26px;
+    }
+    .footer {
+        margin-top: 34px;
+        padding: 30px 14px 22px;
+    }
+    .footerGrid {
+        gap: 22px;
+        grid-template-columns: 1fr;
+    }
+    .footerBrand p {
+        grid-column: 1 / -1;
+        line-height: 1.7;
+        margin-top: 12px;
+    }
+    .footerBrand {
+        align-items: center;
+        column-gap: 14px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+    .footerSocials {
+        grid-column: 2;
+        grid-row: 1;
+        margin-top: 0;
+    }
+    .footerNavigation {
+        gap: 20px;
+        grid-template-columns: 1fr;
+        max-width: none;
+    }
+    .footerColumn {
+        display: grid;
+        gap: 5px 16px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        width: 100%;
+    }
+    .footerColumn h2 {
+        font-size: 14px;
+        grid-column: 1 / -1;
+        margin-bottom: 3px;
+    }
+    .footerColumn a,
+    .footerColumn button {
+        align-items: center;
+        display: flex;
+        line-height: 1.55;
+        min-height: 34px;
+    }
+    .footerBottom {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 22px;
+        padding-top: 18px;
+    }
+    .footerBottom div {
+        justify-content: flex-end;
+        margin-left: 0;
+        width: 100%;
+    }
+}
+
+@media (max-width: 430px) {
+    .headerActions {
+        gap: 6px;
+    }
+    .galleryGrid {
+        gap: 9px;
+    }
+    .duration {
+        bottom: 6px;
+        right: 6px;
+    }
+    .playIcon {
+        height: 38px;
+        width: 38px;
+    }
+    .advantageCard {
+        gap: 12px;
+        padding: 14px;
+    }
+    .advantageVisual {
+        height: 88px;
+        width: 104px;
+    }
+    .advantageIcon {
+        height: 36px;
+        width: 36px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .root {
+        scroll-behavior: auto;
+    }
+    .root *,
+    .root *::before,
+    .root *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+    }
+}

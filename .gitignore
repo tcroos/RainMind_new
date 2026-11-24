@@ -1,0 +1,38 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# next build outputs
+.next/
+.next-*/
+out/
+build/
+dist/
+
+# 构建/类型缓存
+*.tsbuildinfo
+.eslintcache
+
+# 环境与密钥
+.env
+.env.*
+!.env.example
+
+# 运行时数据与日志
+.data/
+*.log
+logs/
+
+# 测试产物
+test-results/
+playwright-report/
+blob-report/
+coverage/
+
+# 快照与大文件
+*.zip
+*.tgz
+
+# 系统
+.DS_Store
+Thumbs.db
