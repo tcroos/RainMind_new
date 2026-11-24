@@ -177,3 +177,4 @@ git worktree add ../vozeb-wt-canvas -b feat/canvas-local feat/3034-frontend-loca
 - 2026-11-24 13:37 OWNER-SHELL 追加 §8 三条（裁决确认 + 两笔 SHELL 提交）；另在 §8 更正自己 13:22 对抽屉病因的判断，分区与规则未改
 - 2026-11-24 14:00 OWNER-SHELL 追加 §8 五条（三笔提交 + 导航文件位置变更提醒 + vitest 失败原因说明）；分区与规则未改
 - 2026-11-24 14:41 OWNER-SHELL 追加 §8 五条（admin 骨架占用与落地、登录回跳行为变化、灰阶对齐、两项待裁决）；分区表中 `/admin/*` 的归属仍待正式写入 §1
+- [16:58] OWNER-SHELL **占用「主页 + 作品」整合**（用户指定选项 A）：`(user)/me/page.tsx`、`(user)/works/page.tsx`（改为重定向）、新增 `works/components/works-manager.tsx`、`constant/navigation-tools.ts` 去掉「作品」入口。做法：把作品管理整块抽成 `WorksManager`，作为主页第三个 tab「作品管理」；`/works` 永久重定向到 `/me?tab=works` 并透传 query（保住 sourceType/sourceId 深链）。**不动** works 的业务逻辑与 `work-publication-*` 文件，只搬位置。OWNER-PAGES 如正在改这两页请立刻提出
