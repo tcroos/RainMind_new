@@ -171,21 +171,36 @@ export default function MyCreatorPage() {
                     <span className="grid size-24 place-items-center overflow-hidden rounded-full bg-foreground text-xl font-semibold text-background ring-1 ring-border sm:size-28 sm:text-2xl" aria-hidden="true">
                         {avatarUrl ? <img src={avatarUrl} alt="" className="size-full object-cover" /> : userAvatarFallback(profileDisplayName)}
                     </span>
-                    <div className="mt-3 grid w-fit max-w-full grid-cols-[1.5rem_minmax(0,1fr)_1.5rem] items-center gap-1.5">
+                    <div className="relative mt-3 grid w-fit max-w-full grid-cols-[1.5rem_minmax(0,1fr)_1.5rem] items-center gap-1.5">
                         <span aria-hidden="true" />
                         <h1 id="my-profile-name" className="truncate text-3xl font-semibold sm:text-4xl">
                             {profileDisplayName}
                         </h1>
-                        <button
-                            type="button"
-                            className="grid size-6 -translate-y-1.5 shrink-0 place-items-center self-center text-muted-foreground transition hover:text-foreground focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                            aria-label="编辑个人资料"
-                            title="编辑个人资料"
-                            aria-haspopup="dialog"
-                            onClick={() => setEditOpen(true)}
-                        >
-                            <UserRoundPen className="size-3.5" />
-                        </button>
+                        {/* 操作组溢出第三列向右悬挂：昵称仍严格居中，且不占用统计行下方的垂直空间。
+                            antd 的 button 重置会把 margin 压成 0，所以间距一律用 flex gap 而不是 ml-*。 */}
+                        <div className="flex -translate-y-1.5 items-center gap-2">
+                            <button
+                                type="button"
+                                className="grid size-6 shrink-0 place-items-center text-muted-foreground transition hover:text-foreground focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                aria-label="编辑个人资料"
+                                title="编辑个人资料"
+                                aria-haspopup="dialog"
+                                onClick={() => setEditOpen(true)}
+                            >
+                                <UserRoundPen className="size-3.5" />
+                            </button>
+                            <button
+                                type="button"
+                                className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full border border-border bg-card px-2.5 text-xs font-medium text-foreground shadow-sm transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-55 sm:px-3"
+                                disabled={!summary?.publicProfileAvailable}
+                                onClick={shareProfile}
+                                title={summary?.publicProfileAvailable ? "复制公开主页链接" : "使用资料身份发布作品后可分享主页"}
+                                aria-label={summary?.publicProfileAvailable ? "复制公开主页链接" : "主页尚未公开"}
+                            >
+                                <Share2 className="size-3.5 shrink-0" />
+                                <span className="hidden whitespace-nowrap sm:inline">{summary?.publicProfileAvailable ? "分享主页" : "主页未公开"}</span>
+                            </button>
+                        </div>
                     </div>
                     {bio ? <p className="mt-2 max-w-xl whitespace-pre-wrap break-words text-sm leading-6 text-muted-foreground">{bio}</p> : null}
                     <div className="mt-4 grid w-full max-w-md grid-cols-4 divide-x divide-border" role="group" aria-label="主页统计">
@@ -194,15 +209,6 @@ export default function MyCreatorPage() {
                         <ProfileMetric label="关注" value={metrics.following} onClick={() => setActivityView("following")} />
                         <ProfileMetric label="粉丝" value={metrics.followers} onClick={() => setActivityView("followers")} />
                     </div>
-                    <Button
-                        className="mt-6 !h-10 !min-w-48 !rounded-md !border-stone-950 !bg-stone-950 !px-6 !text-base !font-semibold !text-white !shadow-none hover:!border-black hover:!bg-black hover:!text-white disabled:!border-border disabled:!bg-muted disabled:!text-muted-foreground dark:!border-white dark:!bg-white dark:!text-stone-950 dark:hover:!border-stone-100 dark:hover:!bg-stone-100 dark:hover:!text-stone-950"
-                        icon={<Share2 className="size-4" />}
-                        disabled={!summary?.publicProfileAvailable}
-                        onClick={shareProfile}
-                        title={summary?.publicProfileAvailable ? "复制公开主页链接" : "使用资料身份发布作品后可分享主页"}
-                    >
-                        {summary?.publicProfileAvailable ? "分享主页" : "主页尚未公开"}
-                    </Button>
                 </section>
 
                 <section className="min-w-0 pt-4 sm:pt-5" aria-label="个人主页作品">

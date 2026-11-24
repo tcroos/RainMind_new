@@ -9,7 +9,7 @@ describe("personal creator page layout", () => {
         expect(page).toContain("grid-cols-[1.5rem_minmax(0,1fr)_1.5rem]");
         expect(page).toContain("sm:size-28");
         expect(page).toContain("sm:text-4xl");
-        expect(page).toContain("size-6 -translate-y-1.5 shrink-0");
+        expect(page).toContain("size-6 shrink-0");
         expect(page).not.toContain("rounded-md border border-border bg-card text-muted-foreground");
         expect(page).toContain("<UserRoundPen");
         expect(page).not.toContain("@{user.username}");
@@ -22,7 +22,12 @@ describe("personal creator page layout", () => {
         expect(page).toContain('setActivityView("following")');
         expect(page).toContain('setActivityView("followers")');
         expect(page).toContain("<CommunityActivityModal");
-        expect(page).toContain("mt-6 !h-10 !min-w-48");
+        // 分享入口挂在昵称行右侧的操作组里（flex + gap，避开 antd 对 button margin 的重置），
+        // 不再占用统计行下方的垂直空间
+        expect(page).toContain("flex -translate-y-1.5 items-center gap-2");
+        expect(page).toContain('aria-label={summary?.publicProfileAvailable ? "复制公开主页链接" : "主页尚未公开"}');
+        expect(page).not.toContain("mt-6 !h-10 !min-w-48");
+        expect(page).not.toContain("absolute left-full");
     });
 
     it("shows the account id under the nickname", async () => {
