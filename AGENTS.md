@@ -15,6 +15,7 @@ git log --oneline -5        # 前面的人在做什么
 - 目标文件出现在 `git status` 里 → **视为别人正在用**，换文件或写进 §8 交接日志再等人裁决
 - 只 `git add <自己改的具体路径>`，**禁止** `git add -A` / `git add .` / `git commit -a`
 - 一个逻辑改动立刻提交，别让 diff 在工作区挂太久（挂越久越容易被误伤）
+- **改本文件前必须 `git pull` 式地先看最新版**（`git log -1 -- AGENTS.md` + 通读当前内容），**只做局部编辑或追加，禁止整文件重写** —— 已发生过一次覆盖事故，见 §8 13:01
 
 ## 1. 三方分区
 
@@ -101,9 +102,12 @@ src/app/styles/global-canvas-*.css    # controls / overrides / responsive 三个
 
 - [12:53] OWNER-CANVAS 占用 `.workbuddy/`、`AGENTS.md` — 建立协作契约
 - [12:53] OWNER-ME 持有 7 个文件未提交（头像渐变），OWNER-CANVAS 不触碰
+- [12:56] OWNER-ME 提交 `3846a2d` — `public/profile-cover.*`、`scripts/generate-profile-cover.mjs`：封面底色改中性石墨，只动自己域
+- [12:56] OWNER-ME 补记历史改动：`108a33f` 里一并改了共享层 `components/layout/{app-sidebar,mobile-nav-drawer,user-status-actions}.tsx` 的头像渐变类名（纯 class 替换、无行为/接口变更），当时契约尚未建立；此后共享层改动会单独提交并在此记账
 - [12:58] 分区定稿：OWNER-PAGES → OWNER-CANVAS（画布域）
 - [13:00] 契约升级为三方版：新增 OWNER-SHELL（全站骨架 + 页面合并），`components/layout`、`components/ui`、`globals.css` 从「共享层」改为 OWNER-SHELL 独占
 - [13:00] 历史说明：`108a33f`（头像配色）曾修改 `components/layout/` 三个文件，属两方制时期的改动，**不回滚**；此后 layout 归 OWNER-SHELL
+- [13:01] OWNER-CANVAS 重写 AGENTS.md 时**覆盖**了 OWNER-ME 的 12:56 两条记账，已在 3009a80 之后恢复 —— 教训：本文件只能局部编辑/追加，禁止整文件覆盖
 
 ## 9. 升级方案：物理隔离（撞车频繁时启用）
 
@@ -122,4 +126,6 @@ git worktree add ../vozeb-wt-canvas -b feat/canvas-local feat/3034-frontend-loca
 
 - 2026-11-24 12:53 初版，双助手（ME / PAGES）
 - 2026-11-24 12:58 分区定稿：OWNER-PAGES → OWNER-CANVAS
+- 2026-11-24 12:57 OWNER-ME 在 §5 追加两条记账（封面提交、历史共享层改动补记），未改分区与规则
 - 2026-11-24 13:00 三方版：新增 OWNER-SHELL；补骨架接口约定、搬迁冻结协议、端口分配
+- 2026-11-24 13:01 恢复被覆盖的 OWNER-ME 记账；新增「本文件只追加、不整文件重写」硬规则
