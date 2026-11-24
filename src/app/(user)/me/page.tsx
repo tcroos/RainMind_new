@@ -247,11 +247,11 @@ export default function MyCreatorPage() {
                         <WorkCollection
                             loading={publishedLoading}
                             items={publishedPage?.items || []}
-                            emptyTitle="暂未发布公开作品"
-                            emptyDescription="使用资料身份发布并通过审核后，作品会显示在这里。"
+                            emptyTitle="发布我的第一件作品"
+                            emptyDescription=""
                             emptyAction={
-                                <Link href="/works" className="inline-flex h-9 items-center gap-2 rounded-md !bg-foreground px-3.5 text-sm font-medium !text-background transition hover:opacity-90">
-                                    <ImageIcon className="size-4" /> 发布作品
+                                <Link href="/works" className="inline-flex h-9 items-center gap-2 rounded-md !bg-foreground px-4 text-sm font-medium !text-background transition hover:opacity-90">
+                                    <ImageIcon className="size-4" /> 从项目挑选作品
                                 </Link>
                             }
                             onOpen={setPreviewSlug}
@@ -389,13 +389,21 @@ function WorkCollection({
     }
     if (!items.length) {
         return (
-            <div className="flex min-h-64 flex-col items-center justify-center px-4 text-center">
-                <span className="grid size-14 place-items-center rounded-xl border border-border bg-muted text-muted-foreground/70">
-                    <ImageIcon className="size-6" aria-hidden="true" />
-                </span>
-                <h2 className="mt-3 text-sm font-semibold">{emptyTitle}</h2>
-                <p className="mt-1 max-w-sm text-xs leading-5 text-muted-foreground">{emptyDescription}</p>
-                <div className="mt-4">{emptyAction}</div>
+            /* 间距一律用 flex gap：antd 的全局重置会把 h2 / p / button 的 margin 归零，
+               这些标签上的 mt-* 实测无效（computed margin-top: 0） */
+            <div className="flex min-h-[26rem] flex-col items-center justify-center gap-6 px-4 py-14 text-center sm:min-h-[30rem]">
+                {/* 叠放的作品卡插画：纯 CSS 拼出来，避免为一个空态引入图片资源 */}
+                <div className="relative h-24 w-36" aria-hidden="true">
+                    <span className="absolute right-0 top-0 h-18 w-32 rounded-xl border border-border/60 bg-muted/60" />
+                    <span className="absolute bottom-0 left-0 grid h-18 w-32 place-items-center rounded-xl border border-border bg-card shadow-[0_10px_24px_-10px_rgba(15,23,42,0.28)]">
+                        <ImageIcon className="size-6 text-muted-foreground/40" />
+                    </span>
+                </div>
+                <div className="flex flex-col items-center gap-1.5">
+                    <h2 className="text-sm font-semibold">{emptyTitle}</h2>
+                    {emptyDescription ? <p className="max-w-sm text-xs leading-5 text-muted-foreground">{emptyDescription}</p> : null}
+                </div>
+                {emptyAction}
             </div>
         );
     }
