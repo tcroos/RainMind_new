@@ -11,8 +11,20 @@ const nextEntry = path.join(webRoot, "node_modules", "next", "dist", "bin", "nex
 const runtime = generationRuntimeEnvironment({ allowEphemeralToken: true });
 /* dev 模式下 Next 编译、两条 generation worker lane 与页面渲染挤在同一个 Node 进程里，
  * 实测常驻约 3GB，默认堆上限会在崩溃前先耗尽内存（表现为 exit 134 / heap out of memory）。
- * 这里给一个够用的下限；外部已经显式设置 max-old-space-size 时不覆盖。 */
-const heapOption = "--max-old-space-size=4096";
+ * 这里给一个够用的下限；外部已经显式设置 max-old-space-size 时不覆盖。
+ *
+ * 为什么是 8192 而不是 4096：Next dev 在**每个请求结束后**都会检查
+ *   used_heap_size > 0.8 * heap_size_limit
+ * 一过线就 log「Server is approaching the used memory threshold, restarting...」
+ * 然后 process.exit(77)，由外层 CLI 重新拉起（见 next/dist/server/lib/start-server.js）。
+ * 4096 的 80% 是 3.24GB，而实测 heapUsed 已到 2.83GB、heapTotal 2.98GB、RSS 5.5GB
+ * （.next-dev/dev/trace 的 311 条请求记录），几分钟就会撞线 ——
+ * 表现就是「用着用着服务自己重启、内存里的编译结果全丢、下个请求从零编译」，
+ * 于是又慢又卡还老重启。抬到 8GB 后触发线是 6.4GB，正常编译不会撞；
+ * 真撞上说明是泄漏，那时重启才合理。机器 32GB、空闲 11GB，放得下。
+ *
+ * 若要彻底关掉这个自愈重启（比如为了抓泄漏），设 __NEXT_DISABLE_MEMORY_WATCHER=1。 */
+const heapOption = "--max-old-space-size=8192";
 const inheritedNodeOptions = runtime.environment.NODE_OPTIONS?.trim() || "";
 const environment = {
     ...runtime.environment,
