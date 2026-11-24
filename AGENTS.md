@@ -116,7 +116,7 @@ src/app/styles/global-canvas-*.css    # controls / overrides / responsive 三个
   `pg_hba.conf` 对 127.0.0.1 / ::1 都是 trust，卡连接不会是密码问题；若向导 Host 写 `localhost` 而 PG 只监听
   IPv4，改成 `127.0.0.1` 即可。
 
-### 当前运行状态（2026-11-24 23:52 更新：服务已恢复）
+### 当前运行状态（2026-11-25 00:15 更新：Turbopack 缓存已重建，服务正常）
 
 - **端口固定为 `3001`**：`.env.local` 里 `PORT=3001`、`NEXT_PUBLIC_SITE_URL=http://localhost:3001`。
   3002 / 3003 / 3004 只是各角色独立验证时的备用端口，**不是当前服务地址**。
@@ -132,9 +132,17 @@ src/app/styles/global-canvas-*.css    # controls / overrides / responsive 三个
     generation worker 已启动、heartbeat 正常。
   - §8 [23:38] 提到的 `/api/health/live` 404 **已自证是首次编译期间路由未注册**
     （`src/app/api/health/live/route.ts` 本就返回 200），worker 已正常拉起，**无需改代码**。
-- **遗留问题（交 OWNER-PAGES，不是启动故障）**：`/assets` 单独挂住 ≥90s（PG 恢复前后都复现，
-  上一轮 180s 也超时），日志只有 `○ Compiling /assets ...` 却没有完成行，怀疑该路由编译/渲染卡住；
-  同组 `/community` `/drama` `/help` 都 <3s，已排除 `(user)/layout.tsx` 与 PG。其余页面可正常验收。
+- ~~遗留问题：`/assets` 单独挂住 ≥90s~~ **00:15 已定位并解决，收回给 OWNER-PAGES 的挂账**：
+  根因是 `.next-dev`（Turbopack 持久缓存）被多次启停 + 并发改代码写坏，模块图里残留了
+  「模块不存在」的负结果和错误 chunk。症状是一组看似无关的错误同时出现：
+  `Cannot find module '@ant-design/nextjs-registry'`（包在 `node_modules` 里、`require.resolve` 正常）、
+  `Cannot find module 'antd'`、`Can't resolve './styles/global-surfaces.css'`（文件存在）、
+  `ReferenceError: UserRound is not defined`（该文件实际导入的是 `UserRoundX`，纯假象）、
+  `/` 500、`/assets` 卡 90s+。处理：停唯一实例 → 整目录改名备份为 `.next-dev.bak-20261125-0015`
+  （未删除、可回滚）→ 清空重建 → 重启。**修复后：`/` 200（首次编译 17.9s）、`/login` 200、
+  `/canvas` 200 跳 login、`/assets` 200（3.2s）、服务端日志零模块错误。**
+  → **教训：遇到「包明明装了却 Cannot find module」并伴随 css / 图标解析异常，先怀疑
+  `.next-dev` 缓存，不要先去改业务代码、也不要重装依赖。**
 - **其他 AI 注意**：两个进程都挂在 agent 后台任务上，**会话结束或被取消就会退出**；
   发现 3001 / 5432 不通时先只读探测，再按上面命令由人拉起唯一实例，不要多方反复起停
   （反复强杀 dev server 会打断 PG 连接，正是 23:28 PG 崩溃的诱因）。
@@ -250,6 +258,7 @@ git worktree add ../vozeb-wt-canvas -b feat/canvas-local feat/3034-frontend-loca
 - 2026-11-24 13:37 OWNER-SHELL 追加 §8 三条（裁决确认 + 两笔 SHELL 提交）；另在 §8 更正自己 13:22 对抽屉病因的判断，分区与规则未改
 - 2026-11-24 23:38 OWNER-CANVAS 在 §7 新增「当前运行状态」（端口 3001 + PG 崩溃诊断）并在 §8 追加一条只读诊断日志；分区与既有禁令未改，**本轮未启动任何服务**
 - 2026-11-24 23:52 OWNER-CANVAS 将 §7「当前运行状态」更新为「服务已恢复」（PG + 3001 均在运行、启动命令与后台任务注意事项、`/assets` 遗留挂账）并在 §8 追加恢复日志；分区与规则未改
+- 2026-11-25 00:15 OWNER-CANVAS 在 §7 更新为「Turbopack 缓存已重建」，把 `/assets` 挂账改为「缓存损坏、已修复」并补排查教训；§8 追加缓存修复日志。分区与规则未改
 - 2026-11-24 23:58 OWNER-PAGES 在 §8 追加 antd/Turbopack 缓存失配的只读诊断与由人执行的修复步骤；分区与规则未改，未碰业务代码、未起停服务
 - 2026-11-24 14:00 OWNER-SHELL 追加 §8 五条（三笔提交 + 导航文件位置变更提醒 + vitest 失败原因说明）；分区与规则未改
 - 2026-11-24 14:41 OWNER-SHELL 追加 §8 五条（admin 骨架占用与落地、登录回跳行为变化、灰阶对齐、两项待裁决）；分区表中 `/admin/*` 的归属仍待正式写入 §1
@@ -301,5 +310,6 @@ git worktree add ../vozeb-wt-canvas -b feat/canvas-local feat/3034-frontend-loca
 - [23:10] OWNER-SHELL 在隔离分支提交 `f3aaa0e`「侧边栏 Lovart 化改造」：① 侧栏 208→232px、导航字号 16→14px、行高 44→40px、图标 20→18px，收起态仍 72px；② `workspace-nav-list.tsx` 取消「创作/项目/资产/个人」分组标题，改成 `navigationGroups.flatMap` 出来的 `FLAT_TOOLS` 平铺一列（分组常量保留，只作顺序定义），侧栏与抽屉共用一份渲染；③ 左下账号栏头像 28→24px、积分与名字 13px 同排、无胶囊底；账户弹层重排为「头像 + 邮箱 / 套餐 + 积分一行 / 整宽升级按钮 / 纯文字菜单 / 退出登录」，宽度与侧栏一致 232px；④ 新增 `components/layout/sidebar-projects.tsx`：导航上方「+ 新建项目」直接建画布并跳转，导航下方「最近项目」取 `listCanvasProjectSummaries`，按视口高度在 3~8 条收敛，含悬停封面预览、重命名、删除，收起态不渲染；新建/改名/删除通过 `vozeb:canvas-projects-changed` 事件刷新列表，未往画布域塞全局依赖；⑤ `global-surfaces.css` 追加侧栏新建/最近项目的链接色与底色覆盖（antd 无层级 reset 会压掉工具类）。测试同步更新 `app-workspace-shell.test.ts` / `user-status-actions.test.ts`，侧栏 + 导航 48/48 用例通过、tsc 0 错误。**按 §7 23:00 裁决：本轮曾短暂拉起 3001 单实例（用户反馈卡顿），已立即停止并确认 3000~3009 无监听；此后未再起任何 dev server、未做浏览器截图验收**，浅色/收起态/账户弹层/深色态的视觉复验挂账，等服务由人在自己终端拉起唯一实例后进行。开工前 `git status` 确认 canvas 与 drama 的未提交改动属其他两方，未触碰。
 - [23:38] OWNER-CANVAS 按用户「启动服务并记录端口」授权，曾在 3001 拉起**唯一一个**实例（`NODE_OPTIONS="--max-old-space-size=6144" node --env-file-if-exists=.env.local scripts/run-app.mjs dev`，单实例堆上限从 8GB 压到 6GB 防再吃满内存），两次均 `✓ Ready` 且 `/`、`/canvas` 返回 200；随后用户取消后台任务，**进程退出，当前 3001~3004 与 5432 全无监听**。用户随即要求「检查问题，不要直接启动」，本轮**未再启动任何服务**，全程只读诊断，结论已写入 §7「当前运行状态」：① 根因不是 dev server 起不来，而是**便携 PostgreSQL 崩溃**——`F:/vozeb-dev-data/pg.log` 23:25~23:27 大量 `could not receive data from client: ... aborted / forcibly closed`（dev server 被反复强杀打断 PG 连接），23:28:42 后端进程被异常 `0xC000026B` 终止，postmaster 杀光全部子进程、23:29:05 `reinitializing` 后无新日志；`Get-Process postgres` 为空、5432 不监听，`pgdata/postmaster.pid` 残留失效 PID 37484。② 这解释了上一轮 `/assets` 卡满 180s 超时（查库请求挂起），且按 §7 会全站 307 跳 `/install`。③ 次要问题：日志反复 `GET /api/health/live 404 in 5.0s`，但 `src/app/api/health/live/route.ts` 存在且应返回 200；`scripts/generation-runtime.mjs` 的 `waitForHttpReady` 是无限循环、只在 `response.ok` 时放行，404 会让 `generation-worker` 永远不启动，需等服务与 PG 恢复后复验（怀疑是首次编译期间路由未注册，未确证）。④ 内存空闲 20.99GB/31.84GB，非性能打满；关键入口文件 TypeScript 转译全通过，排除语法错误拖垮全站。**给其他 AI：端口是 3001，但现在没服务；先由人恢复 PG（注意 stale postmaster.pid）再拉起唯一一个实例，别再多方反复起停。**
 - [23:52] OWNER-CANVAS 按用户「重新启动起来」授权恢复整套环境，**服务现已运行在 3001**：① PG：把失效 `postmaster.pid` 改名备份（未删），`pg_ctl start` 完成崩溃恢复但进程被工具调用回收（假启动），改用前台 `postgres.exe -D ... -p 5432` 挂后台任务常驻；`select 1` 返回 1、5432 监听 127.0.0.1/::1。② dev server：`NODE_OPTIONS="--max-old-space-size=6144" node --env-file-if-exists=.env.local scripts/run-app.mjs dev` 单实例启动，Ready 1.3s；`/api/health/live` 200（证实 23:38 的 404 是首次编译期路由未注册）、generation worker 已启动且 heartbeat 正常。③ 验证：`/`、`/login`、`/canvas`、`/community`、`/drama`、`/help` 全部 200（未登录跳 `/login` 属正常），0.1~3s。④ **遗留挂账给 OWNER-PAGES**：`/assets` 单独挂 ≥90s，日志只有 `○ Compiling /assets ...` 无完成行，PG 恢复前后都复现，同组其它页均 <3s，已排除 layout 与 PG，属该路由自身编译/渲染问题，非启动故障。⑤ §7「当前运行状态」已改为「服务已恢复」并写明两个进程挂在 agent 后台任务、会话结束会退出，以及 `pg_ctl start` 假启动的坑。本轮只改 `AGENTS.md`，未碰任何业务代码。
+- [00:15] OWNER-CANVAS 修复用户报的 `Cannot find module '@ant-design/nextjs-registry'`（`src/app/layout.tsx:3`）：**不是依赖缺失**——`node_modules/@ant-design/nextjs-registry` v1.3.0 完整、`package.json` 与 `pnpm-lock.yaml` 都有、`require.resolve` 正常指向 `.pnpm/.../lib/index.js`，`layout.tsx` 自基线 `65b62bb` 未改过。真因是 `.next-dev`（Turbopack 持久缓存）被反复启停 + 并发改代码写坏，同一时段日志里还并发出现 `Cannot find module 'antd'`（浏览器端）、`Can't resolve './styles/global-surfaces.css'`（文件存在）、`ReferenceError: UserRound is not defined`（该文件导入的是 `UserRoundX`）、`/` 500、`/assets` 卡 90s+。处理：确认全场仅一个实例（PID 1280）后停掉 → `.next-dev` 整目录改名备份 `.next-dev.bak-20261125-0015`（未删除）→ 重启重建（`NODE_OPTIONS="--max-old-space-size=6144" node --env-file-if-exists=.env.local scripts/run-app.mjs dev`，Ready 651ms）。**结果：`/` 200（首编 17.9s，原 500）、`/api/health/live` 200、`/login` 200、`/canvas` 200 跳 login、`/assets` 200（3.2s，原卡 90s），服务端日志零模块错误。** 同时收回 §7 里「`/assets` 交 OWNER-PAGES」的误判挂账，并在 §7 补了「先怀疑缓存、别重装依赖」的教训。本轮只改 `AGENTS.md` 与本地日志，未动业务代码。
 - [23:58] OWNER-PAGES 只读诊断用户报的 `Runtime Error: Cannot find module 'antd'`（`/drama` 浏览器端）：**不是源码或依赖缺失**——`antd@6.5.3` 软链接、实体包、`lib/` 与 `es/` 入口齐全，`App/Input/Modal/Segmented` 导出都在，`require.resolve('antd')` 成功，`git status` 只剩 `next-env.d.ts` / `tsconfig.json`；23:52 记录的 `/drama` 200 也说明服务端渲染正常，报错只在客户端 chunk 求值阶段（dev 日志 `source:"Browser"` 的 `Uncaught Error`）。根因判断：`.next-dev/dev/cache/turbopack` 已 2.5GB，主体是 18:25 的旧 `.sst`，而 `node_modules/.pnpm` 19:25 重装过；叠加 `next.config.ts` 的 `optimizePackageImports: ["antd"]`（按具名导入集合生成虚拟模块）与 22:30 我改动 `drama/page.tsx` 的 antd 导入集合，缓存里的模块 id 与新 chunk 失配，浏览器端解析裸包名失败。日志中反复出现 filesystem cache compaction / writing 也在佐证。**修复由人执行**（§7 禁令：agent 不起停服务、不删 `.next-dev`）：① 先只做浏览器 Ctrl+Shift+R 硬刷新（可能只是 HMR chunk 失配）；② 不行则停 3001 单实例 → 只删 `.next-dev/dev/cache/turbopack` → 确认 5432 在跑 → 重新拉起唯一实例 → 硬刷新；③ 仍复现再考虑临时摘掉 `optimizePackageImports: ["antd"]`（`next.config.ts` 属 SHELL 域，先记账再改）。本轮未改任何业务代码、未起服务、未删缓存
 - [00:11] OWNER-SHELL 按用户要求改侧栏：`5278e35` 从 `src/constant/navigation-tools.ts` 的 `navigationTools` 删掉「主页」(`/me`) 与「钱包」(`/wallet`) 两个导航项（分组常量与页面路由均保留），`98d24b6` 把左下账户弹窗菜单的「个人中心」改叫「账户管理」（入口仍 `/profile`）。`navigation-tools.ts` 属跨域常量，此处单独 commit 并记账。**给其他 AI**：① `NavigationToolSlug` 联合类型不再含 `"me"` / `"wallet"`，若有人硬编码这两个字面量请改用路径判断；② `/me`、`/wallet` 页面仍在，但从侧栏进入的入口已消失，改由左下账户弹窗进入，访问时 `navigationToolForPathname` 返回 undefined、侧栏无高亮（符合预期，非 bug）；③ `/me` 承载作品管理（`/works` 重定向到 `/me?tab=works`），OWNER-PAGES 若依赖侧栏「主页」入口做跳转请自行调整；④ 弹窗里的「钱包」菜单项**保留**，用户只要求删左侧导航栏。验证：侧栏 + 导航 49/49 单测通过、`pnpm typecheck` 0 错误；按 §7 裁决未起任何 dev server、未做浏览器截图验收。
