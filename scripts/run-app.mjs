@@ -33,8 +33,18 @@ const environment = {
 };
 if (runtime.ephemeralToken) console.log("Generated ephemeral maintenance and worker tokens for this local development process.");
 
+/* 打包器：默认走 Turbopack（Next 16 的 dev 默认），冷启动从 webpack 的 80 秒级降到几秒，
+ * 常驻内存也低一档 —— 之前内存阈值自愈重启的老毛病大半来自 webpack 把模块图全留在堆里。
+ * next.config.ts 里已经配好 `turbopack.root`，且没有自定义 webpack() 插件，迁移是干净的。
+ *
+ * 留一个不用改代码就能回退的开关：NEXT_DEV_BUNDLER=webpack pnpm dev
+ * （万一某个依赖在 Turbopack 下报错，切回去继续干活，不用等改脚本）。 */
+const useWebpack = process.env.NEXT_DEV_BUNDLER === "webpack";
+const bundlerArgs = useWebpack ? ["--webpack"] : [];
+if (useWebpack) console.log("NEXT_DEV_BUNDLER=webpack → falling back to webpack dev bundler.");
+
 process.exitCode = await superviseGenerationRuntime({
-    app: { command: process.execPath, args: [nextEntry, "dev", "--webpack", "-H", "0.0.0.0", "-p", process.env.PORT || "3000"], cwd: webRoot },
+    app: { command: process.execPath, args: [nextEntry, "dev", ...bundlerArgs, "-H", "0.0.0.0", "-p", process.env.PORT || "3000"], cwd: webRoot },
     workerScript: path.join(webRoot, "scripts", "generation-worker.mjs"),
     environment,
 });
