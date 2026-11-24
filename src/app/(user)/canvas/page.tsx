@@ -124,7 +124,7 @@ export default function CanvasPage() {
                             selectMode ? "bg-[var(--surface-soft)] hover:bg-[var(--surface-inset)]" : "hover:bg-[var(--surface-soft)]",
                         )}
                     >
-                        <TwoRowListIcon className="size-[18px]" style={{ color: selectMode ? "var(--brand-500)" : "var(--ink-2)" }} />
+                        <ThreeRowListIcon className="size-[18px]" style={{ color: selectMode ? "var(--brand-500)" : "var(--ink-2)" }} />
                     </button>
                 </header>
 
@@ -206,17 +206,20 @@ export default function CanvasPage() {
 }
 
 /**
- * 多选入口图标：两行「点 + 划」。lucide 的 List 是三行，形状对不上参照稿，
- * 这里自绘一个，笔画参数（1.8 / round）和站内其它线性图标保持一致。
+ * 多选入口图标：三行「点 + 划」。
+ * 两行版本在 22px 标题旁显得单薄、像残留的一条横线，三行才撑得住标题的体量。
+ * 几何沿用 lucide List 的行距（6 / 12 / 18），笔画 1.8 + 圆头，和站内其它线性图标一致。
  * 颜色走 currentColor，由外层 style 注入 —— 这个 button 上 Tailwind 的 text-[var(..)] 会被当成字号。
  */
-function TwoRowListIcon({ className, style }: { className?: string; style?: CSSProperties }) {
+function ThreeRowListIcon({ className, style }: { className?: string; style?: CSSProperties }) {
     return (
         <svg viewBox="0 0 24 24" fill="none" className={className} style={style} aria-hidden="true" focusable="false">
-            <circle cx="4" cy="8" r="1.1" fill="currentColor" />
-            <path d="M8.5 8H20" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-            <circle cx="4" cy="16" r="1.1" fill="currentColor" />
-            <path d="M8.5 16H20" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            <circle cx="3.2" cy="6" r="1.15" fill="currentColor" />
+            <path d="M8 6H20" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            <circle cx="3.2" cy="12" r="1.15" fill="currentColor" />
+            <path d="M8 12H20" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            <circle cx="3.2" cy="18" r="1.15" fill="currentColor" />
+            <path d="M8 18H20" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
         </svg>
     );
 }
