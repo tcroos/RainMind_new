@@ -18,7 +18,7 @@ describe("user navigation order", () => {
         expect(navigationTools.map((tool) => tool.slug)).not.toContain("video");
     });
 
-    it("puts public works into assets and keeps money plus account under personal", () => {
+    it("puts public works into assets and keeps only external links under personal", () => {
         expect(navigationTools.filter((tool) => tool.group === "assets").map((tool) => tool.label)).toEqual(["素材库", "广场"]);
         // 素材 / 我的提示词 / 公共词库全部收进「素材库」单入口 + 页面内 tab，侧栏不再有任何浮层子项
         const assets = navigationTools.find((tool) => tool.slug === "assets");
@@ -26,16 +26,20 @@ describe("user navigation order", () => {
         // 广场是「别人的作品」，归资产；「社区」这个分组随之取消
         expect(navigationTools.find((tool) => tool.slug === "community")?.group).toBe("assets");
         expect(navigationGroups.map((group) => group.id)).not.toContain("community");
-        // 个人中心不在侧栏列表里：它只有「底部账号条」和「右上角头像面板」两个入口
-        expect(navigationTools.filter((tool) => tool.group === "personal").map((tool) => tool.label)).toEqual(["主页", "钱包", "API", "反馈"]);
+        // 「主页 / 钱包」已从侧栏移除，账号相关入口统一收进左下账户弹窗
+        expect(navigationTools.filter((tool) => tool.group === "personal").map((tool) => tool.label)).toEqual(["API", "反馈"]);
         expect(navigationTools.map((tool) => tool.slug)).not.toContain("profile");
+        expect(navigationTools.map((tool) => tool.slug)).not.toContain("me");
+        expect(navigationTools.map((tool) => tool.slug)).not.toContain("wallet");
     });
 
     it("keeps legacy prompt paths highlighting the merged library entry", () => {
         expect(navigationToolForPathname("/prompts")?.slug).toBe("assets");
         expect(navigationToolForPathname("/my-prompts")?.slug).toBe("assets");
         expect(navigationToolForPathname("/assets")?.slug).toBe("assets");
-        expect(navigationToolForPathname("/wallet")?.slug).toBe("wallet");
+        // /me 与 /wallet 页面仍在（账户弹窗、作品链接会跳过去），但侧栏已无对应高亮项
+        expect(navigationToolForPathname("/wallet")).toBeUndefined();
+        expect(navigationToolForPathname("/me")).toBeUndefined();
     });
 
     it("links the feedback entry to the Feishu form right after API", () => {

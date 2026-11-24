@@ -1,4 +1,4 @@
-import { Braces, Clapperboard, Compass, House, Images, Maximize2, MessageSquareText, UserRound, Wallet } from "lucide-react";
+import { Braces, Clapperboard, Compass, House, Images, Maximize2, MessageSquareText } from "lucide-react";
 
 import { FEEDBACK_FORM_URL } from "./site-links";
 
@@ -19,7 +19,8 @@ export const landingNavigationTools = [
 
 /* 分组逻辑：能做什么（创作）→ 在做什么（项目）→ 存了什么（资产）→ 我是谁（个人）。
  * 广场从「社区」挪进「资产」，因为它是作品，只是别人的；
- * 「个人」这一组才是账号相关：我的主页、钱、账号设置、对外接口。 */
+ * 「主页 / 钱包」不再占侧栏位置，统一从左下账户弹窗进入，
+ * 「个人」这一组只留对外接口（API）与反馈。 */
 export const navigationTools = [
     {
         slug: "create",
@@ -63,20 +64,9 @@ export const navigationTools = [
         group: "assets",
         icon: Compass,
     },
-    {
-        slug: "me",
-        label: "主页",
-        description: "已发布与我的喜欢",
-        group: "personal",
-        icon: UserRound,
-    },
-    {
-        slug: "wallet",
-        label: "钱包",
-        description: "积分、套餐与账单",
-        group: "personal",
-        icon: Wallet,
-    },
+    /* 「主页 / 钱包」两个入口已从侧栏移除：账号条点开的弹窗里已有
+     * 「账户管理」和「钱包」，侧栏再放一遍是重复占位。页面路由 /me、/wallet 保留，
+     * 旧链接与弹窗入口不断，只是不再出现在工作空间导航里。 */
     {
         slug: "api",
         label: "API",
