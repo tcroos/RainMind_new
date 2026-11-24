@@ -120,7 +120,7 @@ export function CanvasProjectCard({ project, selectable = false }: { project: Ca
                 ) : null}
             </div>
 
-            <div className="mt-2 flex min-w-0 items-center gap-1">
+            <div className="mt-3 flex min-w-0 items-center gap-1">
                 {editing ? (
                     <Input
                         size="small"
@@ -168,7 +168,9 @@ export function CanvasProjectCard({ project, selectable = false }: { project: Ca
                     </>
                 )}
             </div>
-            {updatedLabel ? <p className="mt-0.5 truncate px-0.5 text-[12px] leading-4 text-[var(--ink-3)]">{updatedLabel}</p> : null}
+            {/* 日期用 div 不用 p：antd 的 reset 里 `p{margin:0}` 是无层级规则，会压掉 @layer utilities 的 mt-*，
+                之前写 mt-0.5 / mt-1.5 / mt-2 实测间距都是同一个值，就是这个原因 */}
+            {updatedLabel ? <div className="mt-2 truncate px-0.5 text-[12px] leading-4 text-[var(--ink-3)]">{updatedLabel}</div> : null}
         </article>
     );
 }

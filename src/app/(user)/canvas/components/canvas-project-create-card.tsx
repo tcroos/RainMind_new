@@ -18,8 +18,9 @@ export function CanvasCreateCard({ onCreate, loading = false }: { onCreate: () =
             <span className="flex aspect-[16/10] w-full items-center justify-center rounded-xl border border-dashed border-[rgba(17,17,19,0.16)] bg-[var(--surface-inset)] text-[var(--ink-3)] transition-[border-color,color] duration-200 group-hover/create:border-[rgba(17,17,19,0.32)] group-hover/create:text-[var(--ink-1)] dark:border-[rgba(255,255,255,0.14)] dark:group-hover/create:border-[rgba(255,255,255,0.3)]">
                 {loading ? <Loader2 className="size-5 animate-spin" /> : <Plus className="size-5" strokeWidth={1.75} />}
             </span>
-            <span className="mt-2 block truncate px-0.5 text-[14px] font-medium leading-5 text-[var(--ink-1)]">{loading ? "正在创建…" : "新建画布"}</span>
-            <span aria-hidden className="mt-0.5 block h-4" />
+            <span className="mt-3 block truncate px-0.5 text-[14px] font-medium leading-5 text-[var(--ink-1)]">{loading ? "正在创建…" : "新建画布"}</span>
+            {/* 与项目卡的「标题 + 日期」等高，保证两种卡的标题基线对齐 */}
+            <span aria-hidden className="mt-1.5 block h-4" />
         </button>
     );
 }

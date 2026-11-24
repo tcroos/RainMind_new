@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { App, Button, Pagination } from "antd";
-import { Check, Download, List } from "lucide-react";
+import { Check, Download, SquareCheck } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { CanvasDeleteProjectsDialog } from "./components/canvas-delete-projects-dialog";
@@ -107,11 +107,12 @@ export default function CanvasPage() {
 
     return (
         <main className="h-full overflow-auto bg-background pb-24 text-[var(--ink-1)]">
-            <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-5 px-5 py-5 sm:px-6 sm:py-6">
-                <header className="flex items-center gap-2.5">
-                    <h1 className="truncate text-[20px] font-semibold leading-7 tracking-tight text-[var(--ink-1)] sm:text-[22px]">画布</h1>
-                    {/* 批量操作入口：平时只有一个裸图标，不再常驻底色块 —— 22px 标题旁压一块灰方块太抢眼。
-                        悬停才浮出底色；进入多选态后图标转品牌橙，用颜色而不是色块表达「已开启」 */}
+            <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-5 px-5 py-6 sm:gap-8 sm:px-8 sm:py-8">
+                <header className="flex items-center gap-3">
+                    <h1 className="truncate text-[20px] font-semibold leading-8 tracking-tight text-[var(--ink-1)] sm:text-[22px]">画布</h1>
+                    {/* 批量操作入口：裸图标，悬停才浮出底色。22px 标题旁挂一块常驻灰底太抢眼。
+                        进入多选态后图标转品牌橙，用颜色而不是色块表达「已开启」。
+                        颜色写内联：这个 button 上 Tailwind 的 text-[var(..)] 会被当成字号，设不上色。 */}
                     <button
                         type="button"
                         aria-pressed={selectMode}
@@ -119,13 +120,11 @@ export default function CanvasPage() {
                         title={selectMode ? "退出多选" : "多选"}
                         onClick={() => (selectMode ? exitSelectMode() : setSelectMode(true))}
                         className={cn(
-                            "grid size-8 shrink-0 place-items-center rounded-lg transition-colors duration-150",
-                            selectMode
-                                ? "bg-[var(--surface-soft)] hover:bg-[var(--surface-inset)]"
-                                : "hover:bg-[var(--surface-soft)]",
+                            "grid size-7 shrink-0 place-items-center rounded-md transition-colors duration-150",
+                            selectMode ? "bg-[var(--surface-soft)] hover:bg-[var(--surface-inset)]" : "hover:bg-[var(--surface-soft)]",
                         )}
                     >
-                        <List className="size-4" strokeWidth={1.9} style={{ color: selectMode ? "var(--brand-500)" : "var(--ink-3)" }} />
+                        <SquareCheck className="size-4" strokeWidth={1.75} style={{ color: selectMode ? "var(--brand-500)" : "var(--ink-3)" }} />
                     </button>
                 </header>
 
@@ -141,7 +140,7 @@ export default function CanvasPage() {
                 ) : (
                     <>
                         {/* 一屏最多 5 列：列再多卡片就退化成缩略图墙，看不清封面也点不准 */}
-                        <div className={cn("grid grid-cols-2 gap-x-4 gap-y-6 transition-opacity duration-200 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5", summaryBusy && "pointer-events-none opacity-50")}>
+                        <div className={cn("grid grid-cols-2 gap-x-4 gap-y-8 transition-opacity duration-200 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5", summaryBusy && "pointer-events-none opacity-50")}>
                             <CanvasCreateCard onCreate={() => void createAndEnter()} loading={creating} />
                             {projects.map((project) => (
                                 <CanvasProjectCard key={project.id} project={project} selectable={selectMode} />
