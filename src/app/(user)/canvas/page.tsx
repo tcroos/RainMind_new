@@ -108,11 +108,19 @@ export default function CanvasPage() {
     return (
         <main className="h-full overflow-auto bg-background pb-24 text-[var(--ink-1)]">
             <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-5 px-5 py-6 sm:gap-8 sm:px-8 sm:py-8">
+                {/* 标题与按钮同高（28px 行盒 + 28px 方块）才能严格居中对齐：
+                    之前 h1 用 leading-8（32）且带着浏览器默认 margin，头部被撑到 43px，
+                    items-center 之后图标中心比文字中心低了 5.5px，看起来就是一个大一个小。 */}
                 <header className="flex items-center gap-3">
-                    <h1 className="truncate text-[20px] font-semibold leading-8 tracking-tight text-[var(--ink-1)] sm:text-[22px]">画布</h1>
+                    <h1
+                        className="truncate text-[20px] font-semibold leading-7 tracking-tight text-[var(--ink-1)] sm:text-[22px]"
+                        style={{ margin: 0 }}
+                    >
+                        画布
+                    </h1>
                     {/* 批量操作入口：裸图标，悬停才浮出底色。22px 标题旁挂一块常驻灰底太抢眼。
                         进入多选态后图标转品牌橙，用颜色而不是色块表达「已开启」。
-                        颜色写内联：这个 button 上 Tailwind 的 text-[var(..)] 会被当成字号，设不上色。 */}
+                        颜色写内联：这个 button 上 Tailwind 的文字尺寸类会被当成字号，设不上色。 */}
                     <button
                         type="button"
                         aria-pressed={selectMode}
@@ -124,7 +132,7 @@ export default function CanvasPage() {
                             selectMode ? "bg-[var(--surface-soft)] hover:bg-[var(--surface-inset)]" : "hover:bg-[var(--surface-soft)]",
                         )}
                     >
-                        <ThreeRowListIcon className="size-[18px]" style={{ color: selectMode ? "var(--brand-500)" : "var(--ink-2)" }} />
+                        <ThreeRowListIcon style={{ color: selectMode ? "var(--brand-500)" : "var(--ink-2)" }} />
                     </button>
                 </header>
 
@@ -207,19 +215,20 @@ export default function CanvasPage() {
 
 /**
  * 多选入口图标：三行「点 + 划」。
- * 两行版本在 22px 标题旁显得单薄、像残留的一条横线，三行才撑得住标题的体量。
- * 几何沿用 lucide List 的行距（6 / 12 / 18），笔画 1.8 + 圆头，和站内其它线性图标一致。
- * 颜色走 currentColor，由外层 style 注入 —— 这个 button 上 Tailwind 的 text-[var(..)] 会被当成字号。
+ * viewBox 按字形本身收紧到 22×16（不是 24×24）：24 的方框里三行只占中间约 58%，
+ * 渲染成 18px 时实际笔画只有 12px，放在 22px 的「画布」旁边就明显矮一截。
+ * 收紧后 h-[19px] 出来的笔画高度和汉字基本齐平。
+ * 颜色走 currentColor，由外层 style 注入 —— 这个 button 上 Tailwind 的文字尺寸类会被当成字号。
  */
 function ThreeRowListIcon({ className, style }: { className?: string; style?: CSSProperties }) {
     return (
-        <svg viewBox="0 0 24 24" fill="none" className={className} style={style} aria-hidden="true" focusable="false">
-            <circle cx="3.2" cy="6" r="1.15" fill="currentColor" />
-            <path d="M8 6H20" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-            <circle cx="3.2" cy="12" r="1.15" fill="currentColor" />
-            <path d="M8 12H20" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-            <circle cx="3.2" cy="18" r="1.15" fill="currentColor" />
-            <path d="M8 18H20" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        <svg viewBox="0 0 22 16" fill="none" className={cn("h-[19px] w-[26px]", className)} style={style} aria-hidden="true" focusable="false">
+            <circle cx="1.6" cy="1.8" r="1.4" fill="currentColor" />
+            <path d="M6.4 1.8H20.4" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
+            <circle cx="1.6" cy="8" r="1.4" fill="currentColor" />
+            <path d="M6.4 8H20.4" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
+            <circle cx="1.6" cy="14.2" r="1.4" fill="currentColor" />
+            <path d="M6.4 14.2H20.4" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
         </svg>
     );
 }
