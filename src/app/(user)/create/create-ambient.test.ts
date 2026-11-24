@@ -28,6 +28,13 @@ describe("create page ambient background", () => {
         // 顶部光池 + 两片极淡的冷暖雾 + 竖向渐变
         expect(css).toContain("radial-gradient(920px 430px at 50% -70px");
         expect(css).toContain("linear-gradient(180deg, #fefbf8 0%");
+        // 画布改纯白之后，竖向渐变不能再收在灰蓝上 —— 那个旧值会在下半屏读成一条灰带
+        // （实测底部像素 rgb(222,226,232)，比白暗 30 多级）。只断言渐变那一行本身，
+        // 免得注释里提到旧值就误报。
+        const lightGradient = /linear-gradient\(180deg, #fefbf8[^;]*\);/.exec(css)?.[0] ?? "";
+        expect(lightGradient).not.toBe("");
+        expect(lightGradient).not.toContain("#e8ecf2");
+        expect(lightGradient).toContain("#fdfeff 100%");
         // 暗角与颗粒
         expect(css).toContain("rgba(16, 20, 28, 0)");
         expect(css).toContain("feTurbulence");

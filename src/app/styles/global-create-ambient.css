@@ -32,21 +32,28 @@
         radial-gradient(520px 300px at 22% -90px, rgba(226, 103, 31, 0.07) 0%, rgba(226, 103, 31, 0) 72%),
         /* ③ 光池右缘一抹冷雾，和暖光对冲出方向，同样只落在顶部 */
         radial-gradient(560px 330px at 82% -110px, rgba(148, 163, 184, 0.1) 0%, rgba(148, 163, 184, 0) 74%),
-        /* ④ 竖向大渐变：上亮下沉、从暖白走到冷灰蓝；底部干净收住，不放角落光斑 */
-        linear-gradient(180deg, #fefbf8 0%, #f5f7fa 45%, #e8ecf2 100%);
+        /* ④ 竖向大渐变：上亮下沉，但收在白底上。
+         * 原来最深处压到 #e8ecf2 —— 那时候画布本身是 #f8f9fa，压在上面刚好读作「下沉」；
+         * 画布改成纯白后，这条 #e8ecf2 直接变成下半屏一条明显的灰带（实测底部 y=860 处
+         * 像素是 rgb(222,226,232)，比白暗 30 多级）。现在最深处只到 #fdfeff，
+         * 下沉感交给顶部光池的明暗对比去表达，不再靠把底部涂灰。 */
+        linear-gradient(180deg, #fefbf8 0%, #ffffff 40%, #fdfeff 100%);
 }
 
-/* 四周暗角：只在边缘起作用，中心完全透明，不影响卡片对比度 */
+/* 四周暗角：只在边缘起作用，中心完全透明。
+ * 白底上这层最容易显脏（四角发灰），所以从 4.5% 收到 1.8%，
+ * 只留一点点「呼吸」的边缘衰减，几乎看不出但能避免整片死白。 */
 .create-ambient::before {
     content: "";
     position: absolute;
     inset: -10%;
-    background: radial-gradient(72% 62% at 50% 26%, rgba(16, 20, 28, 0) 54%, rgba(16, 20, 28, 0.045) 100%);
+    background: radial-gradient(72% 62% at 50% 26%, rgba(16, 20, 28, 0) 54%, rgba(16, 20, 28, 0.018) 100%);
     animation: create-ambient-breathe 34s ease-in-out infinite alternate;
     will-change: transform, opacity;
 }
 
-/* 胶片颗粒：一层 160×160 的噪声平铺，压到 3.5%，只负责「不塑料」 */
+/* 胶片颗粒：一层 160×160 的噪声平铺，压到 1.8%，只负责「不塑料」。
+ * 原来 3.5% 叠在纯白上会整体压暗一到两档，也是「偏灰」的一部分成因。 */
 .create-ambient::after {
     content: "";
     position: absolute;
@@ -55,7 +62,7 @@
     background-repeat: repeat;
     background-size: 160px 160px;
     mix-blend-mode: multiply;
-    opacity: 0.035;
+    opacity: 0.018;
 }
 
 /*
