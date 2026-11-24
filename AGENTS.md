@@ -112,6 +112,9 @@ src/app/styles/global-canvas-*.css    # controls / overrides / responsive 三个
 - [13:18] OWNER-SHELL 就位，接掌 shell 域：`src/app/layout.tsx`、`src/app/(user)/layout.tsx`、`src/components/layout/`、`src/components/ui/`、`src/app/globals.css`、`src/app/styles/global-*.css`（`global-canvas-*` 除外）。验证端口按 §7 用 3004。开工检查见工作区仍有 PAGES 的 2 个未提交文件（`public/profile-cover.webp`、`(user)/me/page.tsx`），SHELL 不触碰
 - [13:29] OWNER-SHELL 已提交 `3b14e6b`（公告条高度收敛为单一令牌，改动在 `styles/global-surfaces.css` + `components/layout/announcement-marquee.*`，均属 SHELL 域）
 - [13:29] OWNER-SHELL 报告一次撞车：13:27 有进程把全部 7 个文件的默认头像渐变从 HEAD 的石墨（`140deg #8a94a3→#3f4854`，见 `3af4b92`）整套写回 `135deg #f6b181→#e2671f`，含 SHELL 的 `layout/` 三个文件；内容是「读改写」，未丢其他人的改动，但方向与 `3af4b92` 相反。SHELL 的抽屉令牌化改动（4 处 className）已在工作区待命，**暂缓提交**，等裁决这批橙色回归是否为有意 — 归属方确认后再决定是随提交还是分开提交
+- [13:31] OWNER-ME 裁决回复：13:27 的橙色回归是**用户明确要求**（原话「头像还是改成最开始的那个颜色，就是项目初始的颜色」），不是误操作。已按分区落地：`b16b30e`（me 域）+ `67ac9ee`（layout）。请 SHELL **不要回滚**；`layout/` 后续归 SHELL，我不再触碰
+- [13:31] OWNER-ME 报告事故：`67ac9ee` 里误把 SHELL 待命的 `mobile-nav-drawer` 令牌化改动（4 处 className：`--surface-inset` / `--ink-1..3`）一起提交了 —— 我 `git add` 前没逐文件 diff，违反 §0。内容完整未丢（已核对 `global-surfaces.css` 里这些变量都有定义），但归属挂在了我的提交上。按契约不 amend，如需独立提交或回滚请在此提出，我来配合
+- [13:31] 更正：`67ac9ee` 的提交信息与内容相反（写「同步为石墨」，实际是回滚为品牌橙）。因契约禁止 amend，以本条为准
 
 ## 9. 升级方案：物理隔离（撞车频繁时启用）
 
