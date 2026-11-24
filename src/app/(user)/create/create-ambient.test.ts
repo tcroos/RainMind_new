@@ -2,7 +2,9 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
-describe("create page ambient background", () => {
+const ambientCss = () => readFile(resolve(process.cwd(), "src/app/styles/global-create-ambient.css"), "utf8");
+
+describe("create page background", () => {
     it("paints the backdrop from the shell so it reaches the top edge", async () => {
         const shell = await readFile(resolve(process.cwd(), "src/components/layout/app-workspace-shell.tsx"), "utf8");
         const page = await readFile(resolve(process.cwd(), "src/app/(user)/create/page.tsx"), "utf8");
@@ -17,63 +19,46 @@ describe("create page ambient background", () => {
         expect(page).toContain("<CreateDotField />");
     });
 
-    it("stacks light, gradient, vignette and grain in both themes", async () => {
-        const css = await readFile(resolve(process.cwd(), "src/app/styles/global-create-ambient.css"), "utf8");
+    it("keeps the backdrop flat in both themes", async () => {
+        const css = await ambientCss();
         const globals = await readFile(resolve(process.cwd(), "src/app/globals.css"), "utf8");
 
         expect(globals).toContain("./styles/global-create-ambient.css");
         expect(css).toContain(".create-ambient {");
         expect(css).toContain("z-index: -1");
         expect(css).toContain("position: absolute");
-        // 顶部光池 + 两片极淡的冷暖雾 + 竖向渐变
-        expect(css).toContain("radial-gradient(920px 430px at 50% -70px");
-        expect(css).toContain("linear-gradient(180deg, #fefbf8 0%");
-        // 画布改纯白之后，竖向渐变不能再收在灰蓝上 —— 那个旧值会在下半屏读成一条灰带
-        // （实测底部像素 rgb(222,226,232)，比白暗 30 多级）。只断言渐变那一行本身，
-        // 免得注释里提到旧值就误报。
-        const lightGradient = /linear-gradient\(180deg, #fefbf8[^;]*\);/.exec(css)?.[0] ?? "";
-        expect(lightGradient).not.toBe("");
-        expect(lightGradient).not.toContain("#e8ecf2");
-        expect(lightGradient).toContain("#fdfeff 100%");
-        // 暗角与颗粒
-        expect(css).toContain("rgba(16, 20, 28, 0)");
-        expect(css).toContain("feTurbulence");
-        // 深色态另起一套，且尊重「减少动态效果」
-        expect(css).toContain(".dark .create-ambient {");
-        expect(css).toContain("prefers-reduced-motion");
-        // 主题色只做点缀：顶部光池左缘一点暖、右缘一点冷，浓度都压在 10% 以内
-        expect(css).toContain("rgba(226, 103, 31, 0.07)");
-        expect(css).toContain("rgba(148, 163, 184, 0.1)");
+        expect(css).toContain("background-color: var(--surface-canvas);");
+
+        // 只允许纯色底。任何 background-image（光池 / 竖向渐变 / 暗角 / 胶片颗粒）
+        // 都会让静态截图出现「顶部有一团光」——深色态尤其明显，顶部被抬亮后
+        // 和底部近黑之间拉出一条明暗过渡带。层次交给控件自己的描边与落影。
+        expect(css).not.toContain("background-image");
+        expect(css).not.toContain("radial-gradient");
+        expect(css).not.toContain("feTurbulence");
+        expect(css).not.toContain(".dark .create-ambient");
+        expect(css).not.toContain("create-ambient-breathe");
+        expect(css).not.toContain("::before");
+        expect(css).not.toContain("::after");
     });
 
-    it("anchors every glow to the top content area instead of the window edges", async () => {
-        const css = await readFile(resolve(process.cwd(), "src/app/styles/global-create-ambient.css"), "utf8");
+    it("keeps the dot ripple as the only moving layer, and it stays local to the cursor", async () => {
+        const css = await ambientCss();
         const dotField = await readFile(resolve(process.cwd(), "src/app/(user)/create/components/create-dot-field.tsx"), "utf8");
 
-        // 光斑一律固定 px 尺寸 + 负 y 锚点：窗口宽窄变化时范围不会胀缩，
-        // 也不会有光团被钉在视口底边、滚动时悬在空白处。
-        expect(css).toContain("at 22% -90px");
-        expect(css).toContain("at 82% -110px");
-        expect(css).not.toContain("96% 96%");
-        expect(css).not.toContain("16% 90%");
-        expect(css).not.toMatch(/at \d+% (?:[6-9]\d|100)%/);
-        // 底部只剩一层均匀竖向渐变（深色态同样压深到近黑，避免整页读成深灰）
-        expect(css).toContain("linear-gradient(180deg, #0f1114 0%, #0a0b0d 48%, #050607 100%)");
-
-        // 点阵是品牌橙、铺到首屏底边（灵感发现上方）才淡出
+        // 点阵是唯一的动态层；它只在光标半径内显形，静态不画任何像素（见 create-dot-field.tsx）
         expect(css).toContain(".create-dot-field {");
         expect(css).toContain("mask-image: linear-gradient(180deg");
         expect(css).toContain("transparent 100%");
         expect(dotField).toContain("create-dot-field pointer-events-none");
         expect(dotField).toContain("[--create-dot-rgb:226_103_31]");
         expect(dotField).toContain("const RADIUS = 150;");
-        // 静态不再常驻底纹：显形量从 0 起算，只有指针半径内才画点
+        // 显形量从 0 起算：没有常驻底纹，静态不会出现满屏点阵
         expect(dotField).toContain("const REVEAL_ALPHA = 0.16;");
         expect(dotField).not.toContain("const BASE_ALPHA");
         expect(dotField).toContain("let alpha = 0;");
         expect(dotField).toContain("if (alpha <= 0) continue;");
 
-        // 卡面暖光同样收窄到左上角一小团，深色态不再整张卡发棕
+        // 卡面暖光与背景无关，属面板质感，仍收窄在左上角一小团
         const surfaces = await readFile(resolve(process.cwd(), "src/app/styles/global-surfaces.css"), "utf8");
         expect(surfaces).toContain("radial-gradient(72% 110% at 6% -24%");
         expect(surfaces).toContain("rgba(240, 128, 58, 0.045)");
