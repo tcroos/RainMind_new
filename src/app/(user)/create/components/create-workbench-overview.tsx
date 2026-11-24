@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUpRight, LoaderCircle, Maximize2, RefreshCw } from "lucide-react";
+import { ArrowUpRight, BookMarked, Clapperboard, CreditCard, LoaderCircle, Maximize2, RefreshCw, UserRound } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -15,13 +15,15 @@ const sectionTitleClass = "text-[15px] font-semibold text-[var(--ink-1)]";
 const sectionHintClass = "mt-1 text-xs text-[var(--ink-3)]";
 const panelClass = "surface-panel rounded-xl";
 
-/* 快捷入口：左侧内嵌真实配图（圆角缩略图），右侧标题与一句话介绍。
- * 卡片本体是液态玻璃，背景透出页面点阵，所以不能有实心底色。 */
+/* 快捷入口：线性图标 + 标题 + 一句话介绍。
+ * 之前是四张 3D 橙色配图叠在液态玻璃上，纯色平背景里像四块贴纸，
+ * 和全站黑白灰 + 只在动作处点橙的语言冲突。现在图标统一走 --ink-2，
+ * 只有 hover 才染上品牌色，把强调让给真正要操作的那张卡。 */
 const quickEntries = [
-    { href: "/profile", title: "个人中心", description: "套餐、资料与账户安全", image: "/quick-entry/profile.webp" },
-    { href: "/wallet", title: "我的钱包", description: "积分、充值、订单与流水", image: "/quick-entry/wallet.webp" },
-    { href: "/drama", title: "短剧工坊", description: "剧本分镜，一站成片", image: "/quick-entry/drama.webp" },
-    { href: "/prompts", title: "提示词库", description: "收藏与复用优质提示词", image: "/quick-entry/prompts.webp" },
+    { href: "/profile", title: "个人中心", description: "套餐、资料与账户安全", Icon: UserRound },
+    { href: "/wallet", title: "我的钱包", description: "积分、充值、订单与流水", Icon: CreditCard },
+    { href: "/drama", title: "短剧工坊", description: "剧本分镜，一站成片", Icon: Clapperboard },
+    { href: "/prompts", title: "提示词库", description: "收藏与复用优质提示词", Icon: BookMarked },
 ] as const;
 
 export function CreateWorkbenchOverview() {
@@ -55,20 +57,20 @@ export function CreateWorkbenchOverview() {
 function QuickEntryGrid() {
     return (
         <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:h-40 lg:grid-rows-2">
-            {quickEntries.map((entry) => (
-                <Link key={entry.href} href={entry.href} className="liquid-entry group flex min-h-20 items-center gap-2 overflow-hidden p-1.5 sm:gap-2.5 sm:p-2 lg:h-full lg:min-h-0">
-                    <img
-                        src={entry.image}
-                        alt=""
-                        loading="lazy"
-                        className="relative z-[1] size-12 shrink-0 rounded-lg object-cover shadow-[0_6px_14px_-8px_rgba(120,50,0,0.6)] ring-1 ring-white/55 transition duration-300 group-hover:scale-[1.04] sm:size-14 dark:ring-white/20"
-                    />
-                    <span className="relative z-[1] flex min-w-0 flex-1 flex-col justify-center gap-0.5 pr-1">
-                        <span className="truncate text-[13px] font-semibold text-[var(--ink-1)]">{entry.title}</span>
-                        <span className="truncate text-[11px] text-[var(--ink-3)]">{entry.description}</span>
-                    </span>
-                </Link>
-            ))}
+            {quickEntries.map((entry) => {
+                const Icon = entry.Icon;
+                return (
+                    <Link key={entry.href} href={entry.href} className="quick-entry-card group min-h-20 lg:h-full lg:min-h-0">
+                        <span className="quick-entry-icon" aria-hidden>
+                            <Icon className="size-[18px]" strokeWidth={1.7} />
+                        </span>
+                        <span className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
+                            <span className="truncate text-[13px] font-semibold text-[var(--ink-1)]">{entry.title}</span>
+                            <span className="truncate text-[11px] text-[var(--ink-3)]">{entry.description}</span>
+                        </span>
+                    </Link>
+                );
+            })}
         </div>
     );
 }
@@ -100,7 +102,7 @@ function LatestProjectCard({ project, loading, error, onRetry }: { project?: Ret
         >
             <div className="relative h-full min-h-0 overflow-hidden bg-[var(--surface-soft)]">
                 <CanvasProjectCover previews={project.previews} />
-                <span className="absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-md bg-black/60 px-2 py-1 text-[11px] font-medium text-white backdrop-blur-sm">
+                <span className="absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-md bg-white/88 px-2 py-1 text-[11px] font-medium text-[#3c424b] shadow-xs backdrop-blur-sm dark:bg-black/65 dark:text-white/90">
                     <Maximize2 className="size-3" /> Canvas 项目
                 </span>
             </div>
@@ -112,7 +114,7 @@ function LatestProjectCard({ project, loading, error, onRetry }: { project?: Ret
                         {project.nodeCount} 个节点 · {project.connectionCount} 条连线
                     </p>
                 </div>
-                <span className="inline-flex w-fit items-center gap-1.5 rounded-md bg-[#20242a] px-2.5 py-1.5 text-xs font-semibold text-white transition group-hover:bg-[#343b44] dark:bg-[#f3f5f7] dark:text-[#20242a] dark:group-hover:bg-white">
+                <span className="inline-flex w-fit items-center gap-1 text-xs font-medium text-[var(--ink-2)] transition group-hover:text-[var(--brand-600)]">
                     继续编辑 <ArrowUpRight className="size-3.5" />
                 </span>
             </div>

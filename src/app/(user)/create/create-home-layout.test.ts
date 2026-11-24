@@ -168,9 +168,12 @@ describe("create Agent home layout", () => {
         expect(overview).toContain("项目与任务");
         expect(overview).toContain('"group grid h-32');
         expect(overview).toContain("sm:h-40");
-        // 快捷入口必须是内嵌真实配图，不能退回纯图标占位
-        expect(overview).toContain("/quick-entry/");
-        expect(overview).toContain("liquid-entry");
+        // 快捷入口统一为线性图标 + 描边卡；不再用 3D 配图 / 液态玻璃
+        expect(overview).toContain("quick-entry-card");
+        expect(overview).toContain("quick-entry-icon");
+        expect(overview).toContain("UserRound");
+        expect(overview).not.toContain("/quick-entry/");
+        expect(overview).not.toContain("liquid-entry");
         expect(overview).not.toContain("最近生成");
         expect(overview).not.toContain('aria-labelledby="create-assets-heading"');
         expect(overview).not.toContain("recentAssets");
