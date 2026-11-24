@@ -32,6 +32,7 @@ coverage/
 # 本地临时脚本与截图产物
 .tmp/
 .local/
+.workbuddy/
 
 # 快照与大文件
 *.zip
