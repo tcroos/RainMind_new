@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -37,6 +37,29 @@ describe("asset library shell", () => {
         expect(page).not.toContain("importAssetZip");
         expect(page).not.toContain("exportAllAssets");
         expect(page).toContain("新增素材");
+    });
+
+    it("matches the large controls of the other tabs and has one empty-state CTA", async () => {
+        const page = await read("src/app/(user)/assets/page.tsx");
+        const css = await read("src/app/styles/global-library.css");
+
+        expect(page).not.toContain('size="middle"');
+        expect(page).toContain('size="large"');
+        expect(css).toContain("min-height: 40px");
+        // 完全空白时隐藏工具栏的新增按钮，只在下方引导区保留一个入口
+        expect(page).toContain("(loading || assets.length > 0)");
+        expect(page).toContain("LibraryShowcaseEmptyState");
+        await access("public/library/asset-empty-preview.webp");
+    });
+
+    it("switches tabs through history state instead of an RSC navigation", async () => {
+        const page = await read("src/app/(user)/assets/page.tsx");
+        const tabs = await read("src/components/library/library-ui.tsx");
+
+        expect(page).toContain("window.history.pushState");
+        expect(page).toContain("<LibraryTabs tabs={LIBRARY_TABS} active={tab} onSelect={selectTab}");
+        expect(tabs).toContain("onSelect");
+        expect(tabs).toContain("event.preventDefault()");
     });
 
     it("does not show pagination on an empty library", async () => {

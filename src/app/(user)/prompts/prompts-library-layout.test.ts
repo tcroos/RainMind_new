@@ -64,4 +64,16 @@ describe("prompt library layout", () => {
         expect(dialog).toContain("library-tool");
         expect(dialog).toContain("width={1080}");
     });
+
+    it("shows the full prompt with a thin scroll indicator only when it overflows", async () => {
+        const dialog = await read("src/components/prompts/prompt-detail-dialog.tsx");
+
+        expect(dialog).not.toContain("展开全部");
+        expect(dialog).not.toContain("CLAMP_LENGTH");
+        expect(dialog).toContain("whitespace-pre-wrap break-words");
+        expect(dialog).toContain('role="scrollbar"');
+        expect(dialog).toContain("scrollHeight - clientHeight");
+        expect(dialog).toContain("thumb.visible");
+        expect(dialog).toContain("[scrollbar-width:none]");
+    });
 });

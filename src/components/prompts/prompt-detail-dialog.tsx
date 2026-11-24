@@ -1,34 +1,29 @@
 "use client";
 
-import { ChevronDown, Copy, FolderPlus, Quote, X } from "lucide-react";
+import { Copy, FolderPlus, Quote, X } from "lucide-react";
 import { Button, Modal } from "antd";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { imagePreviewUrl, originalImageSourceUrl } from "@/lib/media-image-url";
 import { cn } from "@/lib/utils";
 import { formatPromptDate, type Prompt } from "@/services/api/prompts";
 
-/** 正文超过这个长度就折叠：长提示词在弹窗内滚动，不把整页撑出屏幕。 */
-const CLAMP_LENGTH = 220;
-
 /**
  * 公共词库详情弹窗。
  *
- * 之前的版本是「标题栏 + 中间分栏 + 底部栏」三段，三段之间各画一条横线，
- * 预览图在小半边里被上下留白夹住，右侧是一排带描边的 antd Tag 和黑按钮——
- * 放在全站「无线条、浅底块」的语言里非常突兀。
- *
- * 现在改成一整张详情卡：左侧图片铺满可用高度（模糊底图填充，主图完整 contain），
- * 右侧靠留白组织标题、标签、正文和操作，不画任何分隔线；操作按钮复用素材库的
- * 橙色主按钮与浅底次按钮，保证和页面其他动作是同一套控件。
+ * 一整张无分隔线的详情卡：左侧图片铺满可用高度（模糊底图填充，主图完整 contain），
+ * 右侧靠留白组织标题、标签、正文和操作。正文不再折叠——长文本直接在定高区域内滚动，
+ * 右侧只有一条很窄的滚动进度指示，内容不溢出时完全不显示，可拖动定位。
  */
 export function PromptDetailDialog({ prompt, previewUrl, onClose, onCopy, onSaveAsset }: { prompt: Prompt | null; previewUrl?: string; onClose: () => void; onCopy: (prompt: string) => void; onSaveAsset?: (prompt: Prompt) => void }) {
-    const [expanded, setExpanded] = useState(false);
     const [coverState, setCoverState] = useState<"loading" | "ready" | "error">("loading");
     const [coverAttempt, setCoverAttempt] = useState(0);
+    const scrollRef = useRef<HTMLDivElement>(null);
+    const trackRef = useRef<HTMLDivElement>(null);
+    const [thumb, setThumb] = useState({ visible: false, height: 0, top: 0 });
+    const [dragging, setDragging] = useState(false);
 
     useEffect(() => {
-        setExpanded(false);
         setCoverState("loading");
         setCoverAttempt(0);
     }, [prompt?.id]);
@@ -47,8 +42,78 @@ export function PromptDetailDialog({ prompt, previewUrl, onClose, onCopy, onSave
             setCoverState("error");
         }
     };
-    const collapsible = Boolean(prompt && prompt.prompt.length > CLAMP_LENGTH);
     const visibleTags = prompt?.tags.filter((tag) => tag !== prompt.category).slice(0, 4) || [];
+
+    /* 原生滚动条隐藏后，用一条 4px 的指示条表达「还有多少内容」和「看到哪里」。
+     * 只在 scrollHeight > clientHeight 时出现，短提示词不会有那一条线。 */
+    const updateThumb = useCallback(() => {
+        const el = scrollRef.current;
+        if (!el) return;
+        const { scrollHeight, clientHeight, scrollTop } = el;
+        const overflow = scrollHeight - clientHeight;
+        if (overflow <= 2) {
+            setThumb((prev) => (prev.visible ? { visible: false, height: 0, top: 0 } : prev));
+            return;
+        }
+        const height = Math.max(24, Math.round((clientHeight / scrollHeight) * clientHeight));
+        const top = Math.round((scrollTop / overflow) * (clientHeight - height));
+        setThumb((prev) => (prev.visible && prev.height === height && prev.top === top ? prev : { visible: true, height, top }));
+    }, []);
+
+    useEffect(() => {
+        /* antd Modal 的内容走 portal，ref 可能比父组件的 passive effect 晚一帧挂上；
+         * 这里等到元素真的存在再订阅，并在布局稳定后补量一次。 */
+        const frames: number[] = [];
+        let cleanup = () => {};
+        const attach = () => {
+            const el = scrollRef.current;
+            if (!el) {
+                frames.push(requestAnimationFrame(attach));
+                return;
+            }
+            updateThumb();
+            frames.push(requestAnimationFrame(updateThumb));
+            el.addEventListener("scroll", updateThumb, { passive: true });
+            const observer = new ResizeObserver(updateThumb);
+            observer.observe(el);
+            if (el.firstElementChild) observer.observe(el.firstElementChild);
+            cleanup = () => {
+                el.removeEventListener("scroll", updateThumb);
+                observer.disconnect();
+            };
+        };
+        attach();
+        return () => {
+            frames.forEach(cancelAnimationFrame);
+            cleanup();
+        };
+    }, [prompt?.id, updateThumb]);
+
+    const seekTo = useCallback((clientY: number) => {
+        const el = scrollRef.current;
+        const track = trackRef.current;
+        if (!el || !track) return;
+        const rect = track.getBoundingClientRect();
+        if (!rect.height) return;
+        const ratio = Math.min(1, Math.max(0, (clientY - rect.top) / rect.height));
+        el.scrollTop = ratio * (el.scrollHeight - el.clientHeight);
+    }, []);
+
+    useEffect(() => {
+        if (!dragging) return;
+        const move = (event: PointerEvent) => seekTo(event.clientY);
+        const stop = () => setDragging(false);
+        window.addEventListener("pointermove", move);
+        window.addEventListener("pointerup", stop);
+        window.addEventListener("pointercancel", stop);
+        return () => {
+            window.removeEventListener("pointermove", move);
+            window.removeEventListener("pointerup", stop);
+            window.removeEventListener("pointercancel", stop);
+        };
+    }, [dragging, seekTo]);
+
+    const scrollPercent = thumb.visible ? Math.round((thumb.top / Math.max(1, (scrollRef.current?.clientHeight || 1) - thumb.height)) * 100) : 0;
 
     return (
         <Modal
@@ -125,25 +190,36 @@ export function PromptDetailDialog({ prompt, previewUrl, onClose, onCopy, onSave
                             </button>
                         </div>
 
-                        {/* 正文区固定上限：短提示词不会拉出一大块空灰底，长提示词在区内滚动。 */}
+                        {/* 全文直出，不折叠；原生滚动条隐藏，右侧一条窄指示条只在有溢出时出现。 */}
                         <div className="relative mt-4 h-[min(38dvh,300px)] min-h-[140px] shrink-0 md:h-[min(46dvh,340px)]">
-                            <div className="thin-scrollbar size-full overflow-y-auto overscroll-contain rounded-2xl bg-[var(--surface-inset)] px-4 py-3.5">
-                                <p className={cn("whitespace-pre-wrap break-words text-[13px] leading-[1.9] text-[var(--ink-2)]", !expanded && collapsible && "line-clamp-6")}>{prompt.prompt}</p>
+                            <div
+                                ref={scrollRef}
+                                id="prompt-detail-content"
+                                className="thin-scrollbar size-full overflow-y-auto overscroll-contain rounded-2xl bg-[var(--surface-inset)] px-4 py-3.5 pr-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                            >
+                                <p className="whitespace-pre-wrap break-words text-[13px] leading-[1.9] text-[var(--ink-2)]">{prompt.prompt}</p>
                             </div>
-                            {collapsible && !expanded ? <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-12 rounded-b-2xl bg-[linear-gradient(180deg,transparent,var(--surface-inset))]" /> : null}
-                        </div>
-
-                        <div className="mt-2 flex shrink-0 justify-start">
-                            {collapsible ? (
-                                <button
-                                    type="button"
-                                    aria-expanded={expanded}
-                                    className="inline-flex h-7 items-center gap-1 rounded-lg text-[12px] font-medium text-[var(--brand-600)] transition-colors hover:text-[var(--brand-500)]"
-                                    onClick={() => setExpanded((value) => !value)}
+                            {thumb.visible ? (
+                                <div
+                                    ref={trackRef}
+                                    role="scrollbar"
+                                    aria-controls="prompt-detail-content"
+                                    aria-orientation="vertical"
+                                    aria-valuemin={0}
+                                    aria-valuemax={100}
+                                    aria-valuenow={Math.min(100, Math.max(0, scrollPercent))}
+                                    className="absolute inset-y-2 right-1 w-1 cursor-pointer touch-none rounded-full"
+                                    onPointerDown={(event) => {
+                                        event.preventDefault();
+                                        setDragging(true);
+                                        seekTo(event.clientY);
+                                    }}
                                 >
-                                    {expanded ? "收起" : "展开全部"}
-                                    <ChevronDown className={cn("size-3.5 transition-transform duration-200", expanded && "rotate-180")} aria-hidden />
-                                </button>
+                                    <div
+                                        className={cn("absolute inset-x-0 rounded-full bg-[var(--ink-2)] opacity-60 transition-opacity", dragging && "opacity-90")}
+                                        style={{ height: thumb.height, top: thumb.top }}
+                                    />
+                                </div>
                             ) : null}
                         </div>
 

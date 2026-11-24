@@ -51,11 +51,15 @@
     box-shadow: none !important;
     border-radius: 12px !important;
     padding: 3px !important;
+    /* 和另外两个 tab 的 large 输入框同高（40px），避免「我的素材」控件突然小一号。 */
+    min-height: 40px !important;
 }
 .library-segmented .ant-segmented-item,
 .library-segmented .ant-segmented-item-label {
     color: var(--ink-3) !important;
     border-radius: 9px !important;
+    min-height: 34px !important;
+    line-height: 34px !important;
 }
 .library-segmented .ant-segmented-item-selected,
 .library-segmented .ant-segmented-item-selected .ant-segmented-item-label,

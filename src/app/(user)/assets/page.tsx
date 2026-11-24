@@ -1,12 +1,12 @@
 "use client";
 
-import { FileAudio, Film, Inbox, Plus, RotateCcw, Search, Upload } from "lucide-react";
+import { FileAudio, Film, Plus, RotateCcw, Search, Upload } from "lucide-react";
 import { useRef, useState, type DragEvent as ReactDragEvent } from "react";
 import { App, Button, Form, Input, Modal, Pagination, Segmented, Select, Space, Spin, Tag, Typography } from "antd";
 import { saveAs } from "file-saver";
 import { useRouter, useSearchParams } from "next/navigation";
 
-import { LibraryEmptyState, LibraryTabs, type LibraryTabItem } from "@/components/library/library-ui";
+import { LibraryEmptyState, LibraryShowcaseEmptyState, LibraryTabs, type LibraryTabItem } from "@/components/library/library-ui";
 import { MyPromptsPage } from "@/components/my-prompts/my-prompts-page";
 import { PublicPromptsPanel } from "@/components/prompts/public-prompts-panel";
 
@@ -56,6 +56,13 @@ export default function AssetsPage() {
      * ?tab=assets 仍认作我的素材，旧链接不会跳错。 */
     const rawTab = searchParams.get("tab");
     const tab: LibraryTabKey = rawTab === "mine" || rawTab === "prompts" ? "mine" : rawTab === "assets" ? "assets" : "public";
+    /* 切换 tab 只改查询参数，不走 Next 的 Link/RSC 导航：后者会重新请求服务端组件，
+     * 三个 tab 的内容被整块替换，肉眼能看到明显闪动。原生 history API 与 useSearchParams 同步。 */
+    const selectTab = (key: string) => {
+        const next = key === "public" ? "/assets" : `/assets?tab=${key}`;
+        if (`${location.pathname}${location.search}` === next) return;
+        window.history.pushState(null, "", next);
+    };
     const copyText = useCopyText();
     const [form] = Form.useForm<AssetFormValues>();
     const coverInputRef = useRef<HTMLInputElement>(null);
@@ -249,7 +256,7 @@ export default function AssetsPage() {
                                 </p>
                             </div>
                         </div>
-                        <LibraryTabs tabs={LIBRARY_TABS} active={tab} />
+                        <LibraryTabs tabs={LIBRARY_TABS} active={tab} onSelect={selectTab} />
                     </header>
 
                     {tab === "public" ? (
@@ -264,7 +271,7 @@ export default function AssetsPage() {
                                         再挂一个独立搜索按钮只会多出一块方角，与无线条语言冲突。 */}
                                     <Input
                                         className="library-input min-w-[180px] flex-1 sm:max-w-sm"
-                                        size="middle"
+                                        size="large"
                                         allowClear
                                         prefix={<Search className="size-4 text-[var(--ink-3)]" />}
                                         value={keyword}
@@ -286,10 +293,13 @@ export default function AssetsPage() {
                                         />
                                     </div>
                                 </div>
-                                {/* 新增按钮与搜索框同一行、贴近右边缘；导出/导入已从工具栏移除。 */}
-                                <Button type="primary" className="library-primary" icon={<Plus className="size-4" />} disabled={!ready} onClick={openCreate}>
-                                    新增素材
-                                </Button>
+                                {/* 完全空白时只在下方引导区给一个入口，工具栏不再重复；
+                                    有素材（或正在加载）时按钮才出现在搜索框同一行。 */}
+                                {(loading || assets.length > 0) ? (
+                                    <Button type="primary" size="large" className="library-primary" icon={<Plus className="size-4" />} disabled={!ready} onClick={openCreate}>
+                                        新增素材
+                                    </Button>
+                                ) : null}
                             </div>
 
                             <div className="pt-4 sm:pt-5">
@@ -315,14 +325,28 @@ export default function AssetsPage() {
                                 ) : error ? (
                                     <LibraryEmptyState icon={<RotateCcw className="size-5" />} title="素材加载失败" description={error} action={<Button onClick={reload}>重新加载</Button>} />
                                 ) : !assets.length ? (
-                                    <LibraryEmptyState
-                                        icon={<Inbox className="size-5" />}
-                                        title="还没有素材"
-                                        description="把常用的图片、文本与视频存进来，下次创作时直接复用。"
+                                    <LibraryShowcaseEmptyState
+                                        title="保持创作风格一致"
+                                        description="把常用的字体、人像、配色和文案存成素材，创作时一键复用，让生成结果更贴近你的品牌调性。"
                                         action={
-                                            <Button type="primary" className="library-primary" icon={<Plus className="size-4" />} disabled={!ready} onClick={openCreate}>
-                                                新增第一条素材
-                                            </Button>
+                                            <div className="flex flex-wrap items-center justify-center gap-2">
+                                                {keyword || kindFilter !== "all" ? (
+                                                    <Button
+                                                        size="large"
+                                                        className="library-tool"
+                                                        onClick={() => {
+                                                            setKeyword("");
+                                                            setKindFilter("all");
+                                                            setPage(1);
+                                                        }}
+                                                    >
+                                                        清除筛选
+                                                    </Button>
+                                                ) : null}
+                                                <Button type="primary" size="large" className="library-primary" icon={<Plus className="size-4" />} disabled={!ready} onClick={openCreate}>
+                                                    新增第一条素材
+                                                </Button>
+                                            </div>
                                         }
                                     />
                                 ) : null}

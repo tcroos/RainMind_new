@@ -14,7 +14,7 @@ describe("my prompts page layout", () => {
 
         expect(page).toContain("PromptCard");
         expect(page).not.toContain("<Table");
-        expect(page).toContain("lg:grid-cols-3 2xl:grid-cols-4");
+        expect(page).toContain("lg:grid-cols-3 xl:grid-cols-4");
     });
 
     it("keeps search, category chips and a clear action", async () => {
