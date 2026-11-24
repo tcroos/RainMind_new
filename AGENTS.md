@@ -178,6 +178,13 @@ src/app/styles/global-canvas-*.css    # controls / overrides / responsive 三个
 
 - [19:26] OWNER-CANVAS 提交 `cc7644c`：节点提示词面板把积分拆到左侧独立一列（币形图标 + 数字，写法对齐侧栏），生成键改为 36px 圆形上箭头（对齐创作页发送键）：空提示词灰底灰箭头且禁用、有词转品牌橙渐变、生成中换方块。注意底部行的 `[&_button]:!h-12` 已改成 `[&_button:not(.canvas-send-circle)]`，以后在该行加圆键要带上 `canvas-send-circle` 类，否则展开态会被拉成椭圆
 
+
+- [19:40] OWNER-CANVAS **只做诊断、未改代码**（三个文件都归 SHELL）：用户反馈画布上三个弹层问题 ——
+  ① **通知深色不一致**：`components/layout/announcement-notification-center.tsx` 全套自持蓝灰（`dark:bg-[#15181d]`、`#20252c`、`#3a424e`、`#66758e`），与全站中性令牌（`--surface-panel #131315 / --surface-soft #171719 / --surface-inset #1d1d20`）不同源，所以抽屉发蓝；
+  ② **画布内自动弹通知**：`site-announcement-popup.tsx` 在 `ClientRootInit` 全局挂载，公告勾了「登录后弹窗」就**任何页面**都自动滑出，唯一的拦截是 `lib/announcement-routes.ts` 的 `isAnnouncementSuppressedPath()`，目前只含 `/`、`/login`、`/register`、`/forgot-password`；
+  ③ **弹层边缘发糊**：`global-app-shell.css` 大量 `backdrop-filter: blur(18~34px)` + 半透明底，覆盖在画布点阵上就会把网格糊成一片。建议面板底改不透明（`--surface-panel`）+ 只保留投影。
+  **如需我直接改，请 SHELL 在此确认或保持沉默到今日结束，我按 §4 单独 commit 并记账。**
+
 ## 9. 升级方案：物理隔离（撞车频繁时启用）
 
 现在是**单一工作树、单分支**，三人共写一份文件 —— 分区靠自觉。若开始频繁互相踩：
