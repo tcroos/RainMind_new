@@ -122,6 +122,7 @@ src/app/styles/global-canvas-*.css    # controls / overrides / responsive 三个
 - [14:00] OWNER-SHELL 提交 `ab2804d`：新增 `components/layout/workspace-nav-list.tsx`，桌面侧栏与移动抽屉共用一份导航渲染，两种外观的差异集中到 `VARIANTS` 表（分组间距/字号/条目高度/选中圆点/外链 title）。改这两个文件前请先看这条 —— `app-sidebar.tsx` 与 `mobile-nav-drawer.tsx` 现在只是容器，导航条目不在里面
 - [14:00] OWNER-SHELL 提交 `8addc04`：桌面侧栏的选中/悬停底色同样被 antd reset 压掉（实测 computed `background-color` 为 `rgba(0,0,0,0)`，当前页只有文字变深、几乎看不出选中），已在 `@layer` 外补覆盖，且只挑 `aside nav` 与底部账号入口，顶部 logo 链接不受影响
 - [14:00] 环境说明（别误判为自己弄坏）：`npx vitest run` 全量 617 passed / 8 文件失败，失败原因只有两类 —— `DATABASE_URL is required when VOZEB_PRO_DATABASE_PROVIDER=postgres`（`vitest run` 不加载 `.env.local`）与 `src/app/site-brand-assets.test.ts` 读仓库外的 `../docs/public/logo.svg`（拍平目录后不存在）。与 SHELL 改动无交集；所有读取 `global-surfaces.css` 的测试单独跑 43/43 通过
+- [14:31] OWNER-SHELL **占用 admin 骨架**：`src/app/admin/layout.tsx`（新建）、`src/lib/server/admin-page-access.ts`（新建）、`src/app/admin/{page,billing/page,setup/page}.tsx` 的**外壳部分**（auth/hydrator/main 包装）。原因是 §1 里 `/admin/*` 既没写归属、也没人认领，而三个路由各抄一遍 auth + 15 字段 hydrator，必须收进 layout 才能改一处生效。**仅限外壳**：各页的业务内容、`components/admin/**` 一律不动，仍归原负责人。若有人正在改这三个 page 文件，请在此提出，我让路
 
 ## 9. 升级方案：物理隔离（撞车频繁时启用）
 
