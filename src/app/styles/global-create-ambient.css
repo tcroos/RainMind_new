@@ -89,15 +89,16 @@
     }
 }
 
-/* 深色态：即梦的做法是 #121212 打底 + 顶部一束冷光，底部纯黑。
- * 保持同样的「黑而不死」，但左下角不再有暖橙光团。 */
+/* 深色态：黑底 + 顶部一束冷光，底部纯黑。
+ * 渐变整体再压深一档（原 #191c21 → #141619 → #0d0e10 在屏幕上仍读成深灰），
+ * 现在从 #0f1114 走到 #050607，和 canvas 的 #0a0a0b 接得住，不会出现比底色还亮的一条带。 */
 .dark .create-ambient {
     background-image:
-        radial-gradient(920px 430px at 50% -70px, rgba(120, 146, 180, 0.2) 0%, rgba(120, 146, 180, 0) 70%),
+        radial-gradient(920px 430px at 50% -70px, rgba(120, 146, 180, 0.16) 0%, rgba(120, 146, 180, 0) 70%),
         /* 深色态的品牌暖光略亮一档，但仍只在顶部光池边缘 */
-        radial-gradient(520px 300px at 22% -90px, rgba(240, 128, 58, 0.09) 0%, rgba(240, 128, 58, 0) 72%),
-        radial-gradient(560px 330px at 82% -110px, rgba(86, 118, 158, 0.13) 0%, rgba(86, 118, 158, 0) 74%),
-        linear-gradient(180deg, #191c21 0%, #141619 48%, #0d0e10 100%);
+        radial-gradient(520px 300px at 22% -90px, rgba(240, 128, 58, 0.08) 0%, rgba(240, 128, 58, 0) 72%),
+        radial-gradient(560px 330px at 82% -110px, rgba(86, 118, 158, 0.11) 0%, rgba(86, 118, 158, 0) 74%),
+        linear-gradient(180deg, #0f1114 0%, #0a0b0d 48%, #050607 100%);
 }
 
 .dark .create-ambient::before {

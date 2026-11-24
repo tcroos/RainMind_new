@@ -57,8 +57,8 @@ describe("create page ambient background", () => {
         expect(css).not.toContain("96% 96%");
         expect(css).not.toContain("16% 90%");
         expect(css).not.toMatch(/at \d+% (?:[6-9]\d|100)%/);
-        // 底部只剩一层均匀竖向渐变
-        expect(css).toContain("linear-gradient(180deg, #191c21 0%, #141619 48%, #0d0e10 100%)");
+        // 底部只剩一层均匀竖向渐变（深色态同样压深到近黑，避免整页读成深灰）
+        expect(css).toContain("linear-gradient(180deg, #0f1114 0%, #0a0b0d 48%, #050607 100%)");
 
         // 点阵是品牌橙、铺到首屏底边（灵感发现上方）才淡出
         expect(css).toContain(".create-dot-field {");
@@ -67,7 +67,11 @@ describe("create page ambient background", () => {
         expect(dotField).toContain("create-dot-field pointer-events-none");
         expect(dotField).toContain("[--create-dot-rgb:226_103_31]");
         expect(dotField).toContain("const RADIUS = 150;");
-        expect(dotField).toContain("const BASE_ALPHA = 0.09;");
+        // 静态不再常驻底纹：显形量从 0 起算，只有指针半径内才画点
+        expect(dotField).toContain("const REVEAL_ALPHA = 0.16;");
+        expect(dotField).not.toContain("const BASE_ALPHA");
+        expect(dotField).toContain("let alpha = 0;");
+        expect(dotField).toContain("if (alpha <= 0) continue;");
 
         // 卡面暖光同样收窄到左上角一小团，深色态不再整张卡发棕
         const surfaces = await readFile(resolve(process.cwd(), "src/app/styles/global-surfaces.css"), "utf8");

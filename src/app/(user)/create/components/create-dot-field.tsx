@@ -18,20 +18,22 @@ const WAVE_NUMBER = 0.045;
 const WAVE_SPEED = 5.6;
 /** 最大径向位移（px）：靠挤密/拉疏读出波浪，而不是靠忽明忽暗 */
 const MAX_PUSH = 9;
-/** 静止底纹的透明度（0~1）：换成品牌橙之后同透明度会比黑色更"退后"，
- * 所以比原来的 3.2% 稍微抬一点，才能读成一层暖色纹理而不是脏点。 */
-const BASE_ALPHA = 0.09;
-/** 波峰处额外增加的亮度：压得比位移轻，波浪主要靠疏密读出来，不靠忽明忽暗 */
-const WAVE_ALPHA = 0.18;
+/** 光标半径内点阵的可见度（0~1）。
+ * 这里原来是 BASE_ALPHA = 0.09：每一格都常驻画一层底纹，静态停留（或截图）时能看到
+ * 满屏点阵，读起来像「屏幕脏了」。现在底纹归零，只有指针半径内才把点显出来，
+ * 指针离开或能量衰减完就彻底消失。数值比原来的底纹高，因为只在局部出现、需要看得见。 */
+const REVEAL_ALPHA = 0.16;
 
 /**
  * 跟随光标的点阵涟漪。
- * - 静止时全屏是极淡的底纹，波纹只在光标 RADIUS 内推挤这些点；
+ * - **静态不画点**：整片点阵只在光标 RADIUS 内显形，指针离开或停在页面之外时
+ *   完全消失 —— 之前每格都常驻一层 9% 底纹，静止时像「屏幕脏了」；
+ * - 指针悬停时保留一块局部纹理（基础档 0.4），移动时被波推着走到满值；
  * - canvas 上有 `.create-dot-field` 蒙版，点阵只在上半屏可见、向下柔和淡出，
  *   所以不会在项目卡片 / 灵感区里读出一块边界生硬的亮斑；
  * - 点的颜色统一，波浪完全由 sin(距离 - 时间) 的径向位移产生，
  *   所以看到的是"点被推着走"的疏密带，而不是随机明暗的噪点；
- * - 指针停住后能量衰减到 0，整片点淡出，rAF 同时停下，不常驻占用主线程。
+ * - 指针停住后能量衰减到 0、涟漪停下，rAF 同时停下，不常驻占用主线程。
  */
 export function CreateDotField() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -94,12 +96,14 @@ export function CreateDotField() {
             }
         };
 
-        // 整页点阵都由 canvas 画：静止时是底纹，靠近光标时被波推着走。
+        // 整页点阵都由 canvas 画：只在光标附近显形，靠近时被波推着走。
         // 不再叠一层 CSS 点阵，否则两套点会互相错位、看起来发脏。
         const paint = (seconds: number) => {
             ctx.clearRect(0, 0, width, height);
             const radiusSquared = RADIUS * RADIUS;
-            const active = presence > 0.004 && energy > 0.002;
+            /* 只看指针在不在，不再要求「有能量」：指针停住时能量会衰减到 0，
+             * 若拿能量当开关，停下来那一小块也会跟着消失，手感变成「一动才有一点」。 */
+            const active = presence > 0.004;
             ctx.fillStyle = `rgb(${color.r},${color.g},${color.b})`;
 
             for (let index = 0; index < grid.length; index += 2) {
@@ -107,7 +111,9 @@ export function CreateDotField() {
                 const baseY = grid[index + 1];
                 let x = baseX;
                 let y = baseY;
-                let alpha = BASE_ALPHA;
+                /* 底纹归零：不在光标半径内的点一律不画（alpha 为 0 直接跳过，
+                 * 顺带省掉大量 fillRect —— 一屏几千个点里绝大多数本来都是白画的）。 */
+                let alpha = 0;
                 let size = 1.2;
 
                 if (active) {
@@ -127,13 +133,17 @@ export function CreateDotField() {
 
                         // 波峰：点被推得略大、略亮，和挤密一起强化"鼓起来"的观感
                         const crest = (Math.cos(phase) + 1) / 2;
-                        const strength = presence * feather * energy;
-                        alpha += WAVE_ALPHA * strength * (0.3 + 0.7 * crest);
-                        size += strength * (0.25 + crest * 0.7);
+                        const strength = presence * feather;
+                        /* 指针还在时保留一块局部纹理（基础档 0.4），移动把它推到满值；
+                         * 指针离开后 presence 归零，整片点连着涟漪一起淡掉。 */
+                        alpha = REVEAL_ALPHA * strength * (0.4 + 0.6 * energy) * (0.55 + 0.45 * crest);
+                        size += strength * energy * (0.25 + crest * 0.7);
                     }
                 }
 
-                ctx.globalAlpha = alpha;
+                if (alpha <= 0) continue;
+
+                ctx.globalAlpha = Math.min(1, alpha);
                 ctx.fillRect(x - size / 2, y - size / 2, size, size);
             }
             ctx.globalAlpha = 1;
