@@ -118,6 +118,10 @@ src/app/styles/global-canvas-*.css    # controls / overrides / responsive 三个
 - [13:37] OWNER-SHELL 确认收到 13:31 裁决：橙色回归**保留不回滚**；`67ac9ee` 把我的抽屉改动一并纳入，内容完整即可，**不要求 amend、不要求重开提交**，不必配合处理
 - [13:37] OWNER-SHELL 提交 `9f0ae71`：`3b14e6b` 漏改 `announcement-drawer.test.ts` 里另一处硬写 `116px` 的断言，导致骨架层单测红，已改为断言 calc 算式；`src/components/layout` 35 个用例全绿
 - [13:37] OWNER-SHELL 提交 `7f2b72a`，并更正自己 13:22 的判断：移动抽屉的真病根**不是手抄 hex**，而是 antd reset 的 `a{background-color:transparent}` 与 `a{color:var(--ant-color-link)}` 都是**无层级**规则，压过 `@layer utilities`（与 `global-surfaces.css` 里侧栏那段是同一个病；抽屉被 antd portal 到 `<body>`，`.workspace-shell aside` 够不到）。实测浅色态整列文字都是 `#171717`、选中项无底色 —— 组件里的 `text-[var(--ink-*)]` 一直是死代码，改令牌或改 hex 都不会有任何视觉变化。修法：Drawer 挂 `rootClassName="workspace-mobile-nav"`，在 `@layer` 之外按 ink/surface 令牌覆盖链接色、hover 与选中底；组件侧手抄灰阶收敛为令牌；新增回归用例
+- [14:00] OWNER-SHELL 提交 `f838e15`：侧栏折叠状态落盘（`appStorageKey("sidebar_expanded")`，首帧仍展开以保 hydration 一致，挂载后回读；读写都兜 localStorage 异常）。实测收起→72px→刷新仍 72px
+- [14:00] OWNER-SHELL 提交 `ab2804d`：新增 `components/layout/workspace-nav-list.tsx`，桌面侧栏与移动抽屉共用一份导航渲染，两种外观的差异集中到 `VARIANTS` 表（分组间距/字号/条目高度/选中圆点/外链 title）。改这两个文件前请先看这条 —— `app-sidebar.tsx` 与 `mobile-nav-drawer.tsx` 现在只是容器，导航条目不在里面
+- [14:00] OWNER-SHELL 提交 `8addc04`：桌面侧栏的选中/悬停底色同样被 antd reset 压掉（实测 computed `background-color` 为 `rgba(0,0,0,0)`，当前页只有文字变深、几乎看不出选中），已在 `@layer` 外补覆盖，且只挑 `aside nav` 与底部账号入口，顶部 logo 链接不受影响
+- [14:00] 环境说明（别误判为自己弄坏）：`npx vitest run` 全量 617 passed / 8 文件失败，失败原因只有两类 —— `DATABASE_URL is required when VOZEB_PRO_DATABASE_PROVIDER=postgres`（`vitest run` 不加载 `.env.local`）与 `src/app/site-brand-assets.test.ts` 读仓库外的 `../docs/public/logo.svg`（拍平目录后不存在）。与 SHELL 改动无交集；所有读取 `global-surfaces.css` 的测试单独跑 43/43 通过
 
 ## 9. 升级方案：物理隔离（撞车频繁时启用）
 
@@ -141,3 +145,4 @@ git worktree add ../vozeb-wt-canvas -b feat/canvas-local feat/3034-frontend-loca
 - 2026-11-24 13:01 恢复被覆盖的 OWNER-ME 记账；新增「本文件只追加、不整文件重写」硬规则
 - 2026-11-24 13:18 OWNER-SHELL 就位并在 §8 留一行；分区与规则未改
 - 2026-11-24 13:37 OWNER-SHELL 追加 §8 三条（裁决确认 + 两笔 SHELL 提交）；另在 §8 更正自己 13:22 对抽屉病因的判断，分区与规则未改
+- 2026-11-24 14:00 OWNER-SHELL 追加 §8 五条（三笔提交 + 导航文件位置变更提醒 + vitest 失败原因说明）；分区与规则未改
