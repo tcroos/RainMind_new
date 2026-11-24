@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, PanelLeft } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
@@ -13,7 +13,26 @@ import { DEFAULT_SITE_TITLE, resolveSiteTitle } from "@/lib/site-brand";
 import { usePublicSessionStore } from "@/stores/use-public-session-store";
 import { useUserStore } from "@/stores/use-user-store";
 
-export function AppSidebar({ activeToolSlug, expanded }: { activeToolSlug?: NavigationToolSlug; expanded: boolean }) {
+/* 折叠开关放在品牌行右侧（照参考稿），不再放在顶栏 —— 顶栏左上角只留移动端的菜单键和 logo，
+ * 桌面端那块区域空出来，视觉重心回到内容。
+ * 图标用最简的 PanelLeft（一个矩形 + 左侧分隔线），收起/展开不再换成带箭头的两枚图标：
+ * 状态靠 aria-pressed 和 title 表达，图标本身保持同一枚，看着更安静。 */
+function SidebarToggle({ expanded, onToggle, className }: { expanded: boolean; onToggle?: () => void; className?: string }) {
+    return (
+        <button
+            type="button"
+            className={cn("inline-flex shrink-0 items-center justify-center rounded-lg text-[var(--ink-2)] transition-colors hover:bg-[var(--surface-inset)] hover:text-[var(--ink-1)]", className)}
+            onClick={onToggle}
+            aria-label={expanded ? "收起侧边栏" : "展开侧边栏"}
+            title={expanded ? "收起侧边栏" : "展开侧边栏"}
+            aria-pressed={expanded}
+        >
+            <PanelLeft className="size-[18px]" />
+        </button>
+    );
+}
+
+export function AppSidebar({ activeToolSlug, expanded, onToggleExpanded }: { activeToolSlug?: NavigationToolSlug; expanded: boolean; onToggleExpanded?: () => void }) {
     const pathname = usePathname();
     const router = useRouter();
     const site = usePublicSessionStore((state) => state.payload?.settings?.site) || { title: DEFAULT_SITE_TITLE, logoUrl: "/logo.svg" };
@@ -26,10 +45,16 @@ export function AppSidebar({ activeToolSlug, expanded }: { activeToolSlug?: Navi
 
     return (
         <aside className={cn("hidden h-full shrink-0 flex-col bg-[var(--surface-rail)] text-[var(--ink-1)] transition-[width] duration-200 lg:flex", expanded ? "w-52" : "w-[72px]")}>
-            <Link href="/create" className={cn("flex h-16 shrink-0 items-center px-3", expanded ? "justify-start px-5" : "justify-center")} aria-label={siteTitle}>
-                <SiteLogo logoUrl={site.logoUrl} className="size-8" />
-                {expanded ? <span className="ml-3 min-w-0 truncate text-[17px] font-semibold">{siteTitle}</span> : null}
-            </Link>
+            <div className={cn("flex h-16 shrink-0 items-center", expanded ? "justify-between gap-2 pl-5 pr-3" : "justify-center px-2")}>
+                <Link href="/create" className={cn("flex min-w-0 items-center", expanded ? "" : "justify-center")} aria-label={siteTitle}>
+                    <SiteLogo logoUrl={site.logoUrl} className="size-8 shrink-0" />
+                    {expanded ? <span className="ml-2.5 min-w-0 truncate text-[17px] font-semibold">{siteTitle}</span> : null}
+                </Link>
+                {expanded ? <SidebarToggle expanded onToggle={onToggleExpanded} className="size-8" /> : null}
+            </div>
+            {/* 收起后品牌行放不下第二个方块，把开关移到下面一行；用 self-center 水平居中
+                （mx-auto 在这条 flex 列上没起作用，实测会贴到左边缘） */}
+            {expanded ? null : <SidebarToggle expanded={false} onToggle={onToggleExpanded} className="mb-2 size-8 self-center" />}
 
             <WorkspaceNavList variant="rail" activeToolSlug={activeToolSlug} expanded={expanded} />
 

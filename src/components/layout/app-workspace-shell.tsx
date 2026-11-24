@@ -1,6 +1,6 @@
 "use client";
 
-import { Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Menu } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
@@ -15,13 +15,6 @@ import { navigationToolForPathname } from "@/constant/navigation-tools";
 import { appStorageKey } from "@/lib/storage-keys";
 import { DEFAULT_SITE_TITLE, resolveSiteTitle } from "@/lib/site-brand";
 import { usePublicSessionStore } from "@/stores/use-public-session-store";
-
-const PAGE_TITLES: Record<string, string> = {
-    billing: "充值中心",
-    wallet: "钱包",
-    help: "帮助中心",
-    profile: "个人中心",
-};
 
 /* 折叠偏好落在 localStorage 而不是 zustand persist：只有一个布尔值，
  * 为它建一个 store 反而多一层订阅。键名走统一的 appStorageKey 前缀，
@@ -59,7 +52,6 @@ export function AppWorkspaceShell({ children }: { children: ReactNode }) {
     const tool = navigationToolForPathname(pathname);
     const fullscreen = isFullscreenWorkspacePath(pathname);
     const rootSlug = pathname.split("/").filter(Boolean)[0] || "";
-    const pageTitle = tool?.label || PAGE_TITLES[rootSlug] || "工作空间";
     /* 创作页要「背景顶到最上面」：页头是透明的，如果背景画在 <main> 里，
      * 就只能从页头下沿开始，64px 处会留一道横向接缝。
      * 所以把环境光挂到外壳这一层：外壳 isolate 成一个层叠上下文，
@@ -73,7 +65,7 @@ export function AppWorkspaceShell({ children }: { children: ReactNode }) {
             {ambientBackdrop ? <div className="create-ambient" aria-hidden data-testid="create-ambient" /> : null}
             <AnnouncementMarquee />
             <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
-                <AppSidebar activeToolSlug={tool?.slug} expanded={sidebarExpanded} />
+                <AppSidebar activeToolSlug={tool?.slug} expanded={sidebarExpanded} onToggleExpanded={toggleSidebarExpanded} />
                 <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
                     <header className="relative z-20 flex h-16 shrink-0 items-center justify-between gap-3 px-3 sm:px-4 lg:px-7">
                         <div className="flex min-w-0 items-center gap-2.5">
@@ -89,19 +81,6 @@ export function AppWorkspaceShell({ children }: { children: ReactNode }) {
                             <Link href="/create" className="inline-flex shrink-0 items-center lg:hidden" aria-label={siteTitle}>
                                 <SiteLogo logoUrl={site.logoUrl} className="size-6" />
                             </Link>
-                            <button
-                                type="button"
-                                className="hidden size-8 shrink-0 items-center justify-center rounded-lg text-[var(--ink-2)] transition-colors hover:bg-[var(--surface-inset)] hover:text-[var(--ink-1)] lg:inline-flex"
-                                onClick={toggleSidebarExpanded}
-                                aria-label={sidebarExpanded ? "收起侧边栏" : "展开侧边栏"}
-                                title={sidebarExpanded ? "收起侧边栏" : "展开侧边栏"}
-                                aria-pressed={sidebarExpanded}
-                            >
-                                {sidebarExpanded ? <PanelLeftClose className="size-[17px]" /> : <PanelLeftOpen className="size-[17px]" />}
-                            </button>
-                            <div className="min-w-0">
-                                <div className="truncate text-sm font-semibold text-[var(--ink-1)]">{pageTitle}</div>
-                            </div>
                         </div>
                         <div className="min-w-0 max-w-[calc(100vw-6.5rem)] shrink-0 overflow-visible sm:max-w-[calc(100vw-8rem)] lg:max-w-none">
                             <UserStatusActions />

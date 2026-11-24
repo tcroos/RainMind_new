@@ -82,6 +82,24 @@ describe("workspace sidebar", () => {
         expect(mobile).toContain("drawerNavItemClass");
     });
 
+    it("puts the collapse toggle in the sidebar brand row instead of the header", async () => {
+        const [shell, sidebar] = await Promise.all([layoutFile("app-workspace-shell.tsx"), layoutFile("app-sidebar.tsx")]);
+
+        // 顶栏左上角只保留移动端的菜单键与 logo；桌面端的页面标题和折叠按钮都已移走
+        expect(shell).not.toContain("PAGE_TITLES");
+        expect(shell).not.toContain("pageTitle");
+        expect(shell).toContain("onToggleExpanded={toggleSidebarExpanded}");
+
+        // 开关在侧栏品牌行右侧，收起后退到下一行（用 self-center，mx-auto 在 flex 列上不生效）
+        expect(sidebar).toContain("SidebarToggle");
+        expect(sidebar).toContain("justify-between gap-2 pl-5 pr-3");
+        expect(sidebar).toContain("self-center");
+        // 图标用最简的 PanelLeft，不再用带箭头的两枚
+        expect(sidebar).toContain("PanelLeft");
+        expect(sidebar).not.toContain("PanelLeftClose");
+        expect(sidebar).not.toContain("PanelLeftOpen");
+    });
+
     it("keeps the content surface lighter than the rail in light mode", async () => {
         const css = await stylesFile("global-surfaces.css");
         const lightBlock = css.slice(css.indexOf(":root {"), css.indexOf(".dark {"));
