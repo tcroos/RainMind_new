@@ -110,6 +110,8 @@ src/app/styles/global-canvas-*.css    # controls / overrides / responsive 三个
 - [13:00] 历史说明：`108a33f`（头像配色）曾修改 `components/layout/` 三个文件，属两方制时期的改动，**不回滚**；此后 layout 归 OWNER-SHELL
 - [13:01] OWNER-CANVAS 重写 AGENTS.md 时**覆盖**了 OWNER-ME 的 12:56 两条记账，已在 3009a80 之后恢复 —— 教训：本文件只能局部编辑/追加，禁止整文件覆盖
 - [13:18] OWNER-SHELL 就位，接掌 shell 域：`src/app/layout.tsx`、`src/app/(user)/layout.tsx`、`src/components/layout/`、`src/components/ui/`、`src/app/globals.css`、`src/app/styles/global-*.css`（`global-canvas-*` 除外）。验证端口按 §7 用 3004。开工检查见工作区仍有 PAGES 的 2 个未提交文件（`public/profile-cover.webp`、`(user)/me/page.tsx`），SHELL 不触碰
+- [13:29] OWNER-SHELL 已提交 `3b14e6b`（公告条高度收敛为单一令牌，改动在 `styles/global-surfaces.css` + `components/layout/announcement-marquee.*`，均属 SHELL 域）
+- [13:29] OWNER-SHELL 报告一次撞车：13:27 有进程把全部 7 个文件的默认头像渐变从 HEAD 的石墨（`140deg #8a94a3→#3f4854`，见 `3af4b92`）整套写回 `135deg #f6b181→#e2671f`，含 SHELL 的 `layout/` 三个文件；内容是「读改写」，未丢其他人的改动，但方向与 `3af4b92` 相反。SHELL 的抽屉令牌化改动（4 处 className）已在工作区待命，**暂缓提交**，等裁决这批橙色回归是否为有意 — 归属方确认后再决定是随提交还是分开提交
 
 ## 9. 升级方案：物理隔离（撞车频繁时启用）
 
