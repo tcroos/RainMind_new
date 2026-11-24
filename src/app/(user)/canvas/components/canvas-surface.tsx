@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, DragEvent as ReactDragEvent, MouseEvent as ReactMouseEvent, MutableRefObject, PointerEvent as ReactPointerEvent, ReactNode, RefObject } from "react";
 
 import { Plus, Scissors } from "lucide-react";
@@ -880,8 +880,8 @@ export function CanvasSurface({
         (event: WheelEvent) => {
             if (isWheelControlTarget(event.target, event) && !event.ctrlKey && !event.metaKey) return;
             event.preventDefault();
-            // 滚轮缩放属于「拖动以外的操作」
-            setPanMinimap(false);
+            // 滚轮缩放同样需要看清全局：小地图跟着缩放同步出现（橙色框会一起放大缩小）
+            setPanMinimap(true);
             onViewportInteractionChange?.(true);
             const pending = wheelFrameRef.current;
             wheelFrameRef.current = {
@@ -1570,89 +1570,104 @@ function CanvasMiniMap({
     const ref = useRef<HTMLDivElement>(null);
     const [dragging, setDragging] = useState(false);
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    /* 拖动时限制到约 30fps：小地图每帧都改 viewport，会让整张画布（含所有节点）
-     * 跟着重排，节点一多就明显掉帧。 */
-    const lastPreviewAtRef = useRef(0);
-    const viewportWorldRect = { x: -viewport.x / viewport.k, y: -viewport.y / viewport.k, width: viewportSize.width / viewport.k, height: viewportSize.height / viewport.k };
-    const nodeBounds = useMemo(() => canvasNodesBounds(nodes), [nodes]);
-    /* 视野框也算进世界范围：画布平移出节点区域时，小地图要缩放到"节点 + 当前视野"的并集，
-     * 否则视口框会跑到小地图外面被裁掉，看起来像消失了。 */
-    const bounds = useMemo(
-        () => ({
-            left: Math.min(nodeBounds.left, viewportWorldRect.x),
-            top: Math.min(nodeBounds.top, viewportWorldRect.y),
-            right: Math.max(nodeBounds.right, viewportWorldRect.x + viewportWorldRect.width),
-            bottom: Math.max(nodeBounds.bottom, viewportWorldRect.y + viewportWorldRect.height),
-        }),
-        [nodeBounds, viewportWorldRect.x, viewportWorldRect.y, viewportWorldRect.width, viewportWorldRect.height],
-    );
-    const worldWidth = Math.max(1, bounds.right - bounds.left);
-    const worldHeight = Math.max(1, bounds.bottom - bounds.top);
-    const scale = Math.min(width / worldWidth, height / worldHeight);
-    const offsetX = (width - worldWidth * scale) / 2;
-    const offsetY = (height - worldHeight * scale) / 2;
-    const point = useCallback((x: number, y: number) => ({ x: offsetX + (x - bounds.left) * scale, y: offsetY + (y - bounds.top) * scale }), [bounds.left, bounds.top, offsetX, offsetY, scale]);
-    const viewPoint = point(viewportWorldRect.x, viewportWorldRect.y);
-
-    /* 平移时父级不 setState 只改 transform，所以视口框必须能被动跟着走。
-       这里把当前的比例尺/偏移存进 ref，父级每帧调用一次 sync，只写 4 个 style，不触发 React 渲染。 */
     const rectRef = useRef<HTMLDivElement>(null);
-    const mappingRef = useRef({ left: bounds.left, top: bounds.top, scale, offsetX, offsetY, viewportWidth: viewportSize.width, viewportHeight: viewportSize.height });
-    mappingRef.current = { left: bounds.left, top: bounds.top, scale, offsetX, offsetY, viewportWidth: viewportSize.width, viewportHeight: viewportSize.height };
+    /* 拖动小地图找视野时限制到约 30fps：这里每改一次 viewport 都会牵动主画布的视口 */
+    const lastPreviewAtRef = useRef(0);
+    const nodeBounds = useMemo(() => canvasNodesBounds(nodes), [nodes]);
+    /** 当前这一次绘制的换算关系，拖动小地图时用它把屏幕坐标换回世界坐标 */
+    const mapRef = useRef({ left: 0, top: 0, scale: 1, offsetX: 0, offsetY: 0 });
+
+    /**
+     * 按任意视口重绘整张小地图（点阵 + 节点 + 橙色视口框）。
+     * 之所以做成命令式的一次函数：画布平移/缩放走的是直改 DOM 的性能路径、不触发 setState，
+     * 小地图只能被动地跟着每一帧重画。这里只碰一个 canvas 和四个 style，不进入 React 渲染。
+     * 世界范围取「节点包围盒 ∪ 当前视口」，视野移出节点区时视口框仍然留在小地图里。
+     */
+    const drawMap = useCallback(
+        (next: ViewportTransform) => {
+            const canvas = canvasRef.current;
+            const viewportWorldRect = { x: -next.x / next.k, y: -next.y / next.k, width: viewportSize.width / next.k, height: viewportSize.height / next.k };
+            const bounds = {
+                left: Math.min(nodeBounds.left, viewportWorldRect.x),
+                top: Math.min(nodeBounds.top, viewportWorldRect.y),
+                right: Math.max(nodeBounds.right, viewportWorldRect.x + viewportWorldRect.width),
+                bottom: Math.max(nodeBounds.bottom, viewportWorldRect.y + viewportWorldRect.height),
+            };
+            const worldWidth = Math.max(1, bounds.right - bounds.left);
+            const worldHeight = Math.max(1, bounds.bottom - bounds.top);
+            const scale = Math.min(width / worldWidth, height / worldHeight);
+            const offsetX = (width - worldWidth * scale) / 2;
+            const offsetY = (height - worldHeight * scale) / 2;
+            mapRef.current = { left: bounds.left, top: bounds.top, scale, offsetX, offsetY };
+
+            if (canvas) {
+                const pixelRatio = Math.max(1, window.devicePixelRatio || 1);
+                const pixelWidth = Math.max(1, Math.round(width * pixelRatio));
+                const pixelHeight = Math.max(1, Math.round(height * pixelRatio));
+                if (canvas.width !== pixelWidth) canvas.width = pixelWidth;
+                if (canvas.height !== pixelHeight) canvas.height = pixelHeight;
+                const context = canvas.getContext("2d");
+                if (context) {
+                    context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+                    context.clearRect(0, 0, width, height);
+
+                    /* 底纹：跟画布一致的点阵，缩略图才像"一张画布"而不是浮在空白上的灰块 */
+                    context.globalAlpha = 0.45;
+                    context.fillStyle = theme.canvas.dot;
+                    for (let gx = 6; gx < width; gx += 12) {
+                        for (let gy = 6; gy < height; gy += 12) {
+                            context.fillRect(gx, gy, 1, 1);
+                        }
+                    }
+
+                    /* 节点：按类型着色 + 圆角，一眼能看出缩略图里哪块是图、哪块是视频 */
+                    context.globalAlpha = 1;
+                    for (const node of nodes) {
+                        const x = offsetX + (node.position.x - bounds.left) * scale;
+                        const y = offsetY + (node.position.y - bounds.top) * scale;
+                        const w = Math.max(2.5, node.width * scale);
+                        const h = Math.max(2.5, node.height * scale);
+                        context.fillStyle = minimapNodeColor(node.type, theme);
+                        context.beginPath();
+                        context.roundRect(x, y, w, h, Math.min(2.5, w / 2, h / 2));
+                        context.fill();
+                    }
+                }
+            }
+
+            const element = rectRef.current;
+            if (element) {
+                element.style.left = `${offsetX + (viewportWorldRect.x - bounds.left) * scale}px`;
+                element.style.top = `${offsetY + (viewportWorldRect.y - bounds.top) * scale}px`;
+                element.style.width = `${Math.max(6, viewportWorldRect.width * scale)}px`;
+                element.style.height = `${Math.max(6, viewportWorldRect.height * scale)}px`;
+            }
+        },
+        [height, nodeBounds, nodes, theme, viewportSize.height, viewportSize.width, width],
+    );
+
+    /* 提交（松手 / 滚轮停）后的正常重绘。layout effect：避免首帧视口框闪在左上角 */
+    useLayoutEffect(() => {
+        drawMap(viewport);
+    }, [drawMap, viewport]);
+
+    /* 交互过程中父级逐帧调用；滚轮缩放时这里会连比例尺一起重算，橙色框跟着放大缩小 */
     useEffect(() => {
         if (!syncRef) return;
-        syncRef.current = (next) => {
-            const element = rectRef.current;
-            if (!element) return;
-            const map = mappingRef.current;
-            element.style.left = `${map.offsetX + (-next.x / next.k - map.left) * map.scale}px`;
-            element.style.top = `${map.offsetY + (-next.y / next.k - map.top) * map.scale}px`;
-            element.style.width = `${Math.max(6, (map.viewportWidth / next.k) * map.scale)}px`;
-            element.style.height = `${Math.max(6, (map.viewportHeight / next.k) * map.scale)}px`;
-        };
+        syncRef.current = drawMap;
         return () => {
             syncRef.current = null;
         };
-    }, [syncRef]);
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const pixelRatio = Math.max(1, window.devicePixelRatio || 1);
-        canvas.width = Math.max(1, Math.round(width * pixelRatio));
-        canvas.height = Math.max(1, Math.round(height * pixelRatio));
-        const context = canvas.getContext("2d");
-        if (!context) return;
-        context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
-        context.clearRect(0, 0, width, height);
+    }, [drawMap, syncRef]);
 
-        /* 底纹：跟画布一致的点阵，缩略图才像"一张画布"而不是浮在空白上的灰块 */
-        context.globalAlpha = 0.45;
-        context.fillStyle = theme.canvas.dot;
-        for (let gx = 6; gx < width; gx += 12) {
-            for (let gy = 6; gy < height; gy += 12) {
-                context.fillRect(gx, gy, 1, 1);
-            }
-        }
-
-        /* 节点：按类型着色 + 圆角，替代原来清一色的直角灰块 */
-        context.globalAlpha = 1;
-        for (const node of nodes) {
-            const p = point(node.position.x, node.position.y);
-            const w = Math.max(2.5, node.width * scale);
-            const h = Math.max(2.5, node.height * scale);
-            context.fillStyle = minimapNodeColor(node.type, theme);
-            context.beginPath();
-            context.roundRect(p.x, p.y, w, h, Math.min(2.5, w / 2, h / 2));
-            context.fill();
-        }
-    }, [bounds.bottom, bounds.left, bounds.right, bounds.top, height, nodes, point, scale, theme.canvas.dot, theme.node.muted, width]);
     const update = (event: ReactPointerEvent<HTMLDivElement>) => {
         const rect = ref.current?.getBoundingClientRect();
         if (!rect) return;
         const now = performance.now();
         if (now - lastPreviewAtRef.current < 32) return;
         lastPreviewAtRef.current = now;
-        const world = { x: (event.clientX - rect.left - offsetX) / scale + bounds.left, y: (event.clientY - rect.top - offsetY) / scale + bounds.top };
+        const map = mapRef.current;
+        const world = { x: (event.clientX - rect.left - map.offsetX) / map.scale + map.left, y: (event.clientY - rect.top - map.offsetY) / map.scale + map.top };
         onViewportPreview({ x: viewportSize.width / 2 - world.x * viewport.k, y: viewportSize.height / 2 - world.y * viewport.k, k: viewport.k });
     };
     const finishDrag = () => {
@@ -1688,10 +1703,7 @@ function CanvasMiniMap({
                     ref={rectRef}
                     className="canvas-minimap-viewport pointer-events-none absolute rounded-[4px]"
                     style={{
-                        left: viewPoint.x,
-                        top: viewPoint.y,
-                        width: Math.max(6, viewportWorldRect.width * scale),
-                        height: Math.max(6, viewportWorldRect.height * scale),
+                        /* 位置与尺寸由 drawMap 命令式写入：交互过程中要逐帧跟着视口走 */
                         border: "1.5px solid #e2671f",
                         background: "rgba(226,103,31,.1)",
                         boxShadow: "0 0 0 1px rgba(255,255,255,.55), 0 0 8px rgba(226,103,31,.35)",
