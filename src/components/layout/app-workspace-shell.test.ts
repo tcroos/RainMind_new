@@ -82,6 +82,23 @@ describe("workspace sidebar", () => {
         expect(mobile).toContain("drawerNavItemClass");
     });
 
+    it("keeps the content surface lighter than the rail in light mode", async () => {
+        const css = await stylesFile("global-surfaces.css");
+        const lightBlock = css.slice(css.indexOf(":root {"), css.indexOf(".dark {"));
+
+        // 内容是主体，应该最亮；侧栏退一档灰做分区。之前是反的（页面 #f8f9fa、侧栏纯白），
+        // 视觉重心落在导航上，整页还像蒙了一层灰。这里只锁「谁比谁亮」，不锁具体色值，
+        // 方便以后微调色号而不用改测试。
+        const read = (token: string) => new RegExp(`${token}:\\s*(#[0-9a-f]{6})`, "i").exec(lightBlock)?.[1];
+        const brightness = (hex: string) => hex.slice(1).match(/../g)!.reduce((sum, part) => sum + Number.parseInt(part, 16), 0);
+
+        const canvas = read("--surface-canvas");
+        const rail = read("--surface-rail");
+        expect(canvas).toBeDefined();
+        expect(rail).toBeDefined();
+        expect(brightness(canvas!)).toBeGreaterThan(brightness(rail!));
+    });
+
     it("keeps sidebar links readable in dark mode despite antd's unlayered anchor rule", async () => {
         const css = await stylesFile("global-surfaces.css");
 
