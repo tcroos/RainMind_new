@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { App, Button, Pagination } from "antd";
-import { Check, Download, SquareCheck } from "lucide-react";
+import { Check, Download } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { CanvasDeleteProjectsDialog } from "./components/canvas-delete-projects-dialog";
@@ -124,7 +124,7 @@ export default function CanvasPage() {
                             selectMode ? "bg-[var(--surface-soft)] hover:bg-[var(--surface-inset)]" : "hover:bg-[var(--surface-soft)]",
                         )}
                     >
-                        <SquareCheck className="size-4" strokeWidth={1.75} style={{ color: selectMode ? "var(--brand-500)" : "var(--ink-3)" }} />
+                        <TwoRowListIcon className="size-[18px]" style={{ color: selectMode ? "var(--brand-500)" : "var(--ink-2)" }} />
                     </button>
                 </header>
 
@@ -202,5 +202,21 @@ export default function CanvasPage() {
 
             <CanvasDeleteProjectsDialog />
         </main>
+    );
+}
+
+/**
+ * 多选入口图标：两行「点 + 划」。lucide 的 List 是三行，形状对不上参照稿，
+ * 这里自绘一个，笔画参数（1.8 / round）和站内其它线性图标保持一致。
+ * 颜色走 currentColor，由外层 style 注入 —— 这个 button 上 Tailwind 的 text-[var(..)] 会被当成字号。
+ */
+function TwoRowListIcon({ className, style }: { className?: string; style?: CSSProperties }) {
+    return (
+        <svg viewBox="0 0 24 24" fill="none" className={className} style={style} aria-hidden="true" focusable="false">
+            <circle cx="4" cy="8" r="1.1" fill="currentColor" />
+            <path d="M8.5 8H20" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            <circle cx="4" cy="16" r="1.1" fill="currentColor" />
+            <path d="M8.5 16H20" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
     );
 }
