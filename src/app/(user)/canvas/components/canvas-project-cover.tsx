@@ -50,15 +50,8 @@ function CoverTile({ preview }: { preview: CanvasProjectPreview }) {
 }
 
 export function CanvasCoverPlaceholder({ className }: { className?: string }) {
-    /* 空白画布的封面不放节点流程图：库里同时存在多张空画布时，
-     * 一排一模一样的「节点 + 连线」会被读成新手引导图，而不是"这里什么都没有"。
-     * 改成一张安静的点阵画板，用密度和留白表达"空白"。 */
-    return (
-        <div className={cn("relative size-full overflow-hidden bg-[linear-gradient(145deg,var(--surface-soft)_0%,var(--surface-inset)_100%)]", className)}>
-            <div
-                aria-hidden
-                className="absolute inset-0 bg-[radial-gradient(circle,rgba(17,17,19,0.085)_1px,transparent_1px)] bg-[size:14px_14px] dark:bg-[radial-gradient(circle,rgba(255,255,255,0.075)_1px,transparent_1px)]"
-            />
-        </div>
-    );
+    /* 空白画布就是一整块中性底色。
+     * 之前的点阵版本在列表里一排看过去像「皮肤」而不是「空」，和旁边有图的卡抢注意力；
+     * 空卡本来就该退到背景里，让真实缩略图成为唯一焦点。 */
+    return <div className={cn("relative size-full overflow-hidden bg-[var(--surface-inset)]", className)} />;
 }

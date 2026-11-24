@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { App, Button, Input, Pagination } from "antd";
-import { Download, FileUp, Plus, Search } from "lucide-react";
+import { Download, FileUp, Search } from "lucide-react";
 
 import { readZip } from "@/lib/zip";
 import { cn } from "@/lib/utils";
@@ -49,6 +49,7 @@ export default function CanvasPage() {
     const storedKeyword = useCanvasStore((state) => state.summaryKeyword);
     const summaryBusy = useCanvasStore((state) => state.summaryBusy);
     const [keyword, setKeyword] = useState(storedKeyword);
+    const [searchOpen, setSearchOpen] = useState(Boolean(storedKeyword));
     const ready = Boolean(userId && hydrated && hydratedUserId === userId);
 
     const mode = searchParams.get("mode");
@@ -143,32 +144,50 @@ export default function CanvasPage() {
 
     return (
         <main className="h-full overflow-auto bg-background text-[var(--ink-1)]">
-            <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-4 px-3 py-4 sm:gap-6 sm:px-7 sm:py-7">
-                <header className="flex flex-wrap items-end justify-between gap-3">
-                    <div className="min-w-0">
-                        <p className="text-[12px] leading-4 text-[var(--ink-3)]">画布库</p>
-                        <h1 className="mt-1 truncate text-[20px] font-semibold leading-7 tracking-tight sm:text-[22px]">我的画布</h1>
-                    </div>
-                    <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-                        {/* 用外层 div 控制宽度：antd 的 .ant-input-affix-wrapper 自带 width:100%，
-                            直接给 Input 写 w-[190px] 会被它按未分层规则压掉 */}
-                        <div className="hidden w-[190px] shrink-0 sm:block">
-                            <Input
-                                allowClear
-                                value={keyword}
-                                onChange={(event) => setKeyword(event.target.value)}
-                                prefix={<Search className="size-3.5 text-[var(--ink-3)]" />}
-                                placeholder="搜索画布"
+            <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-5 px-4 py-5 sm:gap-6 sm:px-7 sm:py-7">
+                <header className="flex items-center justify-between gap-3">
+                    <h1 className="truncate text-[15px] font-medium leading-6 tracking-tight text-[var(--ink-1)]">画布</h1>
+                    <div className="flex shrink-0 items-center gap-0.5">
+                        {/* 搜索默认收起，只留一个放大镜：库里通常只有几张卡，摆一条常驻输入框纯占地方。
+                            点开后才让出宽度，空了失焦再收回去。 */}
+                        {searchOpen ? (
+                            <div className="w-[180px]">
+                                <Input
+                                    allowClear
+                                    autoFocus
+                                    size="small"
+                                    value={keyword}
+                                    onChange={(event) => setKeyword(event.target.value)}
+                                    prefix={<Search className="size-3.5 text-[var(--ink-3)]" />}
+                                    placeholder="搜索画布"
+                                    aria-label="搜索画布"
+                                    onBlur={() => {
+                                        if (!keyword.trim()) setSearchOpen(false);
+                                    }}
+                                />
+                            </div>
+                        ) : (
+                            <button
+                                type="button"
                                 aria-label="搜索画布"
-                                className="w-full"
-                            />
-                        </div>
-                        <Button disabled={!ready} icon={<FileUp className="size-4" />} onClick={() => inputRef.current?.click()}>
-                            导入画布
-                        </Button>
-                        <Button disabled={!ready} loading={creating} type="primary" icon={<Plus className="size-4" />} onClick={() => void createAndEnter()}>
-                            新建画布
-                        </Button>
+                                title="搜索"
+                                onClick={() => setSearchOpen(true)}
+                                className="grid size-8 place-items-center rounded-lg text-[var(--ink-3)] transition-colors duration-150 hover:bg-[var(--surface-soft)] hover:text-[var(--ink-1)]"
+                            >
+                                <Search className="size-4" />
+                            </button>
+                        )}
+                        {/* 导入改用图标：低频操作，一行文字按钮的视觉重量和"新建"相当，会把注意力从卡片上引开 */}
+                        <button
+                            type="button"
+                            aria-label="导入画布"
+                            title="导入画布"
+                            disabled={!ready}
+                            onClick={() => inputRef.current?.click()}
+                            className="grid size-8 place-items-center rounded-lg text-[var(--ink-3)] transition-colors duration-150 hover:bg-[var(--surface-soft)] hover:text-[var(--ink-1)] disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                            <FileUp className="size-4" />
+                        </button>
                     </div>
                 </header>
 
@@ -199,7 +218,9 @@ export default function CanvasPage() {
                     </section>
                 ) : (
                     <>
-                        <div className={cn("grid grid-cols-1 gap-x-3 gap-y-6 transition-opacity duration-200 sm:grid-cols-2 sm:gap-x-5 lg:grid-cols-3 xl:grid-cols-4", summaryBusy && "pointer-events-none opacity-50")}>
+                        {/* 列宽按参照稿收紧：1080 视口下就该排到 4 列，原来要等到 1280 才排 4 列，
+                            中间档位卡片被拉得很宽、留白显得散 */}
+                        <div className={cn("grid grid-cols-2 gap-x-4 gap-y-6 transition-opacity duration-200 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5", summaryBusy && "pointer-events-none opacity-50")}>
                             <CanvasCreateCard onCreate={() => void createAndEnter()} loading={creating} />
                             {projects.map((project) => (
                                 <CanvasProjectCard key={project.id} project={project} />
