@@ -136,6 +136,7 @@ src/app/styles/global-canvas-*.css    # controls / overrides / responsive 三个
 - [15:52] OWNER-SHELL **借用一处 create/ 代码**：`src/app/(user)/create/components/create-dot-field.tsx`（点阵涟漪）与 `create-ambient.test.ts`。用户要求「静态不出现点阵、只在鼠标范围内显形」，该行为完全由 `BASE_ALPHA` 决定，只能改这个组件。**只改常量与 paint 的 alpha 计算，不动尺寸/波速/颜色/事件绑定**。另会把深色令牌整体压黑（`global-surfaces.css` 的 `.dark` 段 + `global-create-ambient.css` 深色渐变），这两处属 SHELL 域，无需借用。OWNER-PAGES 如正在改这两个文件请提出，我让路
 - [15:57] OWNER-SHELL 提交 `c4131df`：① 深色整体压黑 —— `.dark` 的 canvas #121212→#0a0a0b、rail #171717→#101012、panel #1a1a1a→#131315，创作页深色渐变 →#0f1114/#050607，顶部冷光与暖光各降一点；② 点阵去掉常驻底纹（`BASE_ALPHA` 删除，alpha 从 0 起算，只在光标 RADIUS 内画），指针在画布内保留局部纹理、离开即消失。实测 canvas 像素 alpha 总量：静止 0 / 移入 22 / 移开 0
 - [15:57] 记录一条易踩的坑：点阵原来用 `energy` 当绘制开关，指针停住 1.6s 后能量衰减到 0，局部纹理也会整片消失；现在改为「指针在就画」，能量只调制位移与亮度
+- [16:10] OWNER-SHELL 提交 `a0b8306`：创作页背景改纯色平铺，删掉顶部光池 / 冷暖雾 / 竖向渐变 / 暗角 / 胶片颗粒（连同 breathe 动画与 `.dark .create-ambient` 覆盖）。深色背景实测纵向 y60..y600 全是 rgb(10,10,11)，浅色全是 rgb(255,255,255)。点阵涟漪保留，仍是唯一动态层。**注意**：`global-create-ambient.css` 现在只剩两块规则（`.create-ambient` 与 `.create-dot-field`），不要以为文件被截断；测试也改成断言「不允许出现 background-image」
 
 ## 9. 升级方案：物理隔离（撞车频繁时启用）
 
