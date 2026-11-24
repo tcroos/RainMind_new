@@ -56,15 +56,9 @@ export const navigationTools = [
         icon: Images,
         children: [
             { slug: "assets", label: "素材", description: "图片、视频与音频", href: "/assets", icon: Images },
-            { slug: "prompts-mine", label: "提示词", description: "个人提示词库", href: "/assets?tab=prompts", icon: BookMarked },
+            { slug: "prompts-mine", label: "我的提示词", description: "个人提示词库", href: "/assets?tab=prompts", icon: BookMarked },
+            { slug: "prompts", label: "公共词库", description: "发现与复用优质提示词", href: "/prompts", icon: FileText },
         ],
-    },
-    {
-        slug: "prompts",
-        label: "词库",
-        description: "公共提示词",
-        group: "assets",
-        icon: FileText,
     },
     {
         slug: "community",
@@ -120,5 +114,9 @@ export function isExternalTool(tool: (typeof navigationTools)[number]) {
 
 export function navigationToolForPathname(pathname: string) {
     const slug = pathname.split("/").filter(Boolean)[0];
-    return navigationTools.find((tool) => tool.slug === slug);
+    /* 二级面板的子项路径（如 /prompts）没有自己的顶层导航项，
+     * 命中父项才能让侧栏保持高亮；子项自身的勾选由 NavFlyout 按 href 判断。 */
+    const direct = navigationTools.find((tool) => tool.slug === slug);
+    if (direct) return direct;
+    return navigationTools.find((tool) => "children" in tool && tool.children?.some((child) => child.href?.split("?")[0] === `/${slug}`));
 }
