@@ -302,7 +302,7 @@ export function DramaAssetEditorDrawer({ project, kind, assetId, open, onClose }
                             </div>
                         ) : null}
                     </div>
-                    {!references.length ? <div className="mt-4 rounded-lg border border-dashed border-border bg-muted/25 px-4 py-4 text-center text-sm text-muted-foreground">还没有参考图，可上传已有设定或生成候选图。</div> : null}
+                    {!references.length ? <div className="mt-4 rounded-2xl bg-[var(--surface-inset)] px-4 py-5 text-center text-[13px] text-[var(--ink-3)]">还没有参考图，可上传已有设定或生成候选图。</div> : null}
                     {references.length ? (
                         <Image.PreviewGroup>
                             <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">

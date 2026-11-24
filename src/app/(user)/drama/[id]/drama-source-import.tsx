@@ -91,7 +91,7 @@ export function DramaSourceImport({ project, onImported }: { project: DramaProje
                 styles={{ container: { maxWidth: "calc(100vw - 24px)" }, body: { padding: 0 } }}
             >
                 <div className="flex max-h-[min(68vh,640px)] min-h-0 flex-col overflow-hidden">
-                    <div className="shrink-0 border-b border-border px-5 py-3">
+                    <div className="shrink-0 px-5 pb-3 pt-1">
                         <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
                             <span className="flex min-w-0 items-center gap-1.5" title={fileName}>
                                 <FileText className="size-3.5 shrink-0" />
@@ -133,7 +133,7 @@ export function DramaSourceImport({ project, onImported }: { project: DramaProje
                         )}
                     </div>
                     {filtered.length > IMPORT_PAGE_SIZE ? (
-                        <div className="flex shrink-0 justify-end border-t border-border px-4 py-2.5">
+                        <div className="flex shrink-0 justify-end px-4 py-2.5">
                             <Pagination size="small" current={page} pageSize={IMPORT_PAGE_SIZE} total={filtered.length} showSizeChanger={false} showLessItems onChange={setPage} />
                         </div>
                     ) : null}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Button, Divider, Input, Modal, Popover, Select, Tooltip } from "antd";
+import { Button, Input, Modal, Popover, Select, Tooltip } from "antd";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { TextSelection } from "@tiptap/pm/state";
 import StarterKit from "@tiptap/starter-kit";
@@ -96,7 +96,7 @@ export function DramaRichScriptEditor({
         content: episode.scriptRichContent || plainTextToDramaRichContent(episode.script),
         editorProps: {
             attributes: {
-                class: "min-h-full w-full max-w-none px-8 py-6 text-left text-[16px] leading-[1.8] text-foreground outline-none sm:px-10 sm:py-7 [&_a]:text-violet-600 [&_a]:underline dark:[&_a]:text-violet-300 [&_blockquote]:my-4 [&_blockquote]:border-l-2 [&_blockquote]:border-violet-300 [&_blockquote]:pl-4 [&_blockquote]:text-muted-foreground [&_h1]:mb-4 [&_h1]:mt-6 [&_h1]:text-2xl [&_h1]:font-semibold [&_h2]:mb-3 [&_h2]:mt-5 [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:mb-2 [&_h3]:mt-4 [&_h3]:text-lg [&_h3]:font-semibold [&_ol]:my-3 [&_ol]:list-decimal [&_ol]:pl-7 [&_p]:m-0 [&_p]:min-h-[1.8em] [&_ul]:my-3 [&_ul]:list-disc [&_ul]:pl-7",
+                class: "min-h-full w-full max-w-none px-8 py-6 text-left text-[16px] leading-[1.8] text-foreground outline-none sm:px-10 sm:py-7 [&_a]:text-[var(--brand-600)] [&_a]:underline [&_blockquote]:my-4 [&_blockquote]:rounded-r-xl [&_blockquote]:bg-[var(--surface-inset)] [&_blockquote]:px-4 [&_blockquote]:py-2 [&_blockquote]:text-[var(--ink-2)] [&_h1]:mb-4 [&_h1]:mt-6 [&_h1]:text-2xl [&_h1]:font-semibold [&_h2]:mb-3 [&_h2]:mt-5 [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:mb-2 [&_h3]:mt-4 [&_h3]:text-lg [&_h3]:font-semibold [&_ol]:my-3 [&_ol]:list-decimal [&_ol]:pl-7 [&_p]:m-0 [&_p]:min-h-[1.8em] [&_ul]:my-3 [&_ul]:list-disc [&_ul]:pl-7",
                 "aria-label": "本集剧本编辑器",
             },
             handleClick: (view) => {
@@ -191,11 +191,12 @@ export function DramaRichScriptEditor({
     };
 
     return (
-        <section className={`flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border border-border bg-background ${fullscreen ? "fixed inset-3 z-[1100] rounded-md shadow-2xl" : "rounded-md"}`} data-drama-script-editor>
-            <div className="hide-scrollbar flex h-[46px] shrink-0 items-center gap-1 overflow-x-auto border-b border-border px-2" aria-label="剧本编辑工具栏" data-drama-script-toolbar>
+        <section className={`flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[var(--surface-panel)] shadow-[0_2px_12px_-8px_rgba(17,17,19,0.2),0_20px_40px_-34px_rgba(17,17,19,0.4)] ${fullscreen ? "fixed inset-3 z-[1100] rounded-2xl shadow-2xl" : "rounded-2xl"}`} data-drama-script-editor>
+            {/* 工具栏不再压一条下横线：浅底一条 + 下方留白，和编辑区自然分开。 */}
+            <div className="hide-scrollbar flex h-[50px] shrink-0 items-center gap-1 overflow-x-auto bg-[var(--surface-inset)]/45 px-3" aria-label="剧本编辑工具栏" data-drama-script-toolbar>
                 <Select
                     size="small"
-                    className="!w-[88px] shrink-0"
+                    className="library-select !w-[88px] shrink-0"
                     value={editor.isActive("heading", { level: 1 }) ? "h1" : editor.isActive("heading", { level: 2 }) ? "h2" : editor.isActive("heading", { level: 3 }) ? "h3" : "p"}
                     options={[
                         { label: "正文", value: "p" },
@@ -216,7 +217,7 @@ export function DramaRichScriptEditor({
                 />
                 <Select
                     size="small"
-                    className="!w-[66px] shrink-0"
+                    className="library-select !w-[66px] shrink-0"
                     value={editor.getAttributes("textStyle").fontSize || "16px"}
                     options={[12, 14, 16, 18, 20, 24].map((size) => ({ label: size, value: `${size}px` }))}
                     onChange={(value) => editor.chain().focus().setFontSize(value).run()}
@@ -334,7 +335,7 @@ function ToolButton({ label, icon, active = false, disabled = false, onClick }: 
         <Tooltip title={label}>
             <Button
                 type="text"
-                className={`!size-8 !min-w-8 !rounded ${active ? "!bg-violet-100 !text-violet-700 dark:!bg-violet-950/60 dark:!text-violet-300" : "!text-muted-foreground hover:!bg-muted hover:!text-foreground"} [&_svg]:!size-4`}
+                className={`!size-8 !min-w-8 !rounded-lg ${active ? "!bg-[var(--brand-soft)] !text-[var(--brand-600)]" : "!text-[var(--ink-3)] hover:!bg-[var(--surface-inset)] hover:!text-[var(--ink-1)]"} [&_svg]:!size-4`}
                 icon={icon}
                 disabled={disabled}
                 onMouseDown={(event) => event.preventDefault()}
@@ -359,7 +360,7 @@ function PaletteButton({ label, icon, colors, activeColor, onSelect }: { label: 
                             <Tooltip key={color.label} title={color.label}>
                                 <button
                                     type="button"
-                                    className={`grid size-8 place-items-center rounded border transition hover:scale-105 ${activeColor === color.value ? "border-violet-500 ring-2 ring-violet-200 dark:ring-violet-900" : "border-border"}`}
+                                    className={`grid size-8 place-items-center rounded-lg transition hover:scale-105 ${activeColor === color.value ? "ring-2 ring-[var(--brand-600)]" : "bg-[var(--surface-inset)]"}`}
                                     style={{ backgroundColor: color.value || undefined }}
                                     onClick={() => onSelect(color.value)}
                                     aria-label={color.label}
@@ -405,8 +406,9 @@ function AlignmentButton({ editor }: { editor: NonNullable<ReturnType<typeof use
     );
 }
 
+/* 按钮组之间只留空隙：竖线分隔器是工具栏里最容易读出「框框感」的一处。 */
 function ToolbarDivider() {
-    return <Divider orientation="vertical" className="!mx-1 !h-5 !border-border" />;
+    return <span className="mx-1.5 shrink-0" aria-hidden="true" />;
 }
 
 function selectText(editor: NonNullable<ReturnType<typeof useEditor>>, value: string) {

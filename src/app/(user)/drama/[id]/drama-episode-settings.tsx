@@ -58,7 +58,7 @@ export function DramaEpisodeSettings({ project, episode, embedded = false }: { p
                     </div>
                 </div>
             </div>
-            <div className="mt-4 border-t border-border pt-3" data-drama-episode-overview>
+            <div className="mt-5 rounded-xl bg-[var(--surface-inset)] p-4" data-drama-episode-overview>
                 <div className="flex items-center justify-between">
                     <h4 className="text-xs font-semibold">本集概况</h4>
                     <span className="text-[10px] text-muted-foreground">当前数据</span>

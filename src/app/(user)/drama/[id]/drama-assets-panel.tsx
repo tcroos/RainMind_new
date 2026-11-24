@@ -150,7 +150,7 @@ export function DramaAssetsPanel({ project, episode }: { project: DramaProject; 
                     ))}
                 </div>
             ) : (
-                <div className="mt-3 flex min-h-20 min-w-0 items-center justify-between gap-3 rounded-md border border-dashed border-border bg-muted/20 px-3 py-3 sm:px-4" data-drama-assets-empty>
+                <div className="mt-4 flex min-h-20 min-w-0 items-center justify-between gap-3 rounded-2xl bg-[var(--surface-inset)] px-4 py-4 sm:px-5" data-drama-assets-empty>
                     <div className="min-w-0">
                         <div className="text-sm font-medium">{hasActiveFilter ? `没有符合条件的${definition.title}` : `还没有${definition.title}`}</div>
                         <div className="mt-0.5 text-xs text-muted-foreground">{hasActiveFilter ? "清除筛选可查看全部资产" : `创建后可在所有剧集和镜头中复用`}</div>

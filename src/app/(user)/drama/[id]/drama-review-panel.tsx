@@ -154,7 +154,7 @@ export function DramaReviewPanel({ project, episode, onDesignVisuals, designing,
                     })}
                 </div>
             ) : (
-                <div className="mt-2.5 flex min-h-14 items-center rounded-lg border border-dashed border-border bg-card/25 px-3 py-2.5">
+                <div className="mt-4 flex min-h-16 items-center rounded-2xl bg-[var(--surface-inset)] px-5 py-4">
                     <div className="min-w-0">
                         <h3 className="text-sm font-medium">还没有待审核的内容结构</h3>
                         <p className="mt-0.5 truncate text-xs text-muted-foreground">先填写或导入本集剧本，再由 AI 提取可编辑的镜头事实、对白和原文依据。</p>

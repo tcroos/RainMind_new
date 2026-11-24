@@ -3,22 +3,23 @@
 import type { ReactNode } from "react";
 import { Tag } from "antd";
 
-const compactTagClass = "!m-0 !inline-flex !h-6 !min-w-max !shrink-0 !items-center !whitespace-nowrap !rounded-md !border !px-2 !text-xs !font-medium !leading-6";
+/* 状态标签一律浅底药丸：语义靠色相，边界靠底色，不画一圈描边。 */
+const compactTagClass = "!m-0 !inline-flex !h-6 !min-w-max !shrink-0 !items-center !whitespace-nowrap !rounded-full !px-2.5 !text-[11px] !font-medium !leading-6";
 
 const statusToneClass: Record<string, string> = {
-    idle: "!border-border !bg-muted/60 !text-muted-foreground",
-    queued: "!border-sky-200 !bg-sky-50 !text-sky-700 dark:!border-sky-900/70 dark:!bg-sky-950/35 dark:!text-sky-300",
-    running: "!border-amber-200 !bg-amber-50 !text-amber-700 dark:!border-amber-900/70 dark:!bg-amber-950/35 dark:!text-amber-300",
-    success: "!border-emerald-200 !bg-emerald-50 !text-emerald-700 dark:!border-emerald-900/70 dark:!bg-emerald-950/35 dark:!text-emerald-300",
-    error: "!border-rose-200 !bg-rose-50 !text-rose-700 dark:!border-rose-900/70 dark:!bg-rose-950/35 dark:!text-rose-300",
-    cancelled: "!border-border !bg-muted/60 !text-muted-foreground",
+    idle: "!bg-[var(--surface-inset)] !text-[var(--ink-3)]",
+    queued: "!bg-sky-50 !text-sky-700 dark:!bg-sky-950/35 dark:!text-sky-300",
+    running: "!bg-amber-50 !text-amber-700 dark:!bg-amber-950/35 dark:!text-amber-300",
+    success: "!bg-emerald-50 !text-emerald-700 dark:!bg-emerald-950/35 dark:!text-emerald-300",
+    error: "!bg-rose-50 !text-rose-700 dark:!bg-rose-950/35 dark:!text-rose-300",
+    cancelled: "!bg-[var(--surface-inset)] !text-[var(--ink-3)]",
 };
 
 const stageToneClass = {
-    neutral: "border-border bg-muted/55 text-muted-foreground",
-    ready: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-950/35 dark:text-emerald-300",
-    attention: "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/70 dark:bg-amber-950/35 dark:text-amber-300",
-    running: "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900/70 dark:bg-sky-950/35 dark:text-sky-300",
+    neutral: "bg-[var(--surface-inset)] text-[var(--ink-3)]",
+    ready: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/35 dark:text-emerald-300",
+    attention: "bg-amber-50 text-amber-700 dark:bg-amber-950/35 dark:text-amber-300",
+    running: "bg-sky-50 text-sky-700 dark:bg-sky-950/35 dark:text-sky-300",
 } as const;
 
 export function DramaStageHeader({
@@ -43,19 +44,20 @@ export function DramaStageHeader({
     className?: string;
 }) {
     return (
-        <header className={`border-b border-border/80 pb-3 ${className}`} data-drama-stage-header>
-            <div className="flex min-w-0 flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+        /* 阶段头不再压一条横线，也不在指标之间画竖线：标题、状态、指标靠留白排开。 */
+        <header className={`pb-4 ${className}`} data-drama-stage-header>
+            <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
                 <div className="min-w-0 flex-1">
-                    <div className="flex min-w-0 items-center gap-2">
-                        <span className="shrink-0 text-[11px] font-semibold tabular-nums text-muted-foreground">{step}</span>
-                        <h2 className="truncate text-base font-semibold leading-6 sm:text-[17px]">{title}</h2>
-                        <span className={`inline-flex h-5 shrink-0 items-center rounded border px-1.5 text-[11px] font-medium ${stageToneClass[tone]}`}>{status}</span>
+                    <div className="flex min-w-0 flex-wrap items-center gap-2">
+                        <span className="shrink-0 text-[11px] font-semibold tabular-nums text-[var(--ink-3)]">{step}</span>
+                        <h2 className="truncate text-[17px] font-semibold leading-7 tracking-[-0.01em] text-[var(--ink-1)] sm:text-[19px]">{title}</h2>
+                        <span className={`inline-flex h-6 shrink-0 items-center rounded-full px-2.5 text-[11px] font-medium ${stageToneClass[tone]}`}>{status}</span>
                     </div>
-                    <p className="sr-only">{description}</p>
+                    <p className="mt-1.5 text-[12px] leading-5 text-[var(--ink-3)]">{description}</p>
                     {metrics.length ? (
-                        <dl className="mt-1.5 flex min-w-0 flex-wrap items-center gap-y-1 text-[11px] leading-4 text-muted-foreground" data-drama-stage-metrics>
-                            {metrics.map((item, index) => (
-                                <div key={item.label} className={`flex min-w-0 items-baseline gap-1.5 pr-3 ${index ? "border-l border-border/80 pl-3" : ""}`}>
+                        <dl className="mt-3 flex min-w-0 flex-wrap items-center gap-x-5 gap-y-1 text-[11px] leading-4 text-[var(--ink-3)]" data-drama-stage-metrics>
+                            {metrics.map((item) => (
+                                <div key={item.label} className="flex min-w-0 items-baseline gap-1.5">
                                     <dt className="whitespace-nowrap">{item.label}</dt>
                                     <dd className="whitespace-nowrap font-medium tabular-nums text-foreground">{item.value}</dd>
                                 </div>
@@ -117,8 +119,8 @@ export function AudioTag({ status = "idle" }: { status?: string }) {
 }
 export function AssetPanel({ icon, title, children }: { icon: ReactNode; title: string; children: ReactNode }) {
     return (
-        <section className="rounded-xl border border-border bg-background p-3 sm:rounded-2xl sm:p-6">
-            <div className="mb-4 flex items-center gap-3 font-semibold sm:mb-6">
+        <section className="rounded-2xl bg-[var(--surface-inset)]/60 p-4 sm:p-6">
+            <div className="mb-4 flex items-center gap-3 text-[14px] font-semibold text-[var(--ink-1)] sm:mb-6">
                 {icon}
                 {title}
             </div>
@@ -128,16 +130,16 @@ export function AssetPanel({ icon, title, children }: { icon: ReactNode; title: 
 }
 export function AssetList({ items }: { items: Array<{ id: string; name: string; description: string }> }) {
     return items.length ? (
-        <div className="mt-4 space-y-3 sm:mt-6 sm:space-y-4">
+        <div className="mt-4 grid gap-3 sm:mt-6 sm:gap-4">
             {items.map((item) => (
-                <div key={item.id} className="rounded-xl border border-border bg-card p-3 sm:p-4">
-                    <div className="text-sm font-semibold">{item.name}</div>
-                    <div className="mt-2 text-xs leading-5 text-muted-foreground">{item.description || "暂无描述"}</div>
+                <div key={item.id} className="rounded-xl bg-[var(--surface-panel)] p-4">
+                    <div className="text-[13px] font-semibold text-[var(--ink-1)]">{item.name}</div>
+                    <div className="mt-1.5 text-[12px] leading-5 text-[var(--ink-3)]">{item.description || "暂无描述"}</div>
                 </div>
             ))}
         </div>
     ) : (
-        <p className="mt-6 text-sm text-muted-foreground">暂未添加</p>
+        <p className="mt-6 text-[13px] text-[var(--ink-3)]">暂未添加</p>
     );
 }
 

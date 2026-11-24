@@ -515,7 +515,7 @@ function ReadinessItem({ title, detail, tone, action, actionLabel }: { title: st
     return (
         <button
             type="button"
-            className="group flex h-12 min-w-0 items-center gap-2 rounded-md border border-border bg-card px-2.5 text-left transition hover:border-foreground/20 hover:bg-muted/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/35"
+            className="group flex h-12 min-w-0 items-center gap-2 rounded-xl bg-[var(--surface-inset)] px-3 text-left transition hover:opacity-75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-soft)]"
             onClick={action}
             title={`${title}：${detail}`}
             aria-label={`${title}，${actionLabel}`}

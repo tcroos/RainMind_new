@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { App, Button, Drawer, Input, Popover, Tooltip } from "antd";
-import { ArrowLeft, Bot, Boxes, ChevronDown, ChevronRight, History, PanelLeft, Plus, Settings2, Sparkles, Trash2, X } from "lucide-react";
+import { ArrowLeft, Bot, Boxes, ChevronDown, History, PanelLeft, Plus, Settings2, Sparkles, Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { UserStatusActions } from "@/components/layout/user-status-actions";
@@ -56,11 +56,12 @@ function DramaEpisodePanel({ project, episode, permanent, onOpenChange, onStageC
 
     const filteredEpisodes = project.episodes.filter((item, index) => `${item.episodeNumber || index + 1} ${item.title}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
     return (
-        <div className="flex h-full min-h-0 flex-col bg-card" data-drama-episode-panel>
-            <div className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-border px-3.5">
+        /* 侧栏靠底色与正文分层，不画右侧竖线；集数项也只靠浅底和字重表达选中。 */
+        <div className="flex h-full min-h-0 flex-col bg-[var(--surface-rail)]" data-drama-episode-panel>
+            <div className="flex h-14 shrink-0 items-center justify-between gap-3 px-4 pt-2">
                 <div className="flex min-w-0 items-center gap-2">
-                    <div className="text-sm font-semibold">剧集</div>
-                    <span className="text-xs tabular-nums text-muted-foreground">{project.episodes.length}</span>
+                    <div className="text-sm font-semibold text-[var(--ink-1)]">剧集</div>
+                    <span className="text-xs tabular-nums text-[var(--ink-3)]">{project.episodes.length}</span>
                 </div>
                 <div className="flex items-center gap-1">
                     <Tooltip title="添加剧集">
@@ -83,10 +84,10 @@ function DramaEpisodePanel({ project, episode, permanent, onOpenChange, onStageC
                     ) : null}
                 </div>
             </div>
-            <div className="shrink-0 px-2.5 pt-2.5">
-                <Input className="!h-8" allowClear value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索剧集" aria-label="搜索集数" />
+            <div className="shrink-0 px-3 pb-2 pt-1">
+                <Input className="library-input !h-10" allowClear value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索剧集" aria-label="搜索集数" />
             </div>
-            <nav className="hide-scrollbar min-h-0 flex-1 space-y-1 overflow-y-auto p-2.5" aria-label="短剧剧集导航">
+            <nav className="hide-scrollbar min-h-0 flex-1 space-y-1 overflow-y-auto px-3 py-2" aria-label="短剧剧集导航">
                 {filteredEpisodes.map((item) => {
                     const index = project.episodes.findIndex((episodeItem) => episodeItem.id === item.id);
                     const active = item.id === episode.id;
@@ -94,7 +95,7 @@ function DramaEpisodePanel({ project, episode, permanent, onOpenChange, onStageC
                     return (
                         <div
                             key={item.id}
-                            className={`group flex min-w-0 items-center rounded-md border transition ${active ? "border-violet-300 bg-violet-50/70 dark:border-violet-700/70 dark:bg-violet-950/25" : "border-transparent bg-transparent hover:border-border hover:bg-muted/60"}`}
+                            className={`group flex min-w-0 items-center rounded-xl transition ${active ? "bg-[var(--brand-soft)]" : "hover:bg-[var(--surface-inset)]"}`}
                         >
                             <button
                                 type="button"
@@ -107,13 +108,13 @@ function DramaEpisodePanel({ project, episode, permanent, onOpenChange, onStageC
                                 aria-label={`打开${item.title}`}
                             >
                                 <span
-                                    className={`grid size-8 shrink-0 place-items-center rounded text-[11px] font-semibold tabular-nums ${active ? "bg-violet-100 text-violet-700 dark:bg-violet-900/45 dark:text-violet-300" : "border border-border bg-background text-muted-foreground"}`}
+                                    className={`grid size-8 shrink-0 place-items-center rounded-lg text-[11px] font-semibold tabular-nums ${active ? "bg-[var(--brand-600)] !text-white" : "bg-[var(--surface-inset)] text-[var(--ink-3)]"}`}
                                 >
                                     {String(item.episodeNumber || index + 1).padStart(2, "0")}
                                 </span>
                                 <span className="min-w-0 flex-1">
-                                    <span className="block truncate text-sm font-medium text-foreground">{item.title}</span>
-                                    <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">
+                                    <span className="block truncate text-sm font-medium text-[var(--ink-1)]">{item.title}</span>
+                                    <span className="mt-0.5 block truncate text-[11px] text-[var(--ink-3)]">
                                         {item.script.length} 字 · {item.shots.length} 场 · {progress}
                                     </span>
                                 </span>
@@ -134,18 +135,18 @@ function DramaEpisodePanel({ project, episode, permanent, onOpenChange, onStageC
                     );
                 })}
             </nav>
-            <div className="shrink-0 border-t border-border p-2.5">
-                <Button
-                    block
-                    type="text"
-                    icon={<Plus className="size-4" />}
+            <div className="shrink-0 p-3 pt-1">
+                <button
+                    type="button"
+                    className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl !bg-[var(--surface-inset)] text-[13px] font-medium !text-[var(--ink-1)] transition hover:opacity-75"
                     onClick={() => {
                         addEpisode(project.id);
                         onStageChange("script");
                     }}
                 >
+                    <Plus className="size-4" />
                     新建集数
-                </Button>
+                </button>
             </div>
         </div>
     );
@@ -154,7 +155,7 @@ function DramaEpisodePanel({ project, episode, permanent, onOpenChange, onStageC
 export function DramaEpisodeSidebar({ project, episode, open, onOpenChange, onStageChange }: { project: DramaProject; episode: DramaEpisode; open: boolean; onOpenChange: (open: boolean) => void; onStageChange: (stage: DramaProjectStage) => void }) {
     if (!open) return null;
     return (
-        <aside className="hidden h-full min-h-0 w-[190px] shrink-0 border-r border-border min-[1366px]:block" aria-label="集数管理侧栏" data-drama-episode-sidebar>
+        <aside className="hidden h-full min-h-0 w-[190px] shrink-0 min-[1366px]:block" aria-label="集数管理侧栏" data-drama-episode-sidebar>
             <DramaEpisodePanel project={project} episode={episode} permanent onOpenChange={onOpenChange} onStageChange={onStageChange} />
         </aside>
     );
@@ -224,13 +225,14 @@ export function DramaWorkspaceHeader({
     const stageStatuses = dramaStageStatuses(project, episode);
 
     return (
-        <header className="grid shrink-0 grid-cols-[minmax(0,1fr)_auto] border-b border-border bg-card/95 min-[1366px]:h-[64px] min-[1366px]:grid-cols-[190px_minmax(0,1fr)_auto]" data-drama-workspace-header>
-            <div className="col-start-1 row-start-1 flex min-w-0 items-center gap-2 px-2.5 py-2 sm:px-4 min-[1366px]:h-full min-[1366px]:border-r min-[1366px]:border-border min-[1366px]:px-4 min-[1366px]:py-0">
+        /* 顶栏不画下横线，也不在内部再切竖线：整条 header 是一块连续的背景。 */
+        <header className="grid shrink-0 grid-cols-[minmax(0,1fr)_auto] bg-background/85 backdrop-blur-xl min-[1366px]:h-[64px] min-[1366px]:grid-cols-[190px_minmax(0,1fr)_auto]" data-drama-workspace-header>
+            <div className="col-start-1 row-start-1 flex min-w-0 items-center gap-2 px-2.5 py-2 sm:px-4 min-[1366px]:h-full min-[1366px]:px-4 min-[1366px]:py-0">
                 <Tooltip title="返回短剧项目">
                     <Button type="text" shape="circle" className="!size-9 !min-w-9" icon={<ArrowLeft className="size-4" />} onClick={() => router.push("/drama")} aria-label="返回短剧项目" />
                 </Tooltip>
                 <div className="min-w-0 flex-1">
-                    <Input variant="borderless" className="!h-7 !p-0 !text-base !font-semibold sm:!text-lg" value={project.title} onChange={(event) => updateProject(project.id, { title: event.target.value })} aria-label="短剧项目名称" />
+                    <Input variant="borderless" className="!h-7 !p-0 !text-[15px] !font-semibold sm:!text-[16px]" value={project.title} onChange={(event) => updateProject(project.id, { title: event.target.value })} aria-label="短剧项目名称" />
                     {assetsOpen ? (
                         <div className="mt-0.5 text-xs text-muted-foreground">项目资产库</div>
                     ) : (
@@ -239,7 +241,7 @@ export function DramaWorkspaceHeader({
                 </div>
             </div>
             <nav
-                className="hide-scrollbar col-span-2 row-start-2 flex min-w-0 items-center justify-start overflow-x-auto border-t border-border/70 px-2 py-1.5 sm:px-4 min-[1366px]:col-span-1 min-[1366px]:col-start-2 min-[1366px]:row-start-1 min-[1366px]:justify-center min-[1366px]:border-t-0 min-[1366px]:px-4 min-[1366px]:py-1.5"
+                className="hide-scrollbar col-span-2 row-start-2 flex min-w-0 items-center justify-start gap-2 overflow-x-auto px-2 py-1.5 sm:px-4 min-[1366px]:col-span-1 min-[1366px]:col-start-2 min-[1366px]:row-start-1 min-[1366px]:justify-center min-[1366px]:px-4 min-[1366px]:py-1.5"
                 aria-label="短剧单集生产阶段"
                 data-drama-stage-navigation
             >
@@ -252,10 +254,10 @@ export function DramaWorkspaceHeader({
                                 onClick={() => onStageChange(item.value)}
                                 aria-label={`切换到${item.label}`}
                                 aria-current={active ? "step" : undefined}
-                                className={`relative flex h-11 min-w-[74px] items-center justify-center gap-2 px-3 text-xs font-medium transition sm:min-w-[96px] ${active ? "bg-violet-50 text-violet-700 after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:bg-violet-600 dark:bg-violet-950/30 dark:text-violet-300 dark:after:bg-violet-400" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"}`}
+                                className={`flex h-9 min-w-[74px] items-center justify-center gap-2 rounded-full px-3 text-[12px] font-medium transition sm:min-w-[96px] ${active ? "!bg-[var(--brand-soft)] font-semibold !text-[var(--brand-600)]" : "!text-[var(--ink-3)] hover:!bg-[var(--surface-inset)] hover:!text-[var(--ink-1)]"}`}
                             >
                                 <span
-                                    className={`grid size-5 shrink-0 place-items-center rounded-full border text-[10px] tabular-nums ${active ? "border-violet-500 bg-violet-600 text-white dark:border-violet-400 dark:bg-violet-400 dark:text-violet-950" : "border-border bg-background"}`}
+                                    className={`grid size-5 shrink-0 place-items-center rounded-full text-[10px] tabular-nums ${active ? "bg-[var(--brand-600)] !text-white" : "bg-[var(--surface-inset)] text-[var(--ink-3)]"}`}
                                 >
                                     {index + 1}
                                 </span>
@@ -263,7 +265,6 @@ export function DramaWorkspaceHeader({
                                 <span className="hidden sm:block">{item.label}</span>
                                 <span className="sr-only">{stageStatuses[item.value]}</span>
                             </button>
-                            {index < stages.length - 1 ? <ChevronRight className="size-3.5 text-border" aria-hidden="true" /> : null}
                         </div>
                     );
                 })}
@@ -271,7 +272,7 @@ export function DramaWorkspaceHeader({
             <div className="col-start-2 row-start-1 flex min-w-0 shrink-0 items-center justify-end gap-1 px-2.5 py-2 sm:px-4 min-[1366px]:col-start-3 min-[1366px]:h-full min-[1366px]:py-0">
                 <Tooltip title="项目资产">
                     <Button
-                        className={`!h-9 !px-2.5 ${assetsOpen ? "!border-foreground !bg-foreground !text-background" : "!border-border !bg-background hover:!border-foreground/25 hover:!bg-muted"}`}
+                        className={`!h-9 !rounded-xl !border-0 !px-2.5 !shadow-none ${assetsOpen ? "!bg-[var(--brand-soft)] !text-[var(--brand-600)]" : "!bg-transparent !text-[var(--ink-2)] hover:!bg-[var(--surface-inset)]"}`}
                         icon={<Boxes className="size-4" />}
                         onClick={assetsOpen ? onCloseAssets : onOpenAssets}
                         aria-current={assetsOpen ? "page" : undefined}
@@ -281,13 +282,13 @@ export function DramaWorkspaceHeader({
                     </Button>
                 </Tooltip>
                 <Tooltip title="项目版本">
-                    <Button className="!size-9 !min-w-9 !px-0 sm:!w-auto sm:!px-3" icon={<History className="size-4" />} onClick={onOpenVersions} aria-label="打开项目版本">
+                    <Button className="!size-9 !min-w-9 !rounded-xl !border-0 !bg-transparent !px-0 !text-[var(--ink-2)] !shadow-none hover:!bg-[var(--surface-inset)] sm:!w-auto sm:!px-3" icon={<History className="size-4" />} onClick={onOpenVersions} aria-label="打开项目版本">
                         <span className="hidden sm:inline">版本记录</span>
                     </Button>
                 </Tooltip>
                 <Tooltip title={agentOpen ? "收起项目 Agent" : "打开项目 Agent"}>
                     <Button
-                        className={`!size-9 !min-w-9 !px-0 ${agentOpen ? "!border-violet-300 !bg-violet-50 !text-violet-700 dark:!border-violet-700 dark:!bg-violet-950/35 dark:!text-violet-300" : ""}`}
+                        className={`!size-9 !min-w-9 !rounded-xl !border-0 !px-0 !shadow-none ${agentOpen ? "!bg-[var(--brand-soft)] !text-[var(--brand-600)]" : "!bg-transparent !text-[var(--ink-2)] hover:!bg-[var(--surface-inset)]"}`}
                         icon={<Bot className="size-4" />}
                         onClick={onToggleAgent}
                         aria-label={agentOpen ? "收起项目 Agent" : "打开项目 Agent"}
@@ -360,7 +361,7 @@ export function DramaScriptPanel({
                             <DramaSourceImport project={project} onImported={() => onStageChange("script")} />
                             <Button
                                 type="primary"
-                                className="!h-8 !px-2.5 enabled:!border-violet-600 enabled:!bg-violet-600 enabled:!text-white enabled:hover:!border-violet-500 enabled:hover:!bg-violet-500 dark:enabled:!border-violet-400 dark:enabled:!bg-violet-400 dark:enabled:!text-violet-950"
+                                className="!h-9 !rounded-xl !border-0 !bg-[var(--brand-600)] !px-3 !text-white !shadow-none hover:opacity-90 disabled:opacity-50"
                                 size="small"
                                 icon={<Sparkles className="size-3.5" />}
                                 loading={analyzing}
@@ -371,7 +372,7 @@ export function DramaScriptPanel({
                                 AI 整理
                             </Button>
                             <Popover trigger="click" placement="bottomRight" styles={{ container: { padding: 12, width: 320 } }} content={<DramaEpisodeSettings project={project} episode={episode} embedded />}>
-                                <Button className="!h-8 !px-2.5" size="small" icon={<Settings2 className="size-3.5" />} aria-label="打开本集设置">
+                                <Button className="!h-9 !rounded-xl !border-0 !bg-[var(--surface-inset)] !px-3 !text-[var(--ink-1)] !shadow-none" size="small" icon={<Settings2 className="size-3.5" />} aria-label="打开本集设置">
                                     本集设置
                                 </Button>
                             </Popover>

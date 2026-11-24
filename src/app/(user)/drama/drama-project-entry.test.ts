@@ -11,6 +11,12 @@ describe("drama project entry", () => {
         expect(source).toContain('htmlFor="drama-project-title"');
         expect(source).toContain('<div className="min-w-0">');
         expect(source).not.toContain('<label className="block space-y-2.5">');
+        /* 无线条语言：弹窗自绘底栏、字段复用浅底无描边控件，列表不摆虚线框。 */
+        expect(source).toContain("footer={null}");
+        expect(source).toContain("library-input");
+        expect(source).toContain("library-segmented");
+        expect(source).not.toContain("border-dashed");
+        expect(source).not.toContain("border-b border-border");
     });
 
     it("uses a whole-card project link while keeping publish and delete as independent actions", async () => {
@@ -21,5 +27,10 @@ describe("drama project entry", () => {
         expect(source).toContain('aria-label="删除项目"');
         expect(source).toContain("sourceType=drama");
         expect(source).not.toContain("继续制作");
+        /* 卡片靠实底与落影浮起，不套描边；操作行不再画分割横线。 */
+        expect(source).toContain("rounded-2xl");
+        expect(source).not.toContain("border border-[var(--hairline)]");
+        expect(source).not.toContain("border-t border-[var(--hairline)]");
+        expect(source).not.toContain("ring-1");
     });
 });

@@ -417,7 +417,7 @@ function DramaProjectEditor({ project }: { project: DramaProject }) {
                 <div className="relative flex min-h-0 min-w-0 flex-1 flex-col" data-drama-production-surface>
                     <div className="min-h-0 min-w-0 flex-1 overflow-y-auto" data-drama-production-scroll>
                         <section
-                            className={`mx-auto flex min-h-full min-w-0 flex-col px-3 py-3 ${stage === "script" ? "max-w-none min-[1366px]:px-3 min-[1366px]:pb-3 min-[1366px]:pt-3" : "max-w-[1440px] sm:px-5 sm:py-4"}`}
+                            className={`mx-auto flex min-h-full min-w-0 flex-col px-5 py-5 ${stage === "script" ? "max-w-none min-[1366px]:px-5 min-[1366px]:pb-5 min-[1366px]:pt-5" : "max-w-[1440px] sm:px-7 sm:py-6"}`}
                             data-drama-stage={assetsOpen ? "assets" : stage}
                         >
                             {assetsOpen ? <DramaAssetsPanel project={project} episode={episode} /> : null}
@@ -452,7 +452,7 @@ function DramaProjectEditor({ project }: { project: DramaProject }) {
                                         action={
                                             <Button
                                                 type="primary"
-                                                className="!h-9 !w-full sm:!w-auto"
+                                                className="!h-10 !w-full !rounded-xl !border-0 !bg-[var(--brand-600)] !text-white !shadow-none hover:opacity-90 sm:!w-auto"
                                                 icon={<ArrowRight className="size-4" />}
                                                 disabled={!episode.shots.length || episode.reviewStatus !== "visual_ready"}
                                                 onClick={() => setStage("generate")}
@@ -462,7 +462,7 @@ function DramaProjectEditor({ project }: { project: DramaProject }) {
                                         }
                                     />
                                     {episode.shots.length ? (
-                                        <div className="mt-3 grid min-w-0 items-start gap-3 xl:grid-cols-2">
+                                        <div className="mt-5 grid min-w-0 items-start gap-4 xl:grid-cols-2">
                                             {episode.shots.map((shot) => (
                                                 <DramaStoryboardShotCard
                                                     key={shot.id}
@@ -475,10 +475,10 @@ function DramaProjectEditor({ project }: { project: DramaProject }) {
                                             ))}
                                         </div>
                                     ) : (
-                                        <div className="mt-2.5 flex min-h-14 items-center rounded-lg border border-dashed border-border bg-card/25 px-3 py-2.5">
+                                        <div className="mt-4 flex min-h-16 items-center rounded-2xl bg-[var(--surface-inset)] px-5 py-4">
                                             <div className="min-w-0">
-                                                <h3 className="text-sm font-medium">还没有可编辑的分镜</h3>
-                                                <p className="mt-0.5 truncate text-xs text-muted-foreground">先从剧本提取内容结构，并在内容审核阶段确认镜头事实与视觉方案。</p>
+                                                <h3 className="text-[13px] font-semibold text-[var(--ink-1)]">还没有可编辑的分镜</h3>
+                                                <p className="mt-1 text-[12px] leading-5 text-[var(--ink-3)]">先从剧本提取内容结构，并在内容审核阶段确认镜头事实与视觉方案。</p>
                                             </div>
                                         </div>
                                     )}
@@ -552,7 +552,8 @@ function DramaScriptGlobalBar({
                 ? `最近保存 ${new Date(saveState.savedAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`
                 : `最近保存 ${new Date(project.updatedAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`;
     return (
-        <footer className={`flex h-[60px] shrink-0 items-center justify-between gap-2 border-t border-border bg-card px-3 sm:gap-3 sm:px-5 ${episodeNavigatorOpen ? "min-[1366px]:!pl-[210px]" : ""}`} data-drama-script-global-bar>
+        /* 底部操作条不画上边框：靠一条极淡的上向落影和背景把它从内容里托起来。 */
+        <footer className={`flex h-[64px] shrink-0 items-center justify-between gap-2 bg-background px-5 shadow-[0_-12px_32px_-28px_rgba(17,17,19,0.45)] sm:gap-3 sm:px-7 ${episodeNavigatorOpen ? "min-[1366px]:!pl-[210px]" : ""}`} data-drama-script-global-bar>
             <div className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
                 <span className={`size-2 shrink-0 rounded-full ${saveState?.status === "error" ? "bg-rose-500" : saveState?.status === "saving" ? "bg-amber-500" : "bg-emerald-500"}`} />
                 <span className="hidden sm:inline" title={savedLabel}>
@@ -561,7 +562,7 @@ function DramaScriptGlobalBar({
             </div>
             <div className="flex shrink-0 items-center gap-2 sm:gap-3">
                 <Button
-                    className="!h-10 !px-3 sm:!px-5"
+                    className="!h-10 !rounded-xl !border-0 !bg-[var(--surface-inset)] !px-3 !text-[var(--ink-1)] !shadow-none sm:!px-5"
                     loading={savingVersion}
                     onClick={() => {
                         setSavingVersion(true);
@@ -576,7 +577,7 @@ function DramaScriptGlobalBar({
                 </Button>
                 <Button
                     type="primary"
-                    className="!h-10 !px-3 enabled:!border-violet-600 enabled:!bg-violet-600 enabled:!text-white enabled:hover:!border-violet-500 enabled:hover:!bg-violet-500 dark:enabled:!border-violet-400 dark:enabled:!bg-violet-400 dark:enabled:!text-violet-950 sm:!px-6"
+                    className="!h-10 !rounded-xl !border-0 !bg-[var(--brand-600)] !px-3 !text-white !shadow-none hover:opacity-90 disabled:opacity-50 sm:!px-6"
                     icon={<ArrowRight className="size-4" />}
                     disabled={!episode.script.trim()}
                     loading={analyzing}

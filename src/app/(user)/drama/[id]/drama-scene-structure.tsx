@@ -22,16 +22,16 @@ export function DramaSceneStructure({
 }) {
     const sceneNames = new Map(project.scenes.map((scene) => [scene.id, scene.name]));
     return (
-        <aside className="flex h-full min-h-0 min-w-0 flex-col bg-card" data-drama-scene-structure>
-            <div className="shrink-0 border-b border-border px-3 py-2.5">
+        <aside className="flex h-full min-h-0 min-w-0 flex-col bg-transparent" data-drama-scene-structure>
+            <div className="shrink-0 px-4 pb-2 pt-4">
                 <div className="flex items-center justify-between gap-2">
                     <div>
-                        <h3 className="text-sm font-semibold">场景结构</h3>
-                        <p className="mt-0.5 text-[11px] text-muted-foreground">{episode.shots.length} 个场景 / 镜头</p>
+                        <h3 className="text-[13px] font-semibold text-[var(--ink-1)]">场景结构</h3>
+                        <p className="mt-1 text-[11px] text-[var(--ink-3)]">{episode.shots.length} 个场景 / 镜头</p>
                     </div>
                 </div>
             </div>
-            <div className="hide-scrollbar min-h-0 flex-1 overflow-y-auto p-2">
+            <div className="hide-scrollbar min-h-0 flex-1 overflow-y-auto px-3 pb-3">
                 {episode.shots.length ? (
                     <div className="space-y-1">
                         {episode.shots.map((shot) => {
@@ -40,7 +40,7 @@ export function DramaSceneStructure({
                                 <button
                                     key={shot.id}
                                     type="button"
-                                    className={`w-full rounded-md border px-2.5 py-2 text-left transition ${active ? "border-violet-300 bg-violet-50/70 dark:border-violet-700/70 dark:bg-violet-950/25" : "border-transparent hover:border-border hover:bg-background"}`}
+                                    className={`w-full rounded-xl px-3 py-2.5 text-left transition ${active ? "bg-[var(--brand-soft)]" : "hover:bg-[var(--surface-inset)]"}`}
                                     onClick={() => onSelect(shot)}
                                     aria-current={active ? "true" : undefined}
                                 >
@@ -54,11 +54,11 @@ export function DramaSceneStructure({
                         })}
                     </div>
                 ) : (
-                    <div className="rounded-md bg-muted/25 p-3">
-                        <div className="text-xs font-medium text-foreground">暂无场景结构</div>
-                        <p className="mt-1 text-[11px] leading-4 text-muted-foreground">完成剧本后整理为可定位场景</p>
+                    <div className="rounded-xl bg-[var(--surface-inset)] p-4">
+                        <div className="text-[12px] font-medium text-[var(--ink-1)]">暂无场景结构</div>
+                        <p className="mt-1.5 text-[11px] leading-5 text-[var(--ink-3)]">完成剧本后整理为可定位场景</p>
                         {onAnalyze ? (
-                            <Button className="!mt-2.5 !h-7 !px-2.5 !text-xs" size="small" icon={<Sparkles className="size-3" />} loading={analyzing} disabled={!episode.script.trim()} onClick={onAnalyze}>
+                            <Button className="!mt-3 !h-8 !rounded-lg !border-0 !bg-[var(--surface-panel)] !px-3 !text-[var(--ink-1)] !shadow-none" size="small" icon={<Sparkles className="size-3" />} loading={analyzing} disabled={!episode.script.trim()} onClick={onAnalyze}>
                                 AI 整理
                             </Button>
                         ) : null}

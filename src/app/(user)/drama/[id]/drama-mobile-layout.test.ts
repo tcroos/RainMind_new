@@ -48,7 +48,10 @@ describe("drama mobile list layout", () => {
         expect(sections).toContain("data-drama-script-statusbar");
         expect(sections).toContain('step="01"');
         expect(elements).toContain("data-drama-stage-metrics");
-        expect(elements).toContain("border-l border-border/80");
+        /* 阶段头的指标之间不再画竖线，标题下也不再压横线。 */
+        expect(elements).not.toContain("border-l border-border/80");
+        expect(elements).toContain("gap-x-5");
+        expect(elements).not.toContain("border-b border-border/80");
         expect(page).toContain("data-drama-script-global-bar");
         expect(page).toContain("min-[1366px]:!pl-[210px]");
         expect(sections).toContain("w-[190px]");
