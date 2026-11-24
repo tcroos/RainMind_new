@@ -82,6 +82,8 @@ src/app/styles/global-canvas-*.css    # controls / overrides / responsive 三个
 
 - [12:53] OWNER-CANVAS 占用 `.workbuddy/`、`AGENTS.md` — 建立协作契约，不涉及业务代码
 - [12:53] OWNER-ME 持有 7 个文件未提交（头像渐变调整），OWNER-CANVAS 不触碰
+- [12:56] OWNER-ME 提交 `3846a2d` — `public/profile-cover.*`、`scripts/generate-profile-cover.mjs`：封面底色改中性石墨，只动自己域
+- [12:56] OWNER-ME 补记历史改动：`108a33f` 里一并改了共享层 `components/layout/{app-sidebar,mobile-nav-drawer,user-status-actions}.tsx` 的头像渐变类名（纯 class 替换、无行为/接口变更），当时契约尚未建立；此后共享层改动会单独提交并在此记账
 
 ## 6. 端口与运行环境
 
@@ -109,3 +111,4 @@ git worktree add ../vozeb-wt-canvas -b feat/canvas-local feat/3034-frontend-loca
 
 - 2026-11-24 12:53 初版，OWNER-PAGES 建立
 - 2026-11-24 12:58 分区定稿：OWNER-PAGES → OWNER-CANVAS（画布域），补端口约定与画布只读依赖
+- 2026-11-24 12:57 OWNER-ME 在 §5 追加两条记账（封面提交、历史共享层改动补记），未改分区与规则
