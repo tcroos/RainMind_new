@@ -37,9 +37,9 @@ for (let i = 0; i < LINES; i += 1) {
         const y = baseY + Math.sin(x * freq1 + phase1) * amp1 + Math.sin(x * freq2 + phase2) * amp2;
         points.push(`${x},${y.toFixed(1)}`);
     }
-    const opacity = (0.06 + Math.abs(Math.sin(i * 0.7)) * 0.16).toFixed(3);
+    const opacity = (0.1 + Math.abs(Math.sin(i * 0.7)) * 0.18).toFixed(3);
     const width = (0.9 + rand() * 0.7).toFixed(2);
-    contourPaths.push(`<polyline points="${points.join(" ")}" fill="none" stroke="#dbeafe" stroke-opacity="${opacity}" stroke-width="${width}" />`);
+    contourPaths.push(`<polyline points="${points.join(" ")}" fill="none" stroke="#cbd5e1" stroke-opacity="${opacity}" stroke-width="${width}" />`);
 }
 
 // 柔光斑：模拟海面反光
@@ -66,21 +66,21 @@ for (let i = 0; i < 5; i += 1) {
         pts.push(`${(cx + Math.cos(angle) * rx * wobble).toFixed(1)},${(cy + Math.sin(angle) * ry * wobble).toFixed(1)}`);
     }
     const opacity = between(0.08, 0.16).toFixed(3);
-    blobs.push(`<polygon points="${pts.join(" ")}" fill="#e0f2fe" opacity="${opacity}" filter="url(#soft)" />`);
+    blobs.push(`<polygon points="${pts.join(" ")}" fill="#cbd5e1" opacity="${opacity}" filter="url(#soft)" />`);
 }
 
 // 细网格：给整张图一个坐标系骨架，避免只有渐变显得空泛
 const gridLines = [];
-for (let x = 0; x <= W; x += 100) gridLines.push(`<line x1="${x}" y1="0" x2="${x}" y2="${H}" stroke="#e0f2fe" stroke-opacity="0.05" stroke-width="1" />`);
-for (let y = 0; y <= H; y += 100) gridLines.push(`<line x1="0" y1="${y}" x2="${W}" y2="${y}" stroke="#e0f2fe" stroke-opacity="0.05" stroke-width="1" />`);
+for (let x = 0; x <= W; x += 100) gridLines.push(`<line x1="${x}" y1="0" x2="${x}" y2="${H}" stroke="#cbd5e1" stroke-opacity="0.05" stroke-width="1" />`);
+for (let y = 0; y <= H; y += 100) gridLines.push(`<line x1="0" y1="${y}" x2="${W}" y2="${y}" stroke="#cbd5e1" stroke-opacity="0.05" stroke-width="1" />`);
 
 const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="presentation">
     <defs>
         <linearGradient id="sea" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stop-color="#082f49" />
-            <stop offset="38%" stop-color="#0e4d68" />
-            <stop offset="72%" stop-color="#1e3a8a" />
-            <stop offset="100%" stop-color="#312e81" />
+            <stop offset="0%" stop-color="#171c24" />
+            <stop offset="45%" stop-color="#1e232c" />
+            <stop offset="78%" stop-color="#272d38" />
+            <stop offset="100%" stop-color="#313743" />
         </linearGradient>
         <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
             <feGaussianBlur stdDeviation="30" />
@@ -103,12 +103,12 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" wid
     <g>
         ${blooms}
     </g>
-    <rect width="${W}" height="${H}" filter="url(#grain)" opacity="0.09" />
+    <rect width="${W}" height="${H}" filter="url(#grain)" opacity="0.055" />
     <rect width="${W}" height="${H}" fill="url(#vignette)" />
     <defs>
         <radialGradient id="vignette" cx="0.5" cy="0.4" r="0.75">
             <stop offset="55%" stop-color="#000" stop-opacity="0" />
-            <stop offset="100%" stop-color="#000" stop-opacity="0.38" />
+            <stop offset="100%" stop-color="#000" stop-opacity="0.3" />
         </radialGradient>
     </defs>
 </svg>
