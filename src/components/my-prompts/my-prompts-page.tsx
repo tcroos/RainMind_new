@@ -174,7 +174,13 @@ export function MyPromptsPage() {
                     </div>
                 ) : null}
 
-                    {loading ? <MyPromptGridSkeleton /> : null}
+                    {/* 首屏不再铺一排假卡片：那 4 张灰色占位会被看成「有内容」，
+                        等接口回来再替换成空状态，肉眼就是一次明显闪烁。 */}
+                    {loading && !items.length ? (
+                        <div className="flex min-h-[220px] items-center justify-center pt-8 text-[12px] text-[var(--ink-3)]" aria-busy="true">
+                            正在加载提示词
+                        </div>
+                    ) : null}
 
                     {showEmptyState ? (
                         hasFilters ? (
@@ -295,23 +301,6 @@ export function MyPromptsPage() {
                     </div>
                 </Form>
             </Modal>
-        </div>
-    );
-}
-
-function MyPromptGridSkeleton() {
-    return (
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" aria-hidden>
-            {Array.from({ length: 4 }).map((_, index) => (
-                <div key={index} className="overflow-hidden rounded-2xl bg-[var(--surface-panel)] p-3 shadow-[0_1px_2px_rgba(17,17,19,0.04)]">
-                    <div className="aspect-[16/10] w-full rounded-xl bg-[var(--surface-inset)]" />
-                    <div className="space-y-2 px-0.5 pt-3">
-                        <div className="h-3.5 w-2/3 rounded bg-[var(--surface-inset)]" />
-                        <div className="h-3 w-full rounded bg-[var(--surface-inset)]" />
-                        <div className="h-3 w-4/5 rounded bg-[var(--surface-inset)]" />
-                    </div>
-                </div>
-            ))}
         </div>
     );
 }

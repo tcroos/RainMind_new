@@ -31,7 +31,9 @@ describe("my prompts page layout", () => {
         expect(page).toContain("LibraryShowcaseEmptyState");
         expect(page).toContain("还没有提示词");
         expect(page).toContain("添加第一个提示词");
-        expect(page).toContain("MyPromptGridSkeleton");
+        // 首屏只用一行文案占位，不铺假卡片；切 tab 时不会再有「骨架 → 空状态」闪动
+        expect(page).not.toContain("MyPromptGridSkeleton");
+        expect(page).toContain("正在加载提示词");
         // 空白态工具栏不再重复「添加提示词」按钮，只留下方引导区一个入口
         expect(page).toContain("loading || items.length ?");
     });

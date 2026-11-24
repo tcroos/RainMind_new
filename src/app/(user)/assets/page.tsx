@@ -248,11 +248,15 @@ export default function AssetsPage() {
                         <LibraryTabs tabs={LIBRARY_TABS} active={tab} onSelect={selectTab} />
                     </header>
 
+                    {/* 我的提示词从素材库打开时就在后台预加载：切 tab 只是把已经就绪的面板显示出来。
+                        之前切到 mine 才挂载，首帧必然命中 loading 骨架卡片，闪一下再变成空状态。 */}
+                    <div className={tab === "mine" ? "" : "hidden"} aria-hidden={tab !== "mine"}>
+                        <MyPromptsPage />
+                    </div>
+
                     {tab === "public" ? (
                         <PublicPromptsPanel />
-                    ) : tab === "mine" ? (
-                        <MyPromptsPage />
-                    ) : (
+                    ) : tab === "assets" ? (
                         <>
                             <div className="flex flex-wrap items-center justify-between gap-2 pt-5">
                                 <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
@@ -357,7 +361,7 @@ export default function AssetsPage() {
                                 ) : null}
                             </div>
                         </>
-                    )}
+                    ) : null}
                 </div>
             </main>
 

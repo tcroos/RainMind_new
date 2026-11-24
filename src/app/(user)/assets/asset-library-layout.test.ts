@@ -76,6 +76,15 @@ describe("asset library shell", () => {
         expect(tabs).toContain("event.preventDefault()");
     });
 
+    it("preloads the my-prompts panel so switching tabs never flashes a skeleton", async () => {
+        const page = await read("src/app/(user)/assets/page.tsx");
+
+        // my-prompts 常驻挂载，靠 hidden 切换显示：首次进入素材库就开始取自己的数据
+        expect(page).toContain('<div className={tab === "mine" ? "" : "hidden"}');
+        expect(page).toContain("<MyPromptsPage />");
+        expect(page).not.toContain('tab === "mine" ? (\n                        <MyPromptsPage />');
+    });
+
     it("does not show pagination on an empty library", async () => {
         const page = await read("src/app/(user)/assets/page.tsx");
 
