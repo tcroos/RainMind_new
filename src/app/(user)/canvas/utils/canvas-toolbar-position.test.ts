@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { SELECTION_TOOLBAR_HEIGHT, SELECTION_TOOLBAR_WIDTH, toolbarScreenAnchor } from "./canvas-toolbar-position";
+import { SELECTION_TOOLBAR_HEIGHT, SELECTION_TOOLBAR_WIDTH, groupLabelScreenAnchor, toolbarScreenAnchor } from "./canvas-toolbar-position";
 
 const bounds = { left: 400, top: 100, right: 800, bottom: 300 };
 const viewport = { x: 0, y: 0, k: 1 };
@@ -41,5 +41,27 @@ describe("toolbarScreenAnchor", () => {
         const narrow = toolbarScreenAnchor(bounds, viewport, { width: 400, height: 300 });
         expect(narrow.left).toBe(200);
         expect(narrow.top).toBeGreaterThanOrEqual(SELECTION_TOOLBAR_HEIGHT + 12);
+    });
+});
+
+describe("groupLabelScreenAnchor", () => {
+    it("1 倍缩放下贴在组框左上角上方", () => {
+        expect(groupLabelScreenAnchor(bounds, viewport, size)).toEqual({ left: 408, top: 80 });
+    });
+
+    it("画布缩放后按同一 viewport 换算，位置立即跟着变（不再等 commit）", () => {
+        const zoomed = groupLabelScreenAnchor(bounds, { x: 40, y: 20, k: 0.5 }, size);
+        expect(zoomed).toEqual({ left: 248, top: 50 });
+        expect(zoomed.left).not.toBe(groupLabelScreenAnchor(bounds, viewport, size).left);
+    });
+
+    it("平移与缩放叠加时仍跟着组框走", () => {
+        expect(groupLabelScreenAnchor(bounds, { x: -120, y: 60, k: 2 }, size)).toEqual({ left: 688, top: 240 });
+    });
+
+    it("组框移出视口时收敛到边缘，不产出负坐标", () => {
+        const offscreen = groupLabelScreenAnchor({ left: -2000, top: -2000, right: -1900, bottom: -1900 }, viewport, size);
+        expect(offscreen.left).toBeGreaterThanOrEqual(8);
+        expect(offscreen.top).toBeGreaterThanOrEqual(8);
     });
 });

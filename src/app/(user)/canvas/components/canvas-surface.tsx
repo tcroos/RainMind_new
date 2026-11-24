@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, DragEvent as ReactDragEvent, MouseEvent as ReactMouseEvent, MutableRefObject, PointerEvent as ReactPointerEvent, ReactNode, RefObject } from "react";
 
-import { ChevronDown, Plus, Scissors } from "lucide-react";
+import { Plus, Scissors } from "lucide-react";
 
 import { canvasThemes, type CanvasBackgroundMode, type CanvasTheme } from "@/lib/canvas-theme";
 import { useThemeStore } from "@/stores/use-theme-store";
@@ -12,7 +12,7 @@ import { CanvasNodeType, type CanvasConnection, type CanvasNodeData, type Positi
 import { edgePath, expandCanvasDragNodeIds, findConnectionTarget, isBlockedConnectionDrop, isCanvasVideoControlPoint, nodeAnchor, previewPath, samePosition, selectNodesInBounds, worldFromScreen } from "../utils/canvas-surface-geometry";
 import { buildCanvasSpatialIndex, canvasNodeBounds, canvasNodesBounds, type CanvasBounds } from "../utils/canvas-spatial-index";
 import { groupMemberIds, commonGroupId, expandGroupSelection } from "../utils/canvas-node-group";
-import { toolbarScreenAnchor } from "../utils/canvas-toolbar-position";
+import { groupLabelScreenAnchor, toolbarScreenAnchor } from "../utils/canvas-toolbar-position";
 import { CanvasSelectionToolbar, type CanvasSelectionActions } from "./canvas-selection-toolbar";
 import { canvasMediaLoadBudget, selectCanvasMediaLoadIds } from "../utils/canvas-media-load-budget";
 import { CANVAS_MIN_ZOOM } from "../utils/canvas-zoom";
@@ -24,6 +24,8 @@ export type CanvasInteractionMode = "pan" | "select";
 type ConnectionDraft = { nodeId: string; handleType: "source" | "target"; world: Position; targetNodeId: string | null; pointerId: number | null };
 type BatchConnectionDraft = { pointerId: number; start: Position; current: Position; sourceIds: string[]; targetNodeId: string | null };
 type BoxSelection = { start: Position; current: Position; nodeIds: Set<string> };
+type GroupFrame = { groupId: string; label: string; memberIds: string[]; bounds: CanvasBounds };
+type ScreenAnchorData = { frames: GroupFrame[]; toolbarBounds: CanvasBounds | null; toolbarGap: number; surfaceSize: { width: number; height: number } };
 type Interaction =
     | { kind: "pan"; pointerId: number; start: Position; viewport: ViewportTransform; moved: boolean }
     | { kind: "drag"; pointerId: number | null; start: Position; nodeIds: string[]; positions: Map<string, Position>; moved: boolean }
@@ -233,6 +235,11 @@ export function CanvasSurface({
     const [toolbarActive, setToolbarActive] = useState(false);
     /** 供 pointerdown 命中组框使用，每次渲染同步当前组框的世界坐标范围 */
     const groupFrameHitRef = useRef<{ groupId: string; memberIds: string[]; bounds: CanvasBounds }[]>([]);
+    /* 屏幕层的组名/工具栏：位置直接写 DOM，和 world 层的 transform 同一帧更新。
+     * displayViewport 这个 state 只在滚轮停下或拖拽松手时 commit，靠它定位会慢一拍。 */
+    const groupLabelElsRef = useRef(new Map<string, HTMLButtonElement>());
+    const toolbarAnchorElRef = useRef<HTMLDivElement | null>(null);
+    const screenAnchorDataRef = useRef<ScreenAnchorData>({ frames: [], toolbarBounds: null, toolbarGap: 12, surfaceSize: { width: 1280, height: 760 } });
     const [temporaryPan, setTemporaryPan] = useState(false);
     /** 拖动平移时自动浮出的小地图。与页面上的手动开关（minimapOpen）取并集：
      *  手动开的常驻，自动开的只要出现「拖动以外的操作」就收回。 */
@@ -432,9 +439,26 @@ export function CanvasSurface({
         setDisplayViewport(viewport);
     }, [viewport]);
 
+    /** 把屏幕层锚点搬到当前 viewport 对应的位置；只写 transform，不触发 React 渲染 */
+    const syncScreenAnchors = useCallback((next: ViewportTransform) => {
+        const data = screenAnchorDataRef.current;
+        groupLabelElsRef.current.forEach((element, groupId) => {
+            const frame = data.frames.find((item) => item.groupId === groupId);
+            if (!frame) return;
+            const { left, top } = groupLabelScreenAnchor(frame.bounds, next, data.surfaceSize);
+            element.style.transform = `translate(${left}px, ${top}px)`;
+        });
+        if (toolbarAnchorElRef.current && data.toolbarBounds) {
+            const position = toolbarScreenAnchor(data.toolbarBounds, next, data.surfaceSize, data.toolbarGap);
+            toolbarAnchorElRef.current.style.transform = `translate(${position.left}px, ${position.top}px)`;
+        }
+    }, []);
+
     const applyViewportStyles = useCallback(
         (next: ViewportTransform) => {
             if (worldLayerRef.current) worldLayerRef.current.style.transform = `translate(${next.x}px, ${next.y}px) scale(${next.k})`;
+            /* 组名与工具栏跟节点一起逐帧移动，不等 commitViewport 的 setState */
+            syncScreenAnchors(next);
             if (!backgroundLayerRef.current) return;
             const gridSize = canvasGridSize(backgroundMode, next.k);
             backgroundLayerRef.current.style.backgroundImage = canvasGridImage(backgroundMode, theme, next.k);
@@ -442,7 +466,7 @@ export function CanvasSurface({
             backgroundLayerRef.current.style.backgroundPosition = `${next.x}px ${next.y}px`;
             backgroundLayerRef.current.style.opacity = String(canvasGridOpacity(next.k));
         },
-        [backgroundMode, theme],
+        [backgroundMode, syncScreenAnchors, theme],
     );
 
     useEffect(() => applyViewportStyles(displayViewport), [applyViewportStyles, displayViewport]);
@@ -958,7 +982,8 @@ export function CanvasSurface({
                 const rect = surfaceRef.current?.getBoundingClientRect();
                 if (!input || !rect) return;
                 const current = displayViewportRef.current;
-                const factor = Math.pow(1.1, -input.deltaY / 100);
+                /* 缩放步进收一半：触控板轻擦不再明显放大/缩小，滚轮需要多滚一点才有原来幅度 */
+                const factor = Math.pow(1.055, -input.deltaY / 100);
                 const nextZoom = Math.min(5, Math.max(CANVAS_MIN_ZOOM, current.k * factor));
                 const localX = input.clientX - rect.left;
                 const localY = input.clientY - rect.top;
@@ -1137,9 +1162,9 @@ export function CanvasSurface({
     }, [getDisplayNode, hiddenNodeIds, selectedNodeIds]);
     const multiSelectionBounds = useMemo(() => {
         if (boxSelection || multiSelectionNodes.length < 2) return null;
-        const padding = MULTI_SELECTION_PADDING_PX / Math.max(displayViewport.k, 0.01);
-        return canvasNodesBounds(multiSelectionNodes, padding, padding);
-    }, [boxSelection, displayViewport.k, multiSelectionNodes]);
+        /* 与组框一致用固定世界边距，缩放过程中选区/工具栏不会在 commit 时跳一下 */
+        return canvasNodesBounds(multiSelectionNodes, MULTI_SELECTION_PADDING_PX, MULTI_SELECTION_PADDING_PX);
+    }, [boxSelection, multiSelectionNodes]);
     multiSelectionBoundsRef.current = multiSelectionBounds;
     const selectionGroupId = useMemo(
         () => (multiSelectionNodes.length >= 2 ? commonGroupId(displayNodesRef.current, multiSelectionNodes.map((node) => node.id)) : null),
@@ -1153,10 +1178,11 @@ export function CanvasSurface({
             const memberIds = groupMemberIds(visibleNodes, groupId);
             const members = memberIds.map((id) => getDisplayNode(id)).filter((node): node is CanvasNodeData => Boolean(node));
             if (members.length < 2) return;
-            frames.push({ groupId, label: groupLabels?.get(groupId) || "Group", memberIds, bounds: canvasNodesBounds(members, 18 / Math.max(displayViewport.k, 0.01), 22 / Math.max(displayViewport.k, 0.01)) });
+            /* 边距用固定世界单位：缩放时组框只由 world transform 跟随，不会因为 k 变化在 commit 瞬间重算跳动 */
+            frames.push({ groupId, label: groupLabels?.get(groupId) || "Group", memberIds, bounds: canvasNodesBounds(members, 18, 22) });
         });
         return frames;
-    }, [displayViewport.k, getDisplayNode, groupLabels, visibleNodes]);
+    }, [getDisplayNode, groupLabels, visibleNodes]);
     groupFrameHitRef.current = groupFrames;
     const multiSelectionScale = Math.max(displayViewport.k, 0.01);
     const knobScreenScale = Math.max(0.5, Math.min(1, displayViewport.k));
@@ -1169,6 +1195,17 @@ export function CanvasSurface({
     const showSelectionToolbar = toolbarActive && multiSelectionNodes.length >= 2 && Boolean(toolbarBounds);
     // 组激活时把工具栏再抬高一点，给组框左上角的 Group N 菜单让位
     const toolbarScreenPosition = toolbarBounds ? toolbarScreenAnchor(toolbarBounds, displayViewport, surfaceSize, activeGroupFrame ? 36 : 12) : null;
+
+    /* 逐帧同步器读的数据在 render 时刷新：组框/选区一变，屏幕锚点下一次预览就跟着变 */
+    screenAnchorDataRef.current = {
+        frames: groupFrames,
+        toolbarBounds: showSelectionToolbar ? toolbarBounds : null,
+        toolbarGap: activeGroupFrame ? 36 : 12,
+        surfaceSize,
+    };
+    useLayoutEffect(() => {
+        syncScreenAnchors(displayViewportRef.current);
+    });
 
     const updateBatchHandleMagnet = (event: ReactPointerEvent<HTMLDivElement>) => {
         if (!multiSelectionBounds || batchConnectionRef.current) {
@@ -1572,24 +1609,35 @@ export function CanvasSurface({
             {groupFrames.length > 0 || showSelectionToolbar ? (
                 <div className="pointer-events-none absolute inset-0" style={{ zIndex: 85 }}>
                     {groupFrames.map((frame) => {
-                        const frameActive = toolbarActive && selectionGroupId === frame.groupId;
-                        const left = Math.min(Math.max(8, displayViewport.x + frame.bounds.left * displayViewport.k + 10), Math.max(8, surfaceSize.width - 120));
-                        const top = Math.min(Math.max(8, displayViewport.y + frame.bounds.top * displayViewport.k - 26), Math.max(8, surfaceSize.height - 28));
+                        const { left, top } = groupLabelScreenAnchor(frame.bounds, displayViewport, surfaceSize);
                         return (
+                            /* 组名就是一行纯文字：不要边框、底色、图标或胶囊按钮，直接落在组框左上角上方。
+                             * 保留点击/拖动能力，但外观上不附加任何组件。 */
                             <button
                                 key={frame.groupId}
+                                ref={(element) => {
+                                    if (element) groupLabelElsRef.current.set(frame.groupId, element);
+                                    else groupLabelElsRef.current.delete(frame.groupId);
+                                }}
                                 type="button"
                                 data-canvas-group-label={frame.groupId}
                                 aria-label={`${frame.label} 菜单`}
                                 title="点击弹出组工具栏，拖动可整组移动"
-                                className="pointer-events-auto absolute flex items-center gap-1 whitespace-nowrap rounded-md px-2 py-[3px] text-[11px] font-semibold leading-tight"
+                                className="pointer-events-auto absolute left-0 top-0 whitespace-nowrap"
                                 style={{
-                                    left,
-                                    top,
-                                    color: frameActive ? theme.node.text : theme.node.muted,
-                                    background: theme.toolbar.panel,
-                                    border: `1px solid ${themeName === "light" ? "rgba(17,17,19,0.12)" : "rgba(255,255,255,0.14)"}`,
-                                    cursor: "grab",
+                                    /* 首帧给个位置，随后由 syncScreenAnchors 逐帧直接写 transform */
+                                    transform: `translate(${left}px, ${top}px)`,
+                                    /* 文字样式全部内联：antd 的无层级 reset 会压掉 Tailwind 工具类 */
+                                    color: theme.node.muted,
+                                    fontSize: 11,
+                                    fontWeight: 600,
+                                    lineHeight: 1.25,
+                                    whiteSpace: "nowrap",
+                                    background: "transparent",
+                                    border: 0,
+                                    padding: 0,
+                                    margin: 0,
+                                    cursor: "pointer",
                                 }}
                                 onPointerDown={(event) => handleGroupLabelPointerDown(event, frame)}
                                 onClick={(event) => event.stopPropagation()}
@@ -1600,22 +1648,29 @@ export function CanvasSurface({
                                 }}
                             >
                                 {frame.label}
-                                <ChevronDown className="size-3" aria-hidden />
                             </button>
                         );
                     })}
                     {showSelectionToolbar && toolbarScreenPosition ? (
-                        <CanvasSelectionToolbar
-                            anchor={toolbarScreenPosition}
-                            theme={theme}
-                            themeName={themeName}
-                            nodeIds={multiSelectionNodes.map((node) => node.id)}
-                            groupId={selectionGroupId}
-                            groupLabel={selectionGroupId ? groupLabels?.get(selectionGroupId) || null : null}
-                            onGroup={onGroupNodes}
-                            onUngroup={onUngroupNodes}
-                            actions={selectionActions}
-                        />
+                        /* 外层只负责定位：transform 由同步器逐帧改写，内部工具栏尺寸恒定不随画布缩放 */
+                        <div
+                            ref={toolbarAnchorElRef}
+                            data-canvas-selection-anchor
+                            className="pointer-events-none absolute left-0 top-0"
+                            style={{ transform: `translate(${toolbarScreenPosition.left}px, ${toolbarScreenPosition.top}px)` }}
+                        >
+                            <CanvasSelectionToolbar
+                                anchor={{ left: 0, top: 0 }}
+                                theme={theme}
+                                themeName={themeName}
+                                nodeIds={multiSelectionNodes.map((node) => node.id)}
+                                groupId={selectionGroupId}
+                                groupLabel={selectionGroupId ? groupLabels?.get(selectionGroupId) || null : null}
+                                onGroup={onGroupNodes}
+                                onUngroup={onUngroupNodes}
+                                actions={selectionActions}
+                            />
+                        </div>
                     ) : null}
                 </div>
             ) : null}
