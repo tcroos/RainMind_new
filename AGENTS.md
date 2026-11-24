@@ -129,6 +129,7 @@ src/app/styles/global-canvas-*.css    # controls / overrides / responsive 三个
 - [14:41] 仍未处理（需产品/功能裁决，SHELL 不擅自动）：① `/admin/billing` 全站无任何入口，只能手输 URL，却自带 2237 行实现，与 `/admin` 里 orders/products/promotions/coupons/payments/wallet/cdk 七个 section 功能重叠 —— 是并入 section 还是补入口，待定；② `src/app/admin/marketing/`、`src/app/admin/works/` 只有 components 没有 page，无对应路由
 - [15:00] OWNER-SHELL 提交 `7f346c6`：浅色中性色阶调转 —— `--surface-canvas` #f8f9fa → #ffffff、`--surface-rail` #ffffff → #f4f5f6（用户要求「页面更白、侧栏偏灰」，参考 Lovart）。连带把 `.surface-panel` 内描边 4.5% → 6.5%，因为白底上白卡片明度差为 0，边界只能靠描边+落影。**深色未动**。凡依赖「画布是浅灰、白色卡片浮起」的地方请复查：现在浮起靠描边，不再靠底色差
 - [15:15] OWNER-SHELL 提交 `326fd87`：折叠开关从顶栏移到侧栏品牌行右侧，图标换成最简 `PanelLeft`；顶栏左上角的页面标题已撤销（`PAGE_TITLES` 一并删除）。**行为变化**：桌面端顶栏左侧现在只有移动端才显示内容，任何依赖「顶栏显示当前分区名」的地方需自寻替代（导航高亮仍在）
+- [15:19] OWNER-SHELL 提交 `4c50f0e`：收起态不再常驻折叠图标 —— 平时 `opacity-0`，悬停品牌图标时 logo 淡出、图标同位置淡入，点击展开；键盘 Tab 仍有 `focus-visible` 入口。注意：侧栏里凡「悬停才出现」的控件都用这套 `group` + `opacity` 写法，不要再加常驻按钮
 
 ## 9. 升级方案：物理隔离（撞车频繁时启用）
 
