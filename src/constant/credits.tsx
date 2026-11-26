@@ -75,6 +75,8 @@ type CreditCostOptions = {
 export function generationParameterMultiplier(options: CreditCostOptions) {
     const multipliers = options.generationPointMultipliers;
     const kind = options.kind || (options.videoQuality !== undefined || options.videoSeconds !== undefined ? "video" : options.quality !== undefined ? "image" : undefined);
+    // 视频模型配置「固定按次」后，清晰度/时长参数不再影响单价，避免全局倍率表把它变成浮动价。
+    if (kind === "video" && options.videoBilling?.mode === "fixed") return 1;
     if (!multipliers) return kind === "video" ? (videoBillingResolutionMultiplier(options.videoBilling, options.videoQuality) ?? 1) * videoBillingDurationMultiplier(options.videoBilling, options.videoSeconds, 1) : 1;
     if (kind === "image") return multiplierValue(multipliers.imageQuality, normalizeImageQualityKey(options.quality));
     if (kind === "video") {
