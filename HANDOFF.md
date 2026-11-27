@@ -14,7 +14,9 @@ VOZEB PRO 主应用：Next.js 16 App Router + React 19 + antd 6 + Tailwind 4 + z
 
 ## 2. 仓库与分支 —— 接手第一坑，务必看懂
 
-远端：`https://github.com/tcroos/RainMind_old.git`（public，2026-11-27 首次推送）
+远端：`https://github.com/tcroos/RainMind_new.git`（public，2026-11-27 首次推送）
+
+> 注意：仓库最初叫 `RainMind_old`，GitHub 上已改名为 `RainMind_new`。旧地址会 301 跳转但仍可用；一律用上面的新地址，避免同事 clone 时收到迁移提示。
 
 | 分支 | 远端指向 | 说明 |
 | --- | --- | --- |
@@ -31,7 +33,7 @@ VOZEB PRO 主应用：Next.js 16 App Router + React 19 + antd 6 + Tailwind 4 + z
 ### 3.1 依赖与代码
 
 ```bash
-git clone https://github.com/tcroos/RainMind_old.git
+git clone https://github.com/tcroos/RainMind_new.git
 cd RainMind_old
 pnpm install
 ```
