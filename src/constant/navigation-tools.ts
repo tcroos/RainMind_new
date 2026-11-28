@@ -1,4 +1,4 @@
-import { Braces, Clapperboard, Compass, House, Images, Maximize2, MessageSquareText } from "lucide-react";
+import { Blocks, Braces, Clapperboard, Compass, House, Images, Maximize2, MessageSquareText } from "lucide-react";
 
 import { FEEDBACK_FORM_URL } from "./site-links";
 
@@ -63,6 +63,14 @@ export const navigationTools = [
         description: "发现公开作品",
         group: "assets",
         icon: Compass,
+    },
+    {
+        /* 官方 Skill 广场：浏览、了解并一键带着 Skill 去 Agent 画布 */
+        slug: "skills",
+        label: "Skill",
+        description: "官方创作 Skill",
+        group: "assets",
+        icon: Blocks,
     },
     /* 「主页 / 钱包」两个入口已从侧栏移除：账号条点开的弹窗里已有
      * 「账户管理」和「钱包」，侧栏再放一遍是重复占位。页面路由 /me、/wallet 保留，
