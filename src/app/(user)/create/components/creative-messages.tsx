@@ -1,7 +1,7 @@
 "use client";
 
 import { App, Button, Dropdown, Popover, Tooltip } from "antd";
-import { Check, Clapperboard, Clock3, Copy, Download, ExternalLink, FileAudio2, Film, Info, Link2, MoreHorizontal, PanelsTopLeft, RotateCw } from "lucide-react";
+import { Check, Clapperboard, Clock3, Copy, Download, ExternalLink, FileAudio2, Film, Info, Link2, MoreHorizontal, PanelsTopLeft, RotateCw, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -20,9 +20,11 @@ import { imagePreviewUrl } from "@/lib/media-image-url";
 import { cn } from "@/lib/utils";
 import type { MaterializedCreativeProject } from "@/services/creative-project-handoff";
 import { getCreativeAgentRun, type CreativeAgentRun } from "@/services/api/creative";
+import { useUserStore } from "@/stores/use-user-store";
 
 import { creativeAssetLayout } from "./creative-asset-layout";
 import { creativeConversationEntries, isMediaCreativeRound, type CreativeConversationEntry } from "./creative-conversation-rounds";
+import { OPEN_MODEL_PICKER_EVENT } from "./creative-generation-controls";
 import { CreativeGenerationWaiting } from "./creative-generation-waiting";
 import { CreativeMediaResult } from "./creative-media-result";
 import { formatCreativeMessageTime } from "./creative-result-presentation";
@@ -115,7 +117,7 @@ export function CreativeMessages({
     if (loading) return <div className="grid flex-1 place-items-center text-sm text-stone-400">正在读取会话...</div>;
 
     return (
-        <div className="mx-auto w-full max-w-[1040px] space-y-3 px-4 pb-4 pt-6 sm:space-y-8 sm:px-10 sm:pt-8" data-testid="creative-message-list">
+        <div className="mx-auto w-full max-w-[1120px] space-y-3 px-4 pb-4 pt-14 sm:space-y-8 sm:px-10 sm:pt-16" data-testid="creative-message-list">
             {hasOlder ? (
                 <div className="flex justify-center">
                     <Button type="text" loading={olderLoading} onClick={onLoadOlder}>
@@ -263,7 +265,8 @@ function CreativeMediaRound({
     const videoOutputs = mediaOutputs.filter((asset) => asset.type === "video");
     const otherMediaOutputs = mediaOutputs.filter((asset) => asset.type !== "video");
     const textOutputs = outputAssets.filter((asset) => asset.type === "text" && asset.status === "ready" && asset.textContent?.trim());
-    const isFailedMediaRound = assistantMessage.status === "failed" && run?.status === "failed" && !mediaOutputs.length && !textOutputs.length;
+    /* 失败（包括还没建出 run 就失败的，比如未配置模型）统一走失败卡片，不再出现「已为你生成…」标题 + 红字 */
+    const isFailedMediaRound = assistantMessage.status === "failed" && (!run || run.status === "failed") && !mediaOutputs.length && !textOutputs.length;
     const showAssistantText = Boolean(displayContent.trim()) && !(assistantMessage.status === "completed" && (mediaOutputs.length || textOutputs.length));
     const mode = creativeRunMode(run);
     const taskTitle = run?.tasks.find((task) => task.type === mode)?.title.trim();
@@ -572,22 +575,43 @@ function assetsForAssistant(message: CreativeMessage, assetsByMessage: Map<strin
 }
 
 function CreativeGenerationFailure({ message, onRetry }: { message: string; onRetry: () => Promise<boolean | void> }) {
-    const displayMessage = friendlyAgentError(message, "创作任务执行失败");
+    const isAdmin = useUserStore((state) => state.user?.role === "admin");
+    const raw = friendlyAgentError(message, "创作任务执行失败");
+    /* 「后台未配置…」这类只有管理员能处理的原因，普通用户看到的是一句能理解的话 */
+    const adminOnly = /后台|未配置|逻辑模型|渠道|API ?Key/i.test(raw);
+    const displayMessage = adminOnly && !isAdmin ? "服务暂时不可用，请稍后再试，或联系管理员。" : raw;
     const [retrying, setRetrying] = useState(false);
     return (
-        <div data-testid="creative-generation-failure" className="max-w-[620px] py-1">
-            <div className="min-w-0">
-                <p className="break-words text-[17px] font-medium leading-7 text-[#ef2b2d] dark:text-[#ff8b8d]">{displayMessage}</p>
-                <Button
-                    type="default"
-                    className="!mt-3 !h-9 !rounded-[10px] !border-[#ffd4d5] !bg-white !px-4 !text-sm !font-medium !text-[#e22b2e] hover:!border-[#ffb7b8] hover:!bg-[#fff8f8] hover:!text-[#c51f22] dark:!border-[#6b3438] dark:!bg-transparent dark:!text-[#ff9a9c] dark:hover:!border-[#9a4a4e] dark:hover:!bg-[#321e20]"
-                    icon={<RotateCw className="size-4" />}
-                    loading={retrying}
-                    onClick={() => void runRetry(onRetry, setRetrying)}
-                    aria-label="直接重试本次创作"
-                >
-                    直接重试
-                </Button>
+        <div data-testid="creative-generation-failure" className="w-[min(560px,calc(100vw-48px))] rounded-2xl border border-[#f3d4d4] bg-[#fff8f7] p-4 dark:border-[#5a3134] dark:bg-[#2a1c1e]">
+            <div className="flex items-start gap-3">
+                <span className="grid size-8 shrink-0 place-items-center rounded-full bg-[#fde3e2] text-[#d93a3d] dark:bg-[#4a2528] dark:text-[#ff9a9c]">
+                    <TriangleAlert className="size-4" />
+                </span>
+                <div className="min-w-0 flex-1">
+                    <p className="text-[15px] font-semibold leading-6 text-[var(--ink-1)]">这次没能生成成功</p>
+                    <p className="mt-0.5 break-words text-[13px] leading-5 text-[var(--ink-2)]">{displayMessage}</p>
+                    <p className="mt-1 text-[12px] leading-5 text-[var(--ink-3)]">失败的生成不会扣除积分，已扣的会自动退回。</p>
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <Button
+                            type="primary"
+                            className="profile-primary-button !h-8 !rounded-full !px-4 !text-[13px]"
+                            icon={<RotateCw className="size-3.5" />}
+                            loading={retrying}
+                            onClick={() => void runRetry(onRetry, setRetrying)}
+                            aria-label="直接重试本次创作"
+                        >
+                            重试
+                        </Button>
+                        <Button className="!h-8 !rounded-full !px-4 !text-[13px]" onClick={() => window.dispatchEvent(new Event(OPEN_MODEL_PICKER_EVENT))}>
+                            换个模型
+                        </Button>
+                        {adminOnly && isAdmin ? (
+                            <a href="/admin" className="text-[12px] font-medium hover:underline" style={{ color: "var(--brand-600)" }}>
+                                去后台配置
+                            </a>
+                        ) : null}
+                    </div>
+                </div>
             </div>
         </div>
     );

@@ -8,6 +8,9 @@ export type AgentSkillSummary = {
     requiresReference?: boolean;
     defaultConfig?: Record<string, string | number | boolean>;
     workspaces?: AgentSkillWorkspace[];
+    keywords?: string[];
+    sourceUrl?: string;
+    license?: string;
 };
 
 type ApiResponse<T> = { code: number; data: T; msg: string };

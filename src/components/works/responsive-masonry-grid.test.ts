@@ -21,4 +21,13 @@ describe("responsive masonry grid", () => {
             { column: 3, rowStart: 9, rowSpan: 3 },
         ]);
     });
+
+    it("places a wide item across two columns at the lowest pair of columns", () => {
+        // 3 列：前两项各占一列，第 3 项横跨 2 列，应放在 2、3 列（最低的一对）之上
+        expect(masonryPlacements([10, 4, 6], 3, [1, 1, 2])).toEqual([
+            { column: 1, rowStart: 1, rowSpan: 10 },
+            { column: 2, rowStart: 1, rowSpan: 4 },
+            { column: 2, rowStart: 5, rowSpan: 6, colSpan: 2 },
+        ]);
+    });
 });

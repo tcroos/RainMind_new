@@ -44,29 +44,49 @@ describe("wallet and profile section split", () => {
         expect(wallet).toContain('<AccountCenter scope="wallet" />');
     });
 
-    it("recharges through the shared plan modal instead of a plan grid on the page", async () => {
+    it("lays plans, top-up amounts, bills and coupon/referral cards out inline on the wallet overview", async () => {
         const center = await read("src/app/(user)/profile/account-center.tsx");
         const elements = await read("src/app/(user)/profile/profile-elements.tsx");
+        const blocks = await read("src/app/(user)/profile/wallet-overview-blocks.tsx");
 
-        // 钱包首屏只留余额卡 + 账单，套餐走和官网同一个弹窗
-        expect(center).toContain('data-testid="wallet-balance-card"');
-        expect(center).toContain("<BillingPlansModal");
-        expect(center).not.toContain("BillingPlanGrid");
-        expect(center).not.toContain('id="wallet-plans"');
-        expect(center).toContain('data-testid="wallet-bills"');
+        const memberCard = await read("src/app/(user)/profile/wallet-member-card.tsx");
+        expect(memberCard).toContain('data-testid="wallet-balance-card"');
+        // 套餐与充值金额直接在页面上，不再走弹窗
+        expect(center).not.toContain("<BillingPlansModal");
+        // 套餐与积分包合成一个购买区：按月订阅 / 按量充值切换，共用支付栏
+        expect(center).toContain("<WalletPurchaseSection");
+        expect(center).toContain("<WalletMemberCard");
+        expect(blocks).toContain('id="wallet-purchase"');
+        expect(blocks).toContain('"按月订阅" : "按量充值"');
+        expect(blocks).toContain('aria-label={activeMode === "plan" ? "选择套餐" : "充值金额"}');
+        // 钱包不再用左侧导航，改分段标签
+        expect(center).toContain('mode="tabs" scope={scope}');
+        expect(center).toContain("<WalletFaqCard");
+        expect(blocks).toContain('product.productKind === "points"');
+        // 优惠券是概览里的小窗，「全部」打开弹窗；邀请是小卡
+        expect(center).toContain("<WalletCouponCard");
+        expect(center).toContain("<WalletReferralCard");
+        expect(center).toContain("open={couponsOpen}");
+        expect(center).toContain('requestedSection === "coupons"');
+        // 订单 / 积分 / 消费合成一张账单明细，分段切换
+        expect(center).toContain('compact ? "wallet-bills" : "wallet-bill-detail"');
         expect(center).toContain("setBillTab");
-        // 老链接 ?section=billing 仍会打开弹窗，并把地址清成 /wallet
+        expect(elements).toContain('const WALLET_NAV_KEYS: ProfileSectionKey[] = ["wallet", "orders", "referrals"]');
+        expect(elements).toContain('orders: "账单明细"');
+        // 老链接 ?section=billing 仍可用：滚到套餐区并把地址清成 /wallet
         expect(center).toContain('requestedSection === "billing"');
         expect(center).toContain('router.replace("/wallet", { scroll: false })');
-        // 导航里不再有「充值套餐」，避免点进去是空页
         expect(elements).not.toContain('label: "充值套餐"');
     });
 
-    it("keeps the sidebar account entry as the second way into the profile", async () => {
+    it("keeps the sidebar account menu as the second way into the profile", async () => {
         const sidebar = await read("src/components/layout/app-sidebar.tsx");
+        const account = await read("src/components/layout/user-status-actions.tsx");
 
-        expect(sidebar).toContain('href="/profile"');
-        expect(sidebar).toContain("个人中心");
+        // 个人中心入口收进侧栏底部的账户菜单（AccountRailBar → 账户管理）
+        expect(sidebar).toContain("<AccountRailBar");
+        expect(account).toContain('label: "账户管理"');
+        expect(account).toContain('href: "/profile"');
         // 帮助从侧栏底部撤下，收进个人中心分区
         expect(sidebar).not.toContain('href="/help"');
     });

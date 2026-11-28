@@ -2,10 +2,10 @@
 
 import { useVideoReferenceQuote } from "@/hooks/use-video-reference-quote";
 
-import { App, Button, Drawer, Grid } from "antd";
+import { App, Button, Drawer, Grid, Tooltip } from "antd";
 import type { TextAreaRef } from "antd/es/input/TextArea";
-import { ChevronsDown, Clapperboard, FolderOpen, History, Play, Plus, ScanFace, ShoppingBag, Sparkles, X } from "lucide-react";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { ChevronRight, ChevronsDown, FolderOpen, History, Plus, X } from "lucide-react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { CREATIVE_UPLOAD_ACCEPT, creativeUploadKindForMime, creativeUploadMaxBytes, creativeUploadMaxMegabytes, isCreativeUploadMimeType } from "@/lib/creative-upload";
@@ -32,11 +32,19 @@ import { CreativeComposer } from "./components/creative-composer";
 import { CreativeAssetsPanel } from "./components/creative-assets-panel";
 import { applyAgentGenerationCapability, shouldShowVideoFrameControls } from "./components/creative-composer-video-mode";
 import { CreativeConversationList } from "./components/creative-conversation-list";
-import { CreateInspirationGallery, CreateInspirationHeading } from "./components/create-inspiration-gallery";
+import { CreateBannerCarousel } from "./components/create-banner-carousel";
+import { CreateFeatureRow } from "./components/create-feature-row";
+import { PROJECTS_CHANGED_EVENT } from "@/components/layout/sidebar-projects";
+import { writeCanvasAgentSeed } from "@/lib/canvas-agent-seed";
+import { requestCreditCost } from "@/constant/credits";
+import { skillPresentation } from "@/lib/skill-presentation";
+import { createCanvasProject } from "@/services/api/canvas-projects";
+import { CreateHomeHeroBackdrop } from "./components/create-home-hero-backdrop";
+import { CreateInspirationGallery } from "./components/create-inspiration-gallery";
 import { CreateSidePanel } from "./components/create-side-panel";
 import { CreativeEmptyChat } from "./components/creative-empty-chat";
+import { CREATIVE_RESULT_ACTION_EVENT, type CreativeResultAction } from "./components/creative-media-result";
 import { CreativeMessages } from "./components/creative-messages";
-import { CreateWorkbenchOverview } from "./components/create-workbench-overview";
 import { publicCreativeAssetPrompt, remapCreativeAssetReferences } from "./components/creative-asset-mention";
 import { createConversationHref, createConversationIdFromSearch } from "./create-conversation-navigation";
 import { creativeConversationScrollTransition } from "./create-conversation-scroll";
@@ -45,12 +53,8 @@ import { useCreateAgent } from "./use-create-agent";
 
 /* 功能胶囊：图标统一用主题橙（同一色相、只做点缀），
  * 既不回到「天蓝/紫/翡翠/红四色」那种碎，也不至于整页只有黑白。 */
-const SKILL_VISUALS = [
-    { icon: ShoppingBag, iconClass: "text-[var(--brand-600)]", surfaceClass: "bg-[var(--brand-soft)]" },
-    { icon: ScanFace, iconClass: "text-[var(--brand-600)]", surfaceClass: "bg-[var(--brand-soft)]" },
-    { icon: Play, iconClass: "text-[var(--brand-600)]", surfaceClass: "bg-[var(--brand-soft)]" },
-    { icon: Clapperboard, iconClass: "text-[var(--brand-600)]", surfaceClass: "bg-[var(--brand-soft)]" },
-] as const;
+
+const HOME_DOCK_ENABLED = false;
 
 export default function CreatePage() {
     const { message } = App.useApp();
@@ -79,7 +83,11 @@ export default function CreatePage() {
     const [selectedSkillId, setSelectedSkillId] = useState<string>();
     const [selectedModelIds, setSelectedModelIds] = useState<string[]>([]);
     const [smartPlanning, setSmartPlanning] = useState(true);
-    const [creationMode, setCreationMode] = useState<"agent" | CreativeGenerationMode>("agent");
+    const [creationMode, setCreationMode] = useState<"agent" | CreativeGenerationMode>("image");
+    /* 首页参照即梦：「生成」只做图片 / 视频；「Agent 画布」把需求带进一块新画布，由画布里的 Agent 编排 */
+    const [homeTab, setHomeTab] = useState<"generate" | "canvas">("generate");
+    const [startingCanvas, setStartingCanvas] = useState(false);
+    const [skillPickerSignal, setSkillPickerSignal] = useState(0);
     const [generationPreferences, setGenerationPreferences] = useState<CreativeGenerationPreferences>({});
     const searchParams = useSearchParams();
     /* ?new=1 表示「刚点过新建对话」：清空消息但留在对话视图，
@@ -146,6 +154,24 @@ export default function CreatePage() {
         videoQuoteReferences,
     );
     const estimatedVideoCost = videoQuote ? videoQuote.quote?.points : estimateCreativeVideoCost(config, videoCapabilityModels, generationPreferences);
+    /* 图片也给预计消耗：所选（或默认）图片模型 × 张数，拿不到价格（自有接口、免费档）时不显示 */
+    const estimatedImageCost = useMemo(() => {
+        if (creationMode !== "image") return undefined;
+        const model = selectedModels.find((item) => item.capability === "image")?.id || config.imageModel || publicSettings?.defaultModels?.imageModel || "";
+        if (!model) return undefined;
+        const cost = requestCreditCost({
+            apiSource: config.apiSource,
+            modelPointCosts: config.modelPointCosts,
+            generationPointMultipliers: config.generationPointMultipliers,
+            logicalModels: config.logicalModels,
+            imageTiers: config.imageTiers,
+            model,
+            kind: "image",
+            quality: generationPreferences.image?.quality || config.quality,
+            count: generationPreferences.image?.count || 1,
+        });
+        return cost > 0 ? cost : undefined;
+    }, [config, creationMode, generationPreferences.image?.count, generationPreferences.image?.quality, publicSettings?.defaultModels?.imageModel, selectedModels]);
     const updatePrompt = useCallback((value: string) => {
         promptValueRef.current = value;
         promptRevisionRef.current += 1;
@@ -184,6 +210,17 @@ export default function CreatePage() {
         if (initialPromptRestoredRef.current) return;
         initialPromptRestoredRef.current = true;
         const incomingDraft = createAgentDraftFromHash(window.location.hash);
+        /* Skill 广场「用这个 Skill 开始」：#…&skill=id，切到 Agent 画布并选中该 Skill */
+        const incomingSkillId = new URLSearchParams(window.location.hash.replace(/^#/, "")).get("skill") || "";
+        if (incomingSkillId) {
+            setHomeTab("canvas");
+            setCreationMode("agent");
+            setSelectedSkillId(incomingSkillId);
+            if (incomingDraft?.prompt) updatePrompt(incomingDraft.prompt);
+            router.replace("/create");
+            window.requestAnimationFrame(() => inputRef.current?.focus());
+            return;
+        }
         if (!incomingDraft || (!incomingDraft.prompt && !incomingDraft.mode)) return;
         if (incomingDraft.prompt) updatePrompt(incomingDraft.prompt);
         if (incomingDraft.mode) {
@@ -245,6 +282,9 @@ export default function CreatePage() {
     // 这个回调必须保持稳定引用：它会被 resize effect 订阅，一旦随 homeDocked 变化就会在
     // "改状态 → effect 重跑 → 再改状态" 之间自激。
     const updateHomeDocked = useCallback((element: HTMLElement) => {
+        /* 首页滚动后不再浮出底部输入胶囊：和顶部输入框重复，且会遮住灵感作品（2026-11-28 用户反馈） */
+        if (!HOME_DOCK_ENABLED) return;
+        void element;
         if (showConversationRef.current) return;
         const docked = homeDockedRef.current;
         if (!docked) {
@@ -295,6 +335,8 @@ export default function CreatePage() {
     }, [agent.conversationId, agent.conversationLoading, agent.messages.length]);
 
     const openConversation = (id: string) => {
+        /* 首页默认是「生成·图片」；回到历史对话时恢复 Agent 模式 */
+        setCreationMode("agent");
         router.push(createConversationHref(id));
         void openAgentConversation(id).catch((error) => {
             message.error(error instanceof Error ? error.message : "打开对话失败");
@@ -306,6 +348,7 @@ export default function CreatePage() {
     const newConversation = () => {
         // 先立标记再清消息，避免清空到路由生效之间闪一帧主页
         setNewChatPending(true);
+        setCreationMode("agent");
         newAgentConversation();
         setHistoryOpen(false);
         setAssetsOpen(false);
@@ -317,6 +360,23 @@ export default function CreatePage() {
         if (!prompt.trim()) {
             message.warning("请先描述你的创作需求");
             inputRef.current?.focus();
+            return;
+        }
+        if (!showConversation && homeTab === "canvas") {
+            if (startingCanvas) return;
+            const text = prompt.trim();
+            setStartingCanvas(true);
+            try {
+                const project = await createCanvasProject({ title: canvasTitleFromPrompt(text) });
+                writeCanvasAgentSeed(project.id, { prompt: text, skillId: selectedSkillId });
+                setSelectedSkillId(undefined);
+                window.dispatchEvent(new Event(PROJECTS_CHANGED_EVENT));
+                updatePrompt("");
+                router.push(`/canvas/${project.id}`);
+            } catch (error) {
+                message.error(error instanceof Error ? error.message : "新建画布失败");
+                setStartingCanvas(false);
+            }
             return;
         }
         if (!smartPlanning && !selectedModelIds.length) {
@@ -480,6 +540,8 @@ export default function CreatePage() {
     };
 
     const selectSkill = (skill: AgentSkillSummary) => {
+        /* Skill 只在 Agent 里生效：首页在「生成」时点快捷 Skill，顺手切到「Agent 画布」 */
+        if (!showConversation && homeTab !== "canvas") changeHomeTab("canvas");
         setSelectedSkillId(skill.id);
         window.requestAnimationFrame(() => inputRef.current?.focus());
     };
@@ -491,6 +553,11 @@ export default function CreatePage() {
         window.requestAnimationFrame(() => inputRef.current?.focus());
     };
 
+    function changeHomeTab(tab: "generate" | "canvas") {
+        setHomeTab(tab);
+        if (tab === "generate") setSelectedSkillId(undefined);
+        setCreationMode(tab === "canvas" ? "agent" : (current) => (current === "image" || current === "video" ? current : "image"));
+    }
     const changeCreationMode = (mode: "agent" | CreativeGenerationMode) => {
         setCreationMode(mode);
         setGenerationPreferences((current) => {
@@ -648,6 +715,64 @@ export default function CreatePage() {
         }
         composerLayoutRef.current = next;
     }, [showConversation]);
+    /* 结果图悬停操作：引用该图并预填一句引导，切到对应创作类型 */
+    useEffect(() => {
+        const onAction = (event: Event) => {
+            const { action, assetId } = (event as CustomEvent<{ action: CreativeResultAction; assetId: string }>).detail || {};
+            if (!assetId) return;
+            agent.selectAsset(assetId);
+            if (action === "video") {
+                setCreationMode("video");
+                updatePrompt("让这张图动起来：");
+            } else {
+                setCreationMode("image");
+                updatePrompt("在这张图的基础上修改：");
+            }
+            window.requestAnimationFrame(() => inputRef.current?.focus());
+        };
+        window.addEventListener(CREATIVE_RESULT_ACTION_EVENT, onAction);
+        return () => window.removeEventListener(CREATIVE_RESULT_ACTION_EVENT, onAction);
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- agent.selectAsset 每次渲染都是新函数，只需最新闭包
+    }, [updatePrompt]);
+
+    /* ⌘K / Ctrl+K 聚焦输入框 */
+    useEffect(() => {
+        const onKey = (event: KeyboardEvent) => {
+            if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+                event.preventDefault();
+                inputRef.current?.focus();
+            }
+        };
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, []);
+
+    /* 拖拽上传：把图片 / 视频 / 音频拖到页面任意位置就加为参考素材 */
+    const [dragActive, setDragActive] = useState(false);
+    const dragDepthRef = useRef(0);
+    const dragHandlers = {
+        onDragEnter: (event: React.DragEvent) => {
+            if (!Array.from(event.dataTransfer.types).includes("Files")) return;
+            event.preventDefault();
+            dragDepthRef.current += 1;
+            setDragActive(true);
+        },
+        onDragOver: (event: React.DragEvent) => {
+            if (Array.from(event.dataTransfer.types).includes("Files")) event.preventDefault();
+        },
+        onDragLeave: () => {
+            dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+            if (!dragDepthRef.current) setDragActive(false);
+        },
+        onDrop: (event: React.DragEvent) => {
+            if (!event.dataTransfer.files.length) return;
+            event.preventDefault();
+            dragDepthRef.current = 0;
+            setDragActive(false);
+            void uploadAttachments(Array.from(event.dataTransfer.files));
+        },
+    };
+
     const composer = (
         <CreativeComposer
             inputRef={inputRef}
@@ -667,9 +792,13 @@ export default function CreatePage() {
             selectedModels={selectedModels}
             smartPlanning={smartPlanning}
             creationMode={creationMode}
+            openSkillPickerSignal={skillPickerSignal}
+            allowSkills={showConversation || homeTab === "canvas"}
+            modeOptions={showConversation ? undefined : homeTab === "canvas" ? ["agent"] : ["image", "video"]}
+            placeholder={showConversation ? undefined : homeTab === "canvas" ? "描述你的创作需求，Agent 会在一块新画布上帮你拆解并编排图片、视频和音频" : creationMode === "video" ? "请描述你想生成的视频" : "请描述你想生成的图片"}
             generationPreferences={generationPreferences}
             referenceProfile={videoReferenceActive ? videoReferenceProfile : undefined}
-            estimatedVideoCost={videoReferenceActive ? estimatedVideoCost : undefined}
+            estimatedVideoCost={videoReferenceActive ? estimatedVideoCost : estimatedImageCost}
             uploading={agent.uploading}
             compact={composerCompact || (!showConversation && homeDocked)}
             floating={!showConversation && homeDocked}
@@ -754,14 +883,36 @@ export default function CreatePage() {
     );
 
     return (
-        <main className="relative flex h-full min-h-0 flex-col overflow-hidden text-[var(--ink-1)]">
+        <main className="relative flex h-full min-h-0 flex-col overflow-hidden text-[var(--ink-1)]" {...dragHandlers}>
+            {dragActive ? (
+                <div data-testid="create-drop-overlay" className="pointer-events-none absolute inset-3 z-[60] grid place-items-center rounded-3xl border-2 border-dashed border-[var(--brand-500)] bg-[var(--surface-canvas)]/80 backdrop-blur-sm">
+                    <div className="text-center">
+                        <p className="text-[18px] font-semibold text-[var(--ink-1)]">松开即可添加为参考素材</p>
+                        <p className="mt-1 text-[13px] text-[var(--ink-3)]">支持图片、视频和音频</p>
+                    </div>
+                </div>
+            ) : null}
             <CreateDotField />
             <div className="relative flex min-h-0 flex-1">
                 {/* 右侧浮层展开时给对话让出宽度，消息不会被面板压住 */}
                 <div className={cn("relative flex min-w-0 flex-1 flex-col transition-[padding] duration-200", (historyOpen || assetsOpen) && "lg:pr-[calc(var(--announcement-drawer-width,340px)+28px)]")}>
                     {/* 主页只留首屏内容：历史 / 资产是「对话里」的工具，进了对话才出现 */}
+                    {showConversation && hasConversation ? (
+                        <CreateConversationTitle
+                            title={agent.conversations.find((item) => item.id === agent.conversationId)?.title || "新对话"}
+                            onRename={async (title) => {
+                                if (!agent.conversationId) return;
+                                try {
+                                    await agent.renameConversation(agent.conversationId, title);
+                                } catch (error) {
+                                    message.error(error instanceof Error ? error.message : "修改标题失败");
+                                }
+                            }}
+                        />
+                    ) : null}
                     <div className={cn("pointer-events-none absolute right-3 top-3 z-30 flex items-center gap-0.5 sm:right-5", !showConversation && "hidden")} data-testid="creative-page-tools">
                         {hasConversation ? (
+                            <Tooltip title="新建对话" placement="bottom">
                             <Button
                                 type="text"
                                 shape="circle"
@@ -769,9 +920,10 @@ export default function CreatePage() {
                                 icon={<Plus className="size-4" />}
                                 onClick={newConversation}
                                 aria-label="新建对话"
-                                title="新建对话"
                             />
+                            </Tooltip>
                         ) : null}
+                        <Tooltip title="创作历史" placement="bottom">
                         <Button
                             type="text"
                             shape="circle"
@@ -785,8 +937,9 @@ export default function CreatePage() {
                             }}
                             aria-label={historyOpen ? "关闭创作历史" : "打开创作历史"}
                             aria-expanded={historyOpen}
-                            title="创作历史"
                         />
+                        </Tooltip>
+                        <Tooltip title="本对话的素材" placement="bottom">
                         <Button
                             type="text"
                             shape="circle"
@@ -800,8 +953,8 @@ export default function CreatePage() {
                             }}
                             aria-label={assetsOpen ? "关闭资产面板" : "打开资产面板"}
                             aria-expanded={assetsOpen}
-                            title="资产"
                         />
+                        </Tooltip>
                     </div>
 
                     <section
@@ -838,6 +991,8 @@ export default function CreatePage() {
                         {showConversation && !hasConversation && !agent.conversationLoading ? (
                             <CreativeEmptyChat
                                 siteTitle={siteTitle}
+                                skills={skills.slice(0, 4)}
+                                onPickSkill={(skill) => selectSkill(skill)}
                                 onPick={(value) => {
                                     updatePrompt(value);
                                     window.requestAnimationFrame(() => inputRef.current?.focus());
@@ -867,14 +1022,38 @@ export default function CreatePage() {
                                 followLatest={!awayFromLatest}
                             />
                         ) : (
-                            <>
+                            <div className="relative isolate min-h-full">
+                                <CreateHomeHeroBackdrop dimmed={homeDocked} />
                                 <div
-                                    className="mx-auto flex min-h-full w-full min-w-0 max-w-[1240px] flex-col items-center px-2.5 pb-3 pt-5 sm:px-8 sm:pb-6 sm:pt-12 lg:pt-[clamp(36px,13.5vh,132px)]"
+                                    className="relative mx-auto flex w-full min-w-0 max-w-[1360px] flex-col items-center px-2.5 pb-3 pt-5 sm:px-8 sm:pb-6 sm:pt-12 lg:pt-[clamp(36px,11vh,112px)]"
                                     style={homeDocked ? { paddingBottom: 104 } : undefined}
                                 >
-                                    <div className="text-center">
-                                        <h1 className="text-[23px] font-semibold leading-tight sm:text-[31px]">{siteTitle} 创作 Agent</h1>
-                                        <p className="mt-2 text-sm text-[#8b949f] dark:text-[#7f8996]">从一个想法开始</p>
+                                    {/* 首屏标题（参照 Seko）：语义 h1 保留「{siteTitle} 创作 Agent」，视觉上换成一句轮播的引导语 */}
+                                    <div className="relative z-10 text-center">
+                                        <h1 className="sr-only">{siteTitle} 创作 Agent</h1>
+                                        <CreateHeroHeadline />
+                                        <div role="tablist" aria-label="创作方式" data-testid="create-home-tabs" className="mx-auto mt-4 inline-flex rounded-full bg-[var(--surface-inset)] p-1 sm:mt-5">
+                                            {([
+                                                { key: "generate", label: "生成" },
+                                                { key: "canvas", label: "Agent 画布" },
+                                            ] as const).map((tab) => (
+                                                <button
+                                                    key={tab.key}
+                                                    type="button"
+                                                    role="tab"
+                                                    aria-selected={homeTab === tab.key}
+                                                    onClick={() => changeHomeTab(tab.key)}
+                                                    /* 全局 .workspace-shell button 的文字色带 !important，选中态的反色只能写在 style 里 */
+                                                    style={homeTab === tab.key ? { color: "var(--surface-canvas)", backgroundColor: "var(--ink-1)" } : undefined}
+                                                    className={cn(
+                                                        "h-9 min-w-[120px] rounded-full px-6 text-[14px] font-medium transition-colors sm:min-w-[150px]",
+                                                        homeTab === tab.key ? "shadow-sm" : "text-[var(--ink-2)] hover:text-[var(--ink-1)]",
+                                                    )}
+                                                >
+                                                    {tab.label}
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
                                     <div
                                         ref={composerHostRef}
@@ -888,39 +1067,63 @@ export default function CreatePage() {
                                     </div>
                                     {/* 占位锚点：任何时候都留在输入区原位，既托住滚动位置，也作为“输入框底边”的测量基准 */}
                                     <div ref={dockAnchorRef} aria-hidden data-testid="creative-composer-dock-anchor" className={cn("w-full shrink-0", homeDocked && "mt-5 sm:mt-8")} style={{ height: homeDocked ? dockSpacerHeight : 0 }} />
-                                    <div className="mt-2.5 flex w-full max-w-[900px] min-w-0 items-center gap-2 sm:mt-3">
-                                        <span className="hidden shrink-0 pl-1 text-[13px] font-medium text-[var(--ink-3)] sm:inline">快捷</span>
-                                        <div className="hide-scrollbar scroll-fade-x flex min-w-0 flex-1 items-center gap-2 overflow-x-auto py-0.5">
-                                            {skillsLoading ? <span className="shrink-0 px-1 text-xs text-[#9aa2ad]">正在加载 Skill…</span> : null}
-                                            {skills.map((skill, index) => {
-                                                const visual = skillVisual(skill, index);
-                                                const Icon = visual.icon;
-                                                return (
-                                                    <button
-                                                        key={skill.id}
-                                                        type="button"
-                                                        aria-label={`使用 ${skill.name} Skill`}
-                                                        title={skill.description}
-                                                        className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-[7px] bg-[var(--surface-panel)] pr-2.5 pl-1 text-[13px] text-[var(--ink-1)] shadow-[0_1px_2px_rgba(17,17,19,0.05)] transition-colors hover:bg-[var(--surface-inset)]"
-                                                        onClick={() => selectSkill(skill)}
-                                                    >
-                                                        <span className={cn("grid size-5 shrink-0 place-items-center rounded-[5px]", visual.surfaceClass)}>
-                                                            <Icon className={cn("size-3.5", visual.iconClass)} />
-                                                        </span>
-                                                        <span>{skill.name}</span>
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
+                                    {/* 快捷 Skill（参照 Seko）：带缩略图的胶囊卡片，选中高亮；末尾「更多 Skill」打开完整选择器 */}
+                                    <div data-testid="create-skill-shortcuts" className="hide-scrollbar mt-3 flex w-full max-w-[900px] min-w-0 items-center justify-start gap-2 overflow-x-auto py-1 sm:mt-4 sm:justify-center">
+                                        {skillsLoading
+                                            ? Array.from({ length: 4 }, (_, index) => <span key={index} className="h-11 w-36 shrink-0 animate-pulse rounded-xl bg-[var(--surface-inset)]" />)
+                                            : skills.slice(0, 5).map((skill) => {
+                                                  const cover = skillPresentation(skill).cover;
+                                                  const active = selectedSkillId === skill.id;
+                                                  return (
+                                                      <button
+                                                          key={skill.id}
+                                                          type="button"
+                                                          aria-pressed={active}
+                                                          aria-label={`使用 ${skill.name} Skill`}
+                                                          title={skill.description}
+                                                          onClick={() => (active ? setSelectedSkillId(undefined) : selectSkill(skill))}
+                                                          className={cn(
+                                                              "group inline-flex h-11 shrink-0 items-center gap-2.5 rounded-xl bg-[var(--surface-panel)]/85 py-1 pl-1 pr-3.5 text-[13.5px] font-medium text-[var(--ink-1)] shadow-[0_1px_2px_rgba(17,17,19,0.05),inset_0_0_0_1px_var(--hairline)] backdrop-blur-md transition hover:-translate-y-px hover:shadow-[0_6px_16px_-8px_rgba(17,17,19,0.25),inset_0_0_0_1px_var(--hairline)]",
+                                                              active && "shadow-[inset_0_0_0_1.5px_var(--ink-1)] hover:shadow-[inset_0_0_0_1.5px_var(--ink-1)]",
+                                                          )}
+                                                      >
+                                                          {cover ? (
+                                                              <img src={cover} alt="" width={36} height={36} className="size-9 shrink-0 rounded-[9px] bg-[var(--surface-inset)] object-cover" loading="eager" decoding="async" />
+                                                          ) : (
+                                                              <span className="grid size-9 shrink-0 place-items-center rounded-[9px] bg-[var(--brand-soft)] text-[14px] text-[var(--brand-600)]">{Array.from(skill.name)[0]}</span>
+                                                          )}
+                                                          {skill.name}
+                                                      </button>
+                                                  );
+                                              })}
+                                        {!skillsLoading && skills.length ? (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    if (!showConversation && homeTab !== "canvas") changeHomeTab("canvas");
+                                                    setSkillPickerSignal((value) => value + 1);
+                                                }}
+                                                style={{ color: "var(--brand-600)" }}
+                                                className="inline-flex h-11 shrink-0 items-center gap-0.5 rounded-xl bg-[var(--surface-panel)]/85 px-3.5 text-[13.5px] font-medium text-[var(--brand-600)] shadow-[inset_0_0_0_1px_var(--hairline)] backdrop-blur-md transition hover:bg-[var(--surface-inset)]"
+                                            >
+                                                更多 Skill <ChevronRight className="size-4" />
+                                            </button>
+                                        ) : null}
                                     </div>
-                                    <CreateWorkbenchOverview />
-                                    <CreateInspirationHeading />
+                                    <CreateFeatureRow />
+                                    <CreateBannerCarousel />
                                 </div>
-                                {/* 灵感列表放在首屏容器之外：标题行贴住首屏底部，作品列表必须滚动才进入视口 */}
-                                <div className="mx-auto w-full max-w-[1240px] px-2.5 pb-12 sm:px-8">
-                                    <CreateInspirationGallery onUsePrompt={usePublicPrompt} onUseImage={usePublicImage} />
+                                {/* 社区作品区：纯文字 tab + 分类（吸顶）、瀑布流、悬停播视频、滚动自动续页 */}
+                                <div className="mx-auto w-full max-w-[1360px] px-2.5 pb-24 sm:px-8">
+                                    <CreateInspirationGallery
+                                        onUsePrompt={usePublicPrompt}
+                                        onUseImage={usePublicImage}
+                                        onUseReferences={async (files) => {
+                                            await uploadAttachments(files, "参考内容已带入输入框");
+                                        }}
+                                    />
                                 </div>
-                            </>
+                            </div>
                         )}
                     </section>
 
@@ -995,12 +1198,75 @@ export default function CreatePage() {
     );
 }
 
-function skillVisual(skill: AgentSkillSummary, index: number) {
-    if (skill.id === "ecommerce-image") return SKILL_VISUALS[0];
-    if (skill.id === "character-design") return SKILL_VISUALS[1];
-    if (skill.id === "image-motion") return SKILL_VISUALS[2];
-    if (skill.id === "drama-planning") return SKILL_VISUALS[3];
-    return { ...SKILL_VISUALS[index % SKILL_VISUALS.length], icon: Sparkles };
-}
 
 type FrameRole = Extract<VideoReferenceRole, "first_frame" | "last_frame">;
+
+const HERO_HEADLINES = ["有什么新的创作灵感？", "今天想拍一部什么样的短剧？", "把一个想法，变成一支视频"] as const;
+
+/** 首屏引导语：每 4 秒淡入淡出换一句，减少动态偏好时只显示第一句 */
+function canvasTitleFromPrompt(text: string) {
+    const firstLine = text.split(/\n/)[0].trim();
+    return firstLine.length > 18 ? `${firstLine.slice(0, 18)}…` : firstLine || "未命名画布";
+}
+
+function CreateHeroHeadline() {
+    const [index, setIndex] = useState(0);
+    useEffect(() => {
+        if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+        const timer = window.setInterval(() => setIndex((current) => (current + 1) % HERO_HEADLINES.length), 4000);
+        return () => window.clearInterval(timer);
+    }, []);
+    return (
+        <p aria-hidden className="relative h-9 text-[24px] font-medium leading-9 tracking-[-0.01em] text-[var(--ink-1)]/85 sm:h-11 sm:text-[30px] sm:leading-[44px]">
+            {HERO_HEADLINES.map((text, i) => (
+                /* 旧句先淡出（无延迟），新句等旧句走完再淡入，避免两句叠在一起 */
+                <span
+                    key={text}
+                    className={cn("absolute inset-x-0 whitespace-nowrap transition-[opacity,transform] duration-500", i === index ? "translate-y-0 opacity-100 delay-500" : "-translate-y-1 opacity-0 delay-0")}
+                >
+                    {text}
+                </span>
+            ))}
+            <span className="invisible">{HERO_HEADLINES[0]}</span>
+        </p>
+    );
+}
+
+/** 对话页顶部标题：点一下就地改名，回车保存，Esc 取消 */
+function CreateConversationTitle({ title, onRename }: { title: string; onRename: (title: string) => Promise<void> }) {
+    const [editing, setEditing] = useState(false);
+    const [draft, setDraft] = useState(title);
+    useEffect(() => {
+        if (!editing) setDraft(title);
+    }, [editing, title]);
+    const commit = async () => {
+        const value = draft.trim();
+        setEditing(false);
+        if (value && value !== title) await onRename(value);
+    };
+    return (
+        <div data-testid="creative-conversation-title" className="pointer-events-none absolute left-1/2 top-3 z-30 flex h-9 max-w-[min(480px,calc(100%-220px))] -translate-x-1/2 items-center">
+            {editing ? (
+                <input
+                    autoFocus
+                    value={draft}
+                    maxLength={60}
+                    aria-label="对话标题"
+                    onChange={(event) => setDraft(event.target.value)}
+                    onBlur={() => void commit()}
+                    onKeyDown={(event) => {
+                        if (event.key === "Enter") void commit();
+                        if (event.key === "Escape") setEditing(false);
+                    }}
+                    className="pointer-events-auto h-8 w-80 max-w-full rounded-lg bg-[var(--surface-panel)] px-3 text-center text-[14px] font-medium text-[var(--ink-1)] shadow-[inset_0_0_0_1.5px_var(--ink-3)] outline-none"
+                />
+            ) : (
+                <Tooltip title="点击重命名" placement="bottom">
+                    <button type="button" onClick={() => setEditing(true)} className="pointer-events-auto h-8 max-w-full truncate rounded-lg px-3 text-[14px] font-medium text-[var(--ink-1)] transition-colors hover:bg-[var(--surface-soft)]">
+                        {title}
+                    </button>
+                </Tooltip>
+            )}
+        </div>
+    );
+}

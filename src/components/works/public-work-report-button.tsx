@@ -3,7 +3,7 @@
 import { App, Button, Input, Modal, Select } from "antd";
 import { Flag } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { submitWorkReport } from "@/services/api/work-governance";
 import { useUserStore } from "@/stores/use-user-store";
@@ -16,11 +16,39 @@ const REPORT_OPTIONS = [
     { value: "other", label: "其他问题" },
 ];
 
-export function PublicWorkReportButton({ slug, compact = false, className }: { slug: string; compact?: boolean; className?: string }) {
+export function PublicWorkReportButton({
+    slug,
+    compact = false,
+    className,
+    open: controlledOpen,
+    onOpenChange,
+    hideTrigger = false,
+}: {
+    slug: string;
+    compact?: boolean;
+    className?: string;
+    /** 受控打开（例如放在「更多」菜单里时由外部触发） */
+    open?: boolean;
+    onOpenChange?: (open: boolean) => void;
+    hideTrigger?: boolean;
+}) {
     const { message } = App.useApp();
     const router = useRouter();
     const user = useUserStore((state) => state.user);
-    const [open, setOpen] = useState(false);
+    const [innerOpen, setInnerOpen] = useState(false);
+    const wantsOpen = controlledOpen ?? innerOpen;
+    const setOpen = (next: boolean) => {
+        setInnerOpen(next);
+        onOpenChange?.(next);
+    };
+    /* 外部要求打开但未登录：转去登录，并把外部状态复位 */
+    useEffect(() => {
+        if (controlledOpen && !user) {
+            onOpenChange?.(false);
+            router.push(`/login?next=${encodeURIComponent(`/share/${slug}`)}`);
+        }
+    }, [controlledOpen, onOpenChange, router, slug, user]);
+    const open = wantsOpen && Boolean(user);
     const [category, setCategory] = useState("illegal");
     const [description, setDescription] = useState("");
     const [loading, setLoading] = useState(false);
@@ -50,9 +78,11 @@ export function PublicWorkReportButton({ slug, compact = false, className }: { s
 
     return (
         <>
+            {hideTrigger ? null : (
             <Button className={className} size={compact ? "small" : "middle"} icon={<Flag className="size-4" />} onClick={startReport} aria-label="举报作品">
                 {compact ? null : "举报"}
             </Button>
+            )}
             <Modal title="举报作品" open={open} okText="提交举报" cancelText="取消" confirmLoading={loading} okButtonProps={{ disabled: description.trim().length < 5 }} onOk={() => void submit()} onCancel={() => !loading && setOpen(false)}>
                 <div className="grid gap-4 pt-2">
                     <div>

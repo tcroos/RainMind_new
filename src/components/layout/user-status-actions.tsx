@@ -535,7 +535,7 @@ export function AccountRailBar({ expanded }: { expanded: boolean }) {
     }
 
     return (
-        <div className={cn("flex items-center gap-1", expanded ? "w-full" : "flex-col gap-1.5")}>
+        <div className={cn("flex items-center gap-1", expanded ? "w-full" : "w-14 flex-col gap-1.5")}>
             <Popover
                 rootClassName="account-menu-popover"
                 open={open}
@@ -566,7 +566,7 @@ export function AccountRailBar({ expanded }: { expanded: boolean }) {
                     title={accountName}
                 className={cn(
                     "flex items-center rounded-lg text-[var(--ink-2)] transition-colors hover:bg-[var(--surface-inset)] hover:text-[var(--ink-1)]",
-                    expanded ? "h-10 min-w-0 flex-1 gap-2 px-2" : "size-9 justify-center",
+                    expanded ? "h-10 min-w-0 flex-1 gap-2 pl-4 pr-2" : "size-9 justify-center",
                 )}
             >
                 <span className="grid size-6 shrink-0 place-items-center overflow-hidden rounded-full bg-[linear-gradient(135deg,#f6b181_0%,#e2671f_100%)] text-[10px] font-semibold text-white ring-1 ring-black/5 dark:ring-white/15">

@@ -39,6 +39,10 @@ const MAX_PANEL_WIDTH = 640;
 type OnlineAgentTab = "chat" | "history";
 
 type CanvasAssistantPanelProps = {
+    /** 首页「Agent 画布」带过来的需求：面板挂载后自动发送一次 */
+    initialPrompt?: string;
+    initialSkillId?: string;
+    onInitialPromptSent?: () => void;
     nodes: CanvasNodeData[];
     selectedNodeIds: Set<string>;
     snapshot: CanvasAgentSnapshot;
@@ -60,6 +64,9 @@ type CanvasAssistantPanelProps = {
 import { AssistantHistory, AssistantReferenceChip, assistantMessageToChatMessage, buildAssistantReferences, compactSnapshot, canvasRunSelectedNodeIds, createSession, removeCanvasAssistantSessions } from "./canvas-assistant-elements";
 
 export function CanvasAssistantPanel({
+    initialPrompt,
+    initialSkillId,
+    onInitialPromptSent,
     nodes,
     selectedNodeIds,
     snapshot,
@@ -273,7 +280,8 @@ export function CanvasAssistantPanel({
         }
     };
 
-    const sendMessage = async (text: string, savedReferences?: CanvasAssistantReference[]) => {
+    const sendMessage = async (text: string, savedReferences?: CanvasAssistantReference[], skillIdOverride?: string) => {
+        const skillId = skillIdOverride ?? selectedSkillId;
         const session = activeSession || createSession();
         if (!activeSession) {
             commitSessionState([session], session.id);
@@ -302,7 +310,7 @@ export function CanvasAssistantPanel({
                 prompt: text,
                 snapshot: { ...runSnapshot, selectedNodeIds: canvasRunSelectedNodeIds(snapshotRef.current, submittedReferenceIds) },
                 assetIds: [],
-                skillIds: selectedSkillId ? [selectedSkillId] : [],
+                skillIds: skillId ? [skillId] : [],
                 modelIds: smartPlanning ? [] : selectedModelIds,
                 preferences: generationPreferences.mode ? generationPreferences : undefined,
             });
@@ -458,6 +466,17 @@ export function CanvasAssistantPanel({
         },
         [],
     );
+
+    const initialSentRef = useRef("");
+    useEffect(() => {
+        const text = initialPrompt?.trim();
+        if (!text || initialSentRef.current === text || isRunning) return;
+        initialSentRef.current = text;
+        onInitialPromptSent?.();
+        if (initialSkillId) setSelectedSkillId(initialSkillId);
+        void sendMessage(text, undefined, initialSkillId);
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- 只响应首页带入的那一条需求
+    }, [initialPrompt]);
 
     const submit = async () => {
         const text = prompt.trim();

@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Tooltip } from "antd";
 import type { ReactNode } from "react";
+
+import type { SidebarMode } from "@/components/layout/sidebar-width";
 
 import { isExternalTool, navigationGroups, navigationToolHref, navigationTools, type NavigationToolSlug } from "@/constant/navigation-tools";
 import { cn } from "@/lib/utils";
@@ -27,9 +30,11 @@ const DRAWER_ITEM_BASE = "flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.
 const VARIANTS = {
     rail: {
         /* 导航和「最近项目」共用这一个滚动容器：整条侧栏只有一条滚动条 */
-        nav: (expanded: boolean) => cn("hide-scrollbar min-h-0 flex-1 overflow-y-auto py-1", expanded ? "px-4" : "px-2"),
+        /* 收起与展开共用同一套水平几何（nav 左右 8px、条目左内边距 19px）：
+         * 图标中心恒在 x=36，宽度动画时图标原地不动、只有右侧文字被裁切/淡入淡出（照 Lovart）。 */
+        nav: (_expanded: boolean) => "hide-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-2 py-1",
         items: "space-y-0.5",
-        item: (expanded: boolean) => cn(RAIL_ITEM_BASE, expanded ? "justify-start gap-3 px-3" : "justify-center"),
+        item: (_expanded: boolean) => cn(RAIL_ITEM_BASE, "justify-start gap-3 overflow-hidden whitespace-nowrap pl-[19px] pr-3"),
         /* 侧栏选中态只用一层极浅底 + 字重，不再加圆点或色条 */
         activeItem: "bg-[var(--surface-inset)] text-[var(--ink-1)]",
         idleItem: "text-[var(--ink-2)] hover:bg-[var(--surface-inset)] hover:text-[var(--ink-1)]",
@@ -59,16 +64,21 @@ type WorkspaceNavListProps = {
     expanded?: boolean;
     /** 抽屉里点条目后要关掉抽屉 */
     onNavigate?: () => void;
+    /** 仅 rail 使用：显示档位。collapsed 只有图标（悬停浮出名称），compact 图标在上名称在下，full 横排 */
+    railMode?: SidebarMode;
     /** 侧栏导航下方的附加区块（最近项目），与导航共用同一滚动容器 */
     footer?: ReactNode;
 };
 
-export function WorkspaceNavList({ variant, activeToolSlug, expanded = true, onNavigate, footer }: WorkspaceNavListProps) {
+export function WorkspaceNavList({ variant, activeToolSlug, expanded = true, railMode, onNavigate, footer }: WorkspaceNavListProps) {
     const router = useRouter();
     const styles = VARIANTS[variant];
     const isRail = variant === "rail";
     /* 侧栏收起时只留图标，靠 title 和 aria-label 兜住可读性；抽屉永远带文字 */
-    const showLabel = isRail ? expanded : true;
+    const mode: SidebarMode = isRail ? (railMode ?? (expanded ? "full" : "collapsed")) : "full";
+    /* rail 的文字始终在 DOM 里，收起时只淡出，保证宽度动画中图标不跳 */
+    const showLabel = isRail || mode !== "collapsed";
+    const labelHidden = isRail && mode === "collapsed";
 
     return (
         <nav className={styles.nav(expanded)} aria-label="工作空间导航">
@@ -78,25 +88,45 @@ export function WorkspaceNavList({ variant, activeToolSlug, expanded = true, onN
                     const active = tool.slug === activeToolSlug;
                     const external = isExternalTool(tool);
                     const href = navigationToolHref(tool);
-                    const className = cn(styles.item(expanded), active ? styles.activeItem : styles.idleItem);
-                    /* 侧栏收起后只剩图标，必须给 title；抽屉一直有文字，不需要 */
-                    const hint = isRail ? tool.label : undefined;
+                    const compact = isRail && mode === "compact";
+                    const className = cn(
+                        compact ? "group relative flex h-14 flex-col items-center justify-center gap-1 rounded-lg px-1 text-[12px] font-medium transition-colors duration-150" : styles.item(expanded),
+                        active ? styles.activeItem : styles.idleItem,
+                    );
+                    /* 收起态的名称交给右侧 Tooltip 浮出；其它档位名称已经显示，不再给 title */
+                    const hint = undefined;
                     const content = (
                         <>
                             <Icon className={cn("size-[18px] shrink-0", isRail && active && "text-[var(--ink-1)]")} />
-                            {showLabel ? <span className="min-w-0 flex-1 truncate">{tool.label}</span> : null}
+                            {showLabel ? (
+                                <span
+                                    aria-hidden={labelHidden || undefined}
+                                    className={cn("min-w-0 truncate transition-opacity duration-200", compact ? "max-w-full text-center leading-4" : "flex-1", labelHidden && "opacity-0")}
+                                >
+                                    {tool.label}
+                                </span>
+                            ) : null}
                         </>
                     );
+                    const withTip = (node: ReactNode) =>
+                        isRail && mode === "collapsed" ? (
+                            <Tooltip key={tool.slug} title={tool.label} placement="right" mouseEnterDelay={0.05} arrow={false}>
+                                {node}
+                            </Tooltip>
+                        ) : (
+                            node
+                        );
                     if (external) {
-                        return (
-                            <a key={tool.slug} href={href} target="_blank" rel="noreferrer noopener" title={hint} className={className}>
+                        return withTip(
+                            <a key={tool.slug} href={href} target="_blank" rel="noreferrer noopener" title={hint} aria-label={tool.label} className={className}>
                                 {content}
-                            </a>
+                            </a>,
                         );
                     }
-                    return (
+                    return withTip(
                         <Link
                             key={tool.slug}
+                            aria-label={tool.label}
                             href={href}
                             prefetch
                             title={hint}
@@ -107,7 +137,7 @@ export function WorkspaceNavList({ variant, activeToolSlug, expanded = true, onN
                             aria-current={active ? "page" : undefined}
                         >
                             {content}
-                        </Link>
+                        </Link>,
                     );
                 })}
             </div>

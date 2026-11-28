@@ -8,12 +8,13 @@ const layoutFile = (name: string) => readFile(resolve(process.cwd(), `src/compon
 const stylesFile = (name: string) => readFile(resolve(process.cwd(), `src/app/styles/${name}`), "utf8");
 
 describe("workspace sidebar", () => {
-    it("starts expanded and keeps scrolling without a visible scrollbar", async () => {
+    it("starts collapsed and keeps scrolling without a visible scrollbar", async () => {
         const [shell, sidebar, nav] = await Promise.all([layoutFile("app-workspace-shell.tsx"), layoutFile("app-sidebar.tsx"), layoutFile("workspace-nav-list.tsx")]);
 
-        expect(shell).toContain("const [sidebarExpanded, setSidebarExpanded] = useState(true)");
-        expect(shell).toContain("expanded={sidebarExpanded}");
-        expect(sidebar).toContain('expanded ? "w-[232px]" : "w-[72px]"');
+        // 默认收起：首帧按最小宽度渲染，宽度由外壳通过 width 传给侧栏
+        expect(shell).toContain("useState(SIDEBAR_MIN_WIDTH)");
+        expect(shell).toContain("width={sidebarWidth}");
+        expect(sidebar).toContain("style={{ width }}");
         // 滚动容器挂在导航列表上（sidebar 与抽屉共用），不是侧栏壳本身
         expect(nav).toContain("hide-scrollbar min-h-0 flex-1 overflow-y-auto");
         expect(nav).not.toContain("thin-scrollbar min-h-0 flex-1 overflow-y-auto");
@@ -28,26 +29,30 @@ describe("workspace sidebar", () => {
         expect(sidebar).not.toContain("window.location.host");
     });
 
-    it("remembers the collapsed sidebar across reloads", async () => {
+    it("remembers the dragged sidebar width across reloads", async () => {
         const shell = await layoutFile("app-workspace-shell.tsx");
 
         // 壳是持久布局，站内跳转不丢；但硬刷新 / 新开标签会回到默认展开，所以必须落盘
-        expect(shell).toContain('appStorageKey("sidebar_expanded")');
-        expect(shell).toContain('if (stored === "collapsed") setSidebarExpanded(false);');
-        expect(shell).toContain('next ? "expanded" : "collapsed"');
+        expect(shell).toContain('appStorageKey("sidebar_width")');
+        expect(shell).toContain("setSidebarWidth(clampSidebarWidth(Number(stored)))");
+        expect(shell).toContain("if (done) saveSidebarWidth(width)");
         // localStorage 在隐私模式会抛异常，读和写都要兜住，不能因为留不住偏好就点不动
         expect(shell).toContain("} catch {");
         // 首帧仍用展开态：服务端与客户端必须一致，否则 hydration 报错
-        expect(shell).toContain("const [sidebarExpanded, setSidebarExpanded] = useState(true)");
+        expect(shell).not.toContain("sidebarExpanded");
     });
 
     it("uses the wider Lovart-like rail with a compact type scale", async () => {
         const [sidebar, mobile, nav] = await Promise.all([layoutFile("app-sidebar.tsx"), layoutFile("mobile-nav-drawer.tsx"), layoutFile("workspace-nav-list.tsx")]);
 
         // 侧栏从 208px 放宽到 232px（参考 Lovart），收起态仍是 72px 不跳动
-        expect(sidebar).toContain('expanded ? "w-[232px]" : "w-[72px]"');
+        // 宽度边界仍是 72px ~ 232px，中间可拖拽，按比例切换三档
+        const widths = await readFile(resolve(process.cwd(), "src/components/layout/sidebar-width.ts"), "utf8");
+        expect(widths).toContain("SIDEBAR_MIN_WIDTH = 72");
+        expect(widths).toContain("SIDEBAR_MAX_WIDTH = 232");
+        expect(widths).toContain("SIDEBAR_COMPACT_RATIO = 0.3");
+        expect(sidebar).toContain('data-testid="sidebar-resize-handle"');
         expect(sidebar).not.toContain('"w-52"');
-        expect(sidebar).toContain('"w-[72px]"');
         // 分组标题取消后不需要 16px 大字：条目 14px / 行高 40px / 图标 18px
         expect(nav).toContain("h-10 items-center rounded-lg px-2 text-[14px]");
         expect(nav).toContain("size-[18px] shrink-0");

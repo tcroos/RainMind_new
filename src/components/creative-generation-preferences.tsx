@@ -287,6 +287,7 @@ export function CreativeGenerationPreferences({
 
     return (
         <Popover
+            rootClassName="creative-popover"
             trigger="click"
             placement={measuredPlacement}
             autoAdjustOverflow={autoAdjustOverflow ?? creativeComposerPopoverOverflow(placement)}
@@ -297,7 +298,7 @@ export function CreativeGenerationPreferences({
                 setOpen(nextOpen);
                 onOpenChange?.(nextOpen);
             }}
-            styles={{ container: { padding: compact ? 6 : 8, borderRadius: compact ? 14 : 16 } }}
+            styles={{ container: { padding: compact ? 8 : 12, borderRadius: compact ? 14 : 18 } }}
             content={
                 <div
                     data-canvas-no-drag
@@ -480,8 +481,8 @@ function PreferencePanel({
                 ) : (
                     <div className="grid min-w-0 gap-1.5">
                         <div className="flex items-center justify-between gap-3">
-                            <p className="text-[11px] font-medium text-[#7b8591] dark:text-[#98a2ae]">比例</p>
-                            <span className="text-[10px] text-[#a0a8b2] dark:text-[#707b88]">{selectedSize === "auto" ? "智能" : formatSizeLabel(selectedSize, capability)}</span>
+                            <p className="text-[12px] font-medium text-[var(--ink-2)]">比例</p>
+                            <span className="text-[11px] text-[var(--ink-3)]">{selectedSize === "auto" ? "智能" : formatSizeLabel(selectedSize, capability)}</span>
                         </div>
                         <div className="grid min-w-0 grid-cols-4 gap-1">
                             {standardRatios.map((ratio) => (
@@ -492,8 +493,8 @@ function PreferencePanel({
                                         "inline-flex min-w-0 items-center justify-center gap-1 rounded-lg px-1 text-[11px] transition",
                                         compact ? "h-8" : "h-9",
                                         selectedSize === ratio.value
-                                            ? "bg-[#eaf1f5] font-medium text-[#315d78] dark:bg-[#2a3b46] dark:text-[#a8c8dc]"
-                                            : "bg-[#f5f6f7] text-[#687481] hover:bg-[#edf0f2] hover:text-[#20242a] dark:bg-[#24282e] dark:text-[#a6afb9] dark:hover:bg-[#30363e] dark:hover:text-white",
+                                            ? "bg-[var(--surface-panel)] font-medium text-[var(--ink-1)] shadow-[inset_0_0_0_1.5px_var(--ink-1)]"
+                                            : "bg-[var(--surface-soft)] text-[var(--ink-2)] hover:bg-[var(--surface-inset)] hover:text-[var(--ink-1)]",
                                     )}
                                     onClick={() => onChange({ size: ratio.value })}
                                     aria-label={`选择${capability === "image" ? "图片" : "视频"}比例 ${ratio.label}`}
@@ -683,7 +684,7 @@ function GenerationCountGroup({ capability, value, maxCount, onChange }: { capab
 
     return (
         <div className="grid gap-1.5">
-            <p className="text-[11px] font-medium text-[#7b8591] dark:text-[#98a2ae]">数量</p>
+            <p className="text-[12px] font-medium text-[var(--ink-2)]">数量</p>
             <div className="grid gap-1" style={optionGridStyle(options.length + (allowCustom ? 1 : 0))} role="group" aria-label={`选择${capability === "image" ? "图片" : "视频"}生成数量`}>
                 {options.map((option) => (
                     <button
@@ -692,8 +693,8 @@ function GenerationCountGroup({ capability, value, maxCount, onChange }: { capab
                         className={cn(
                             "h-8 min-w-0 rounded-lg px-1 text-[11px] transition",
                             value === option.value
-                                ? "bg-[#eaf1f5] font-medium text-[#315d78] dark:bg-[#2a3b46] dark:text-[#a8c8dc]"
-                                : "bg-[#f5f6f7] text-[#687481] hover:bg-[#edf0f2] hover:text-[#20242a] dark:bg-[#24282e] dark:text-[#a6afb9] dark:hover:bg-[#30363e] dark:hover:text-white",
+                                ? "bg-[var(--surface-panel)] font-medium text-[var(--ink-1)] shadow-[inset_0_0_0_1.5px_var(--ink-1)]"
+                                : "bg-[var(--surface-soft)] text-[var(--ink-2)] hover:bg-[var(--surface-inset)] hover:text-[var(--ink-1)]",
                         )}
                         onClick={() => {
                             setDraft("");
@@ -712,8 +713,8 @@ function GenerationCountGroup({ capability, value, maxCount, onChange }: { capab
                         className={cn(
                             "relative h-8 min-w-0 rounded-lg text-[11px] transition",
                             customSelected
-                                ? "bg-[#eaf1f5] font-medium text-[#315d78] dark:bg-[#2a3b46] dark:text-[#a8c8dc]"
-                                : "bg-[#f5f6f7] text-[#687481] focus-within:bg-[#f5f8fa] focus-within:text-[#315d78] focus-within:ring-1 focus-within:ring-[#9bbdce] focus-within:ring-inset hover:bg-[#edf0f2] dark:bg-[#24282e] dark:text-[#a6afb9] dark:focus-within:bg-[#222d34] dark:focus-within:text-[#a8c8dc] dark:focus-within:ring-[#557f96] dark:hover:bg-[#30363e]",
+                                ? "bg-[var(--surface-panel)] font-medium text-[var(--ink-1)] shadow-[inset_0_0_0_1.5px_var(--ink-1)]"
+                                : "bg-[var(--surface-soft)] text-[var(--ink-2)] focus-within:bg-[var(--surface-panel)] focus-within:text-[var(--ink-1)] focus-within:shadow-[inset_0_0_0_1.5px_var(--ink-3)] hover:bg-[var(--surface-inset)]",
                         )}
                         title="输入正整数，修改后立即生效"
                     >
@@ -772,18 +773,19 @@ function CompactOptionGroup<T extends string | number>({
 }) {
     return (
         <div className="grid gap-1.5">
-            <p className="text-[11px] font-medium text-[#7b8591] dark:text-[#98a2ae]">{label}</p>
-            <div className={cn("grid gap-1", columns === 2 ? "grid-cols-2" : columns === 3 ? "grid-cols-3" : "grid-cols-4")} role="group" aria-label={ariaLabel}>
+            <p className="text-[12px] font-medium text-[var(--ink-2)]">{label}</p>
+            <div className={cn("grid gap-1.5", columns === 2 ? "grid-cols-2" : columns === 3 ? "grid-cols-3" : "grid-cols-4")} role="group" aria-label={ariaLabel}>
                 {options.map((option) => (
                     <button
                         key={option.value}
                         type="button"
                         className={cn(
-                            "h-8 min-w-0 rounded-lg px-1 text-[11px] transition",
+                            "h-9 min-w-0 rounded-[10px] px-1 text-[12px] transition-[background-color,box-shadow,color] duration-150",
                             option.icon ? "inline-flex items-center justify-center gap-1" : "",
+                            /* 选中：白底 + 深色描边（与首页快捷 Skill 的选中语言一致）；未选：浅灰底 */
                             value === option.value
-                                ? "bg-[#eaf1f5] font-medium text-[#315d78] dark:bg-[#2a3b46] dark:text-[#a8c8dc]"
-                                : "bg-[#f5f6f7] text-[#687481] hover:bg-[#edf0f2] hover:text-[#20242a] dark:bg-[#24282e] dark:text-[#a6afb9] dark:hover:bg-[#30363e] dark:hover:text-white",
+                                ? "bg-[var(--surface-panel)] font-medium text-[var(--ink-1)] shadow-[inset_0_0_0_1.5px_var(--ink-1)]"
+                                : "bg-[var(--surface-soft)] text-[var(--ink-2)] hover:bg-[var(--surface-inset)] hover:text-[var(--ink-1)]",
                         )}
                         onClick={() => onChange(option.value)}
                         aria-label={`${ariaLabel} ${option.label}`}

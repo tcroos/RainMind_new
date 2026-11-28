@@ -62,7 +62,7 @@ describe("signing out of the workspace", () => {
 
         // 底部账号条：24px 头像 + 13px 名字 + 13px 积分，整行 40px
         expect(tsx).toContain("size-6 shrink-0 place-items-center overflow-hidden rounded-full");
-        expect(tsx).toContain('expanded ? "h-10 min-w-0 flex-1 gap-2 px-2"');
+        expect(tsx).toContain('expanded ? "h-10 min-w-0 flex-1 gap-2 pl-4 pr-2"');
         expect(tsx).toContain("text-[13px] font-semibold tabular-nums");
         // 弹层与侧栏同宽：头像 + 邮箱、套餐/积分一行、整宽升级按钮、纯文字菜单
         expect(tsx).toContain("w-[232px] text-[var(--ink-1)]");

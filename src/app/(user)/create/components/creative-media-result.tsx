@@ -1,6 +1,6 @@
 "use client";
 
-import { FileAudio2, Film } from "lucide-react";
+import { Clapperboard, Download, FileAudio2, Film, PenLine } from "lucide-react";
 import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
 
 import { AgentMediaPreview } from "@/components/agent/agent-media-preview";
@@ -56,6 +56,16 @@ export function CreativeMediaResult({ assets, fallbackRatio, renderActions }: { 
                             setLoadedDimensions((current) => (current[activeAsset.id]?.width === width && current[activeAsset.id]?.height === height ? current : { ...current, [activeAsset.id]: { width, height } }));
                         }}
                     />
+                    {/* 悬停直接给常用下一步：引用继续改、做成视频、下载；由创作页监听事件执行 */}
+                    {activeAsset.type === "image" ? (
+                        <div data-testid="creative-result-hover-actions" className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center gap-1.5 bg-gradient-to-t from-black/55 to-transparent p-3 pt-10 opacity-0 transition-opacity duration-200 [figure:hover_&]:pointer-events-auto [figure:hover_&]:opacity-100">
+                            <ResultHoverButton icon={<PenLine className="size-3.5" />} label="继续修改" onClick={() => emitResultAction("edit", activeAsset.id)} />
+                            <ResultHoverButton icon={<Clapperboard className="size-3.5" />} label="做成视频" onClick={() => emitResultAction("video", activeAsset.id)} />
+                            <a href={url} download target="_blank" rel="noreferrer" className="inline-flex h-8 items-center gap-1 rounded-full bg-white/90 px-3 text-[12px] font-medium text-[#18181b] backdrop-blur-sm transition hover:bg-white">
+                                <Download className="size-3.5" /> 下载
+                            </a>
+                        </div>
+                    ) : null}
                 </figure>
             )}
 
@@ -96,4 +106,21 @@ function validDimensions(asset: Pick<CreativeAsset, "width" | "height">) {
 
 function assetUrl(asset: CreativeAsset) {
     return asset.serverUrl || asset.remoteUrl || "";
+}
+
+
+export const CREATIVE_RESULT_ACTION_EVENT = "creative:result-action";
+export type CreativeResultAction = "edit" | "video";
+
+function emitResultAction(action: CreativeResultAction, assetId: string) {
+    window.dispatchEvent(new CustomEvent(CREATIVE_RESULT_ACTION_EVENT, { detail: { action, assetId } }));
+}
+
+function ResultHoverButton({ icon, label, onClick }: { icon: ReactNode; label: string; onClick: () => void }) {
+    return (
+        <button type="button" onClick={onClick} className="inline-flex h-8 items-center gap-1 rounded-full bg-white/90 px-3 text-[12px] font-medium text-[#18181b] backdrop-blur-sm transition hover:bg-white">
+            {icon}
+            {label}
+        </button>
+    );
 }

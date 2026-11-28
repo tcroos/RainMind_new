@@ -1,6 +1,6 @@
 "use client";
 
-import { Sparkles } from "lucide-react";
+import { Film, ImageIcon, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import type { CreativeMessage } from "@/lib/creative-runtime-contract";
@@ -24,8 +24,11 @@ export function CreativeGenerationWaiting({ run, message }: { run?: CreativeAgen
     const elapsedSeconds = Math.max(0, Math.floor((now - startedAt) / 1000));
     const copy = creativeGenerationWaitingCopy({ mode: creativeRunMode(run), runStatus: run?.status, progressText: message.content, elapsedSeconds });
 
+    const mode = creativeRunMode(run);
+    const skeleton = creativeWaitingSkeleton(run, mode);
+
     return (
-        <div data-testid="creative-generation-waiting" className="mb-3 max-w-[520px] py-1 text-[#667085] dark:text-[#a0a9b4]">
+        <div data-testid="creative-generation-waiting" className="mb-3 max-w-[620px] py-1 text-[#667085] dark:text-[#a0a9b4]">
             <div className="flex items-start gap-2.5">
                 <Sparkles className="mt-1 size-4 shrink-0 animate-pulse text-primary/75" aria-hidden />
                 <div className="min-w-0">
@@ -34,9 +37,24 @@ export function CreativeGenerationWaiting({ run, message }: { run?: CreativeAgen
                     </p>
                     <p data-testid="creative-generation-elapsed" className="mt-0.5 text-[11px] tabular-nums leading-4 text-[#98a2b3] dark:text-[#7f8996]">
                         已等待 {formatCreativeWaitingTime(elapsedSeconds)}
+                        {skeleton.expected ? ` · 通常 ${skeleton.expected}` : ""}
                     </p>
                 </div>
             </div>
+            {/* 按所选比例和数量先画出骨架，结果出来后原地替换，用户能预期会出几张、什么形状 */}
+            {skeleton.count ? (
+                <div data-testid="creative-generation-skeleton" className="mt-3 flex flex-wrap gap-2.5">
+                    {Array.from({ length: skeleton.count }, (_, index) => (
+                        <div
+                            key={index}
+                            className="creative-skeleton-tile relative overflow-hidden rounded-xl bg-[var(--surface-inset)]"
+                            style={{ aspectRatio: skeleton.ratio, width: skeleton.count > 1 ? (skeleton.ratio >= 1 ? 220 : 160) : skeleton.ratio >= 1 ? 360 : 240, maxWidth: "100%" }}
+                        >
+                            {mode === "video" ? <Film className="absolute left-1/2 top-1/2 size-6 -translate-x-1/2 -translate-y-1/2 text-[var(--ink-3)] opacity-40" /> : <ImageIcon className="absolute left-1/2 top-1/2 size-6 -translate-x-1/2 -translate-y-1/2 text-[var(--ink-3)] opacity-40" />}
+                        </div>
+                    ))}
+                </div>
+            ) : null}
         </div>
     );
 }
@@ -90,4 +108,17 @@ export function formatCreativeWaitingTime(elapsedSeconds: number) {
     if (hours) return `${hours}小时${minutes ? `${minutes}分` : ""}${seconds ? `${seconds}秒` : ""}`;
     if (minutes) return `${minutes}分${seconds ? `${seconds}秒` : ""}`;
     return `${seconds}秒`;
+}
+
+
+/** 骨架占位：只在图片 / 视频生成时显示；比例取任务或偏好里的 size（如 16:9），取不到按 1:1 / 16:9 */
+export function creativeWaitingSkeleton(run: CreativeAgentRun | undefined, mode: ReturnType<typeof creativeRunMode>) {
+    if (mode !== "image" && mode !== "video") return { count: 0, ratio: 1, expected: "" };
+    const task = run?.tasks.find((item) => item.type === mode);
+    const preference = mode === "image" ? run?.generationPreferences?.image : run?.generationPreferences?.video;
+    const size = task?.ratio || preference?.size || "";
+    const match = /^(\d+(?:\.\d+)?)\s*[:x×]\s*(\d+(?:\.\d+)?)$/i.exec(size);
+    const ratio = match ? Number(match[1]) / Number(match[2]) : mode === "video" ? 16 / 9 : 1;
+    const count = Math.max(1, Math.min(4, Number(preference?.count) || 1));
+    return { count, ratio: Math.min(2.4, Math.max(0.4, ratio)), expected: mode === "video" ? "1~3 分钟" : "10~30 秒" };
 }

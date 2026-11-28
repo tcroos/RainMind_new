@@ -3,15 +3,15 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 describe("create Agent home layout", () => {
-    it("keeps Agent input, projects, tasks and reusable public inspiration in one flow", async () => {
-        const [page, composer, messages, conversationList, generationControls, preferences, overview, inspiration, previewModal] = await Promise.all([
+    it("keeps Agent input, Seko-style feature row, banner and public inspiration in one flow", async () => {
+        const [page, composer, messages, conversationList, generationControls, preferences, featureRow, inspiration, previewModal] = await Promise.all([
             readFile(resolve(process.cwd(), "src/app/(user)/create/page.tsx"), "utf8"),
             readFile(resolve(process.cwd(), "src/app/(user)/create/components/creative-composer.tsx"), "utf8"),
             readFile(resolve(process.cwd(), "src/app/(user)/create/components/creative-messages.tsx"), "utf8"),
             readFile(resolve(process.cwd(), "src/app/(user)/create/components/creative-conversation-list.tsx"), "utf8"),
             readFile(resolve(process.cwd(), "src/app/(user)/create/components/creative-generation-controls.tsx"), "utf8"),
             readFile(resolve(process.cwd(), "src/components/creative-generation-preferences.tsx"), "utf8"),
-            readFile(resolve(process.cwd(), "src/app/(user)/create/components/create-workbench-overview.tsx"), "utf8"),
+            readFile(resolve(process.cwd(), "src/app/(user)/create/components/create-feature-row.tsx"), "utf8"),
             readFile(resolve(process.cwd(), "src/app/(user)/create/components/create-inspiration-gallery.tsx"), "utf8"),
             readFile(resolve(process.cwd(), "src/components/works/public-work-preview-modal.tsx"), "utf8"),
         ]);
@@ -60,7 +60,11 @@ describe("create Agent home layout", () => {
         expect(page).toContain("<CreativeEmptyChat");
         // 侧栏点 Agent（/create 无参数）回主页：清掉当前会话，首屏内容回来
         expect(page).toContain("if (searchKey || !previous) return;");
-        expect(page.indexOf("<CreateWorkbenchOverview")).toBeLessThan(page.indexOf("<CreateInspirationGallery"));
+        // 首页顺序照 Seko：首屏输入 → 特色功能 → Banner 轮播 → 灵感发现
+        expect(page.indexOf("<CreateFeatureRow")).toBeLessThan(page.indexOf("<CreateBannerCarousel"));
+        expect(page.indexOf("<CreateBannerCarousel")).toBeLessThan(page.indexOf("<CreateInspirationGallery"));
+        expect(page).toContain("<CreateHomeHeroBackdrop dimmed={homeDocked} />");
+        expect(page).not.toContain("<CreateWorkbenchOverview");
         expect(page).not.toContain("composerHeight");
         expect(page).not.toContain("top-[117px]");
         expect(page).toContain('data-testid="creative-composer-dock"');
@@ -76,7 +80,6 @@ describe("create Agent home layout", () => {
         expect(page).not.toContain("sticky top-0 z-20 mt-5 sm:mt-8");
         expect(page).toContain('(!showConversation && homeDocked)');
         expect(page).toContain("<CreateDotField />");
-        expect(page).toContain("<CreateWorkbenchOverview />");
         expect(page).not.toContain("onUseAsset");
         expect(page).toContain("usePublicImage");
         expect(composer).toContain('centered ? "max-w-[900px]"');
@@ -109,9 +112,15 @@ describe("create Agent home layout", () => {
         expect(generationControls).toContain("placement={placement}");
         expect(composer).toContain("hide-scrollbar scroll-fade-x flex min-w-0 flex-1");
         expect(composer).toContain('data-testid="creative-composer-reference-row"');
-        // 参考素材与 Skill 各占一行：素材在上、Skill 在下，不再互相挤位置
-        expect(composer).toContain('data-testid="creative-composer-skill-row"');
-        expect(composer.indexOf('data-testid="creative-composer-reference-row"')).toBeLessThan(composer.indexOf('data-testid="creative-composer-skill-row"'));
+        // 选中的 Skill 是输入框第一行的行内标签（参照 Seko），正文与高亮层同步缩进
+        expect(composer).toContain('data-testid="creative-composer-skill-tag"');
+        expect(composer).toContain("[text-indent:var(--skill-indent,0px)]");
+        // 引导语可点：填入该 Skill 的示例；工具栏不再放「引用 / 使用 Skill」，改用 @ 与 / 唤起
+        expect(composer).toContain('data-testid="creative-composer-skill-example"');
+        expect(composer).toContain("输入 @ 引用素材");
+        expect(composer).toContain("/ 调用 Skill");
+        expect(composer).not.toContain(">使用 Skill</span>");
+        expect(composer).not.toContain(">引用</span>");
         expect(composer).toContain("creativeComposerIconButtonClass(false)");
         expect(composer).toContain("creativeComposerSendButtonClass");
         expect(composer).toContain('rounded-[20px] p-0');
@@ -154,36 +163,31 @@ describe("create Agent home layout", () => {
         expect(inspiration).toContain("复制提示词");
         expect(inspiration).toContain("使用图片");
         expect(inspiration).toContain("listPublicGallery");
+        // 作品区是按原始比例错落的瀑布流 + 无限滚动，文字悬停浮出
         expect(inspiration).toContain("<ResponsiveMasonryGrid");
-        expect(inspiration).toContain("grid-cols-2");
-        expect(inspiration).toContain("xl:grid-cols-6");
+        expect(inspiration).toContain("xl:grid-cols-5");
+        expect(inspiration).toContain("clampRatio");
+        expect(inspiration).toContain("IntersectionObserver");
+        expect(inspiration).toContain("nextCursor");
         expect(inspiration).not.toContain("columns-2");
         expect(inspiration).not.toContain("max-h-[560px]");
         expect(inspiration).toContain("<Dropdown");
         expect(inspiration).toContain("<PublicWorkPreviewModal");
         expect(inspiration).toContain("<LazyMediaImage");
-        expect(inspiration).toContain("<PublicWorkCardTitle");
         expect(inspiration).not.toContain("href={`/share/");
-        expect(overview).toContain('aria-labelledby="create-projects-heading"');
-        expect(overview).toContain("项目与任务");
-        expect(overview).toContain('"group grid h-32');
-        expect(overview).toContain("sm:h-40");
-        // 快捷入口统一为线性图标 + 描边卡；不再用 3D 配图 / 液态玻璃
-        expect(overview).toContain("quick-entry-card");
-        expect(overview).toContain("quick-entry-icon");
-        expect(overview).toContain("UserRound");
-        expect(overview).not.toContain("/quick-entry/");
-        expect(overview).not.toContain("liquid-entry");
-        expect(overview).not.toContain("最近生成");
-        expect(overview).not.toContain('aria-labelledby="create-assets-heading"');
-        expect(overview).not.toContain("recentAssets");
+        expect(featureRow).toContain('data-testid="create-feature-row"');
+        expect(featureRow).toContain("特色功能");
+        expect(featureRow).toContain('data-testid="create-feature-start"');
+        expect(featureRow).toContain("新建空白画布");
+        expect(featureRow).toContain("去创作");
+        expect(featureRow).toContain("aspect-video");
         expect(previewModal).toContain('aria-label="引用提示词到 Agent"');
-        expect(previewModal).toContain('aria-label="引用图片到 Agent"');
+        expect(previewModal).toContain('aria-label="添加参考内容"');
         expect(previewModal).not.toMatch(/>\s*引用到 Agent\s*</);
         expect(previewModal).toContain("复制提示词");
         expect(previewModal).toContain('aria-label="关闭作品详情"');
-        expect(previewModal).toContain("lg:grid-cols-[minmax(0,1fr)_340px]");
-        expect(previewModal).toContain("xl:grid-cols-[minmax(0,1fr)_360px]");
+        // 详情：Dreamina 式全屏层，左侧 340px 做同款面板
+        expect(previewModal).toContain("w-[clamp(320px,21vw,400px)] shrink-0");
         expect(previewModal).toContain('asset.mediaType === "image" || asset.mediaType === "video"');
     });
 });

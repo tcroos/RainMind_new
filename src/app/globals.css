@@ -16,6 +16,7 @@
 
 @import "./styles/global-surfaces.css";
 @import "./styles/global-create-ambient.css";
+@import "./styles/global-home-showcase.css";
 @import "./styles/global-foundation.css";
 @import "./styles/global-hero.css";
 @import "./styles/global-app-shell.css";

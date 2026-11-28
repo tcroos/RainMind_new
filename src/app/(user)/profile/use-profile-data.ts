@@ -200,7 +200,7 @@ export function useProfileData(activeSection: ProfileSectionKey) {
     }, [loadProducts, needsProducts, productsLoaded]);
 
     useEffect(() => {
-        if (activeSection === "coupons" && couponsLoadedPage !== couponsPage) void loadCoupons(couponsPage);
+        if ((activeSection === "coupons" || activeSection === "wallet") && couponsLoadedPage !== couponsPage) void loadCoupons(couponsPage);
     }, [activeSection, couponsLoadedPage, couponsPage, loadCoupons]);
 
     useEffect(() => {
@@ -229,7 +229,7 @@ export function useProfileData(activeSection: ProfileSectionKey) {
         setRefreshing(true);
         try {
             const requests: Promise<void>[] = [refreshUser()];
-            if (walletOverview) requests.push(loadProducts(), loadOrders(1), loadPointRecords(1), loadConsumeRecords(1));
+            if (walletOverview) requests.push(loadProducts(), loadOrders(1), loadPointRecords(1), loadConsumeRecords(1), loadCoupons(couponsPage));
             else if (activeSection === "billing") requests.push(loadProducts());
             else if (activeSection === "coupons") requests.push(loadCoupons(couponsPage));
             else if (activeSection === "orders") requests.push(loadOrders(ordersPage));
@@ -266,7 +266,7 @@ export function useProfileData(activeSection: ProfileSectionKey) {
             total: couponsTotal,
             page: couponsPage,
             setPage: setCouponsPage,
-            loading: couponsLoading || (activeSection === "coupons" && couponsLoadedPage !== couponsPage),
+            loading: couponsLoading || ((activeSection === "coupons" || walletOverview) && couponsLoadedPage !== couponsPage),
             refresh: refreshCoupons,
             setTemplatePage: changeCouponTemplatePage,
             refreshAfterClaim: refreshCouponsAfterClaim,

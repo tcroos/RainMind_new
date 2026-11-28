@@ -1,0 +1,191 @@
+/* 首页（Seko 风格首屏、特色功能、Banner、作品卡）与钱包会员卡的样式。
+ * 单独成文件：global-create-ambient.css 约定只放纯色底，不允许渐变与图片。 */
+
+/* ===== 首页 Seko 风格：首屏氛围层 / 特色功能 / Banner / 作品卡 ===== */
+/* 点阵：照 Seko homepage-particle.svg —— 19.87px 网格、直径 2.46px，
+ * 青色径向渐变以 (49%, 19%) 为圆心，横向拉得很开、纵向较扁，70% 处透明，整体 0.3 */
+.create-hero-backdrop__particles {
+    /* 浅色主题用品牌暖橙点阵，深色主题换回 Seko 的青色 */
+    background-image: radial-gradient(circle at center, #e2671f 0 1.23px, transparent 1.6px);
+    background-size: 19.87px 19.87px;
+    background-position: -8.7px -8.7px;
+    opacity: 0.18;
+    -webkit-mask-image: radial-gradient(ellipse 84% 60% at 49% 19%, #000 0%, rgba(0, 0, 0, 0.6) 40%, transparent 70%);
+    mask-image: radial-gradient(ellipse 84% 60% at 49% 19%, #000 0%, rgba(0, 0, 0, 0.6) 40%, transparent 70%);
+}
+.dark .create-hero-backdrop__particles {
+    background-image: radial-gradient(circle at center, #72f3ff 0 1.23px, transparent 1.6px);
+    opacity: 0.3;
+}
+.create-hero-backdrop__fade {
+    background: linear-gradient(180deg, transparent 0%, transparent 30%, var(--surface-canvas) 100%);
+}
+
+/* 特色功能卡：1px 渐变描边（只描左上/右下两个角），hover 时内发光 */
+.create-feature-card__ring {
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    border-radius: inherit;
+    padding: 1px;
+    background-image: linear-gradient(to bottom right, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0), rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.22));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+}
+.create-feature-card__scrim {
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.42) 100%);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    -webkit-mask-image: linear-gradient(transparent 10%, black 55%);
+    mask-image: linear-gradient(transparent 10%, black 55%);
+}
+
+
+/* 钱包会员卡：浅色主题暖白卡面，深色主题深色卡面；卡内颜色全部走 --wm-* */
+.wallet-member-card {
+    --wm-ink: #1b1713;
+    --wm-ink-2: rgba(27, 23, 19, 0.72);
+    --wm-ink-3: rgba(27, 23, 19, 0.5);
+    --wm-accent: #e2671f;
+    --wm-chip: rgba(255, 255, 255, 0.62);
+    --wm-ring: rgba(226, 103, 31, 0.14);
+    --wm-btn: #18181b;
+    --wm-btn-ink: #ffffff;
+    --wm-glow: rgba(246, 177, 129, 0.55);
+    --wm-glow-2: rgba(124, 140, 255, 0.14);
+    --wm-dot: rgba(226, 103, 31, 0.5);
+    background: linear-gradient(135deg, #fffaf5 0%, #fff3e8 52%, #ffe6d2 100%);
+    box-shadow: inset 0 0 0 1px rgba(226, 103, 31, 0.12), 0 24px 48px -32px rgba(226, 103, 31, 0.45);
+}
+.dark .wallet-member-card {
+    --wm-ink: #ffffff;
+    --wm-ink-2: rgba(255, 255, 255, 0.8);
+    --wm-ink-3: rgba(255, 255, 255, 0.52);
+    --wm-accent: #f6b181;
+    --wm-chip: rgba(255, 255, 255, 0.06);
+    --wm-ring: rgba(255, 255, 255, 0.1);
+    --wm-btn: #ffffff;
+    --wm-btn-ink: #18181b;
+    --wm-glow: rgba(226, 103, 31, 0.55);
+    --wm-glow-2: rgba(124, 140, 255, 0.18);
+    --wm-dot: rgba(246, 177, 129, 0.55);
+    background: linear-gradient(135deg, #17161a 0%, #1f1c1d 48%, #2b1f17 100%);
+    box-shadow: 0 24px 48px -28px rgba(0, 0, 0, 0.65);
+}
+.wallet-member-card__dots {
+    background-image: radial-gradient(circle at center, var(--wm-dot) 0 1px, transparent 1.4px);
+    background-size: 18px 18px;
+    opacity: 0.22;
+    -webkit-mask-image: radial-gradient(ellipse 70% 90% at 85% 0%, #000 0%, transparent 70%);
+    mask-image: radial-gradient(ellipse 70% 90% at 85% 0%, #000 0%, transparent 70%);
+}
+.wallet-gain-pop {
+    animation: wallet-gain-pop 2.6s cubic-bezier(0.2, 0, 0, 1) both;
+}
+@keyframes wallet-gain-pop {
+    0% { opacity: 0; transform: translateY(8px) scale(0.9); }
+    12% { opacity: 1; transform: translateY(0) scale(1); }
+    80% { opacity: 1; transform: translateY(-4px); }
+    100% { opacity: 0; transform: translateY(-10px); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .wallet-gain-pop { animation: none; }
+}
+
+/* 输入框各参数弹窗（创作类型 / 模型 / 生成参数 / Skill）统一外观：大圆角、细描边、柔和落影 */
+.creative-popover .ant-popover-container,
+.creative-popover .ant-popover-inner {
+    border-radius: 18px !important;
+    box-shadow:
+        0 0 0 1px var(--hairline),
+        0 18px 48px -16px rgba(17, 17, 19, 0.22),
+        0 4px 12px -6px rgba(17, 17, 19, 0.08) !important;
+}
+.dark .creative-popover .ant-popover-container,
+.dark .creative-popover .ant-popover-inner {
+    box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.08),
+        0 18px 48px -16px rgba(0, 0, 0, 0.6) !important;
+}
+/* 不覆盖 antd 自带的弹出动画：rc-trigger 对齐时会按弹层当前的 transform 反推尺寸，
+ * 自定义的位移动画会让它在动画结束后重新对齐，表现为弹窗「回弹」一下。 */
+
+/* 快捷 Skill 引导语逐字出现时的光标 */
+.skill-hint-caret {
+    display: inline-block;
+    width: 1px;
+    height: 1em;
+    margin-left: 2px;
+    vertical-align: -0.12em;
+    background: currentColor;
+    animation: skill-hint-caret 0.9s steps(1) infinite;
+}
+@keyframes skill-hint-caret { 50% { opacity: 0; } }
+
+/* 生成中的骨架：一道柔光从左扫到右 */
+.creative-skeleton-tile::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, 0.55) 50%, transparent 80%);
+    transform: translateX(-100%);
+    animation: creative-skeleton-sweep 1.6s ease-in-out infinite;
+}
+.dark .creative-skeleton-tile::after {
+    background: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, 0.07) 50%, transparent 80%);
+}
+@keyframes creative-skeleton-sweep { to { transform: translateX(100%); } }
+@media (prefers-reduced-motion: reduce) { .creative-skeleton-tile::after { animation: none; } }
+
+/* 作品详情（Dreamina 式）：浅色 / 深色两套变量；面板与卡片是半透明玻璃，透出底下的彩色雾 */
+.work-detail {
+    --wd-scrim: rgba(246, 247, 249, 0.72);
+    --wd-tint: 0.35;
+    --wd-panel: rgba(255, 255, 255, 0.55);
+    --wd-card: rgba(15, 18, 22, 0.05);
+    --wd-chip: rgba(15, 18, 22, 0.07);
+    --wd-chip-text: #6b6f76;
+    --wd-hairline: rgba(15, 18, 22, 0.08);
+    --wd-text: #101214;
+    --wd-text-2: #5f646b;
+    --wd-text-3: #9aa0a6;
+    --wd-btn: #0b0b0c;
+    --wd-btn-text: #ffffff;
+    --wd-icon: rgba(15, 18, 22, 0.06);
+    --wd-icon-text: #101214;
+    background-color: var(--wd-scrim);
+}
+.dark .work-detail {
+    --wd-scrim: rgba(10, 10, 12, 0.84);
+    --wd-tint: 0.4;
+    --wd-panel: rgba(255, 255, 255, 0.06);
+    --wd-card: rgba(255, 255, 255, 0.04);
+    --wd-chip: rgba(255, 255, 255, 0.08);
+    --wd-chip-text: rgba(255, 255, 255, 0.55);
+    --wd-hairline: rgba(255, 255, 255, 0.08);
+    --wd-text: #f2f3f5;
+    --wd-text-2: rgba(255, 255, 255, 0.62);
+    --wd-text-3: rgba(255, 255, 255, 0.38);
+    --wd-btn: #f5f5f5;
+    --wd-btn-text: #0b0b0c;
+    --wd-icon: rgba(255, 255, 255, 0.08);
+    --wd-icon-text: #f2f3f5;
+}
+.work-detail-input::placeholder { color: var(--wd-text-3); }
+
+/* 作品详情动效：整层淡入、左侧面板从左滑入、预览图切换时淡入 */
+.work-detail-enter { animation: work-detail-fade 220ms ease-out both; }
+.work-detail-panel { animation: work-detail-slide 320ms cubic-bezier(0.2, 0, 0, 1) both; }
+.work-detail [data-crossfade] { animation: work-detail-fade 280ms ease-out both; }
+@keyframes work-detail-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes work-detail-slide { from { opacity: 0; transform: translateX(-24px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+    .work-detail-enter, .work-detail-panel, .work-detail [data-crossfade] { animation: none; }
+}
+.work-detail-like button { color: var(--wd-text-2) !important; }
+.work-detail-like button { font-size: 12px !important; height: 24px !important; padding: 0 4px !important; }
