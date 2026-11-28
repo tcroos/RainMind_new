@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button, Modal } from "antd";
 import { LoaderCircle, RotateCcw } from "lucide-react";
 import { imagePreviewUrl } from "@/lib/media-image-url";
+import { takeCanvasAgentSeed } from "@/lib/canvas-agent-seed";
 import { CanvasConfigComposer } from "../components/canvas-config-composer";
 import { CanvasConfigNodePanel } from "../components/canvas-config-node-panel";
 import { CanvasNodeContextMenu } from "../components/canvas-context-menu";
@@ -313,6 +314,16 @@ function VozebProCanvasPage() {
         document.addEventListener("wheel", preventPageZoom, { passive: false, capture: true });
         return () => document.removeEventListener("wheel", preventPageZoom, true);
     }, []);
+    /* 从首页「Agent 画布」进来：画布加载完就展开 Agent 面板，并把首页写的需求自动发出去（只发一次） */
+    const [agentSeed, setAgentSeed] = useState<{ prompt: string; skillId?: string } | null>(null);
+    useEffect(() => {
+        if (!projectLoaded) return;
+        const seed = takeCanvasAgentSeed(projectId);
+        if (!seed) return;
+        setAgentSeed(seed);
+        openAgent();
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- 只在画布加载完成时读取一次
+    }, [projectId, projectLoaded]);
     useEffect(() => {
         if (!projectLoaded) {
             setEntryReady(false);
@@ -1030,6 +1041,9 @@ function VozebProCanvasPage() {
             </section>
             {assistantMounted ? (
                 <CanvasAssistantPanel
+                    initialPrompt={agentSeed?.prompt}
+                    initialSkillId={agentSeed?.skillId}
+                    onInitialPromptSent={() => setAgentSeed(null)}
                     nodes={nodes}
                     selectedNodeIds={selectedNodeIds}
                     snapshot={agentSnapshot}

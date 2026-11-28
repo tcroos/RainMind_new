@@ -3,7 +3,8 @@
 import { Button, Input, Popover, Tooltip } from "antd";
 import type { TextAreaRef } from "antd/es/input/TextArea";
 import { ArrowUp, AtSign, Boxes, Check, ChevronDown, ChevronLeft, ChevronRight, FileAudio, FileVideo, ImageIcon, Plus, Sparkles, Square, WandSparkles, X } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState, type MouseEventHandler, type PointerEventHandler, type RefObject, type WheelEvent } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEventHandler, type PointerEventHandler, type RefObject, type WheelEvent } from "react";
+import { skillPresentation } from "@/lib/skill-presentation";
 
 import type { CreativeAsset, CreativeGenerationMode, CreativeGenerationPreferences } from "@/lib/creative-runtime-contract";
 import { CreditSymbol, formatCreditAmount } from "@/constant/credits";
@@ -55,6 +56,10 @@ export function CreativeComposer({
     selectedModels,
     smartPlanning,
     creationMode,
+    modeOptions,
+    openSkillPickerSignal,
+    allowSkills = true,
+    placeholder,
     generationPreferences,
     referenceProfile,
     estimatedVideoCost,
@@ -97,6 +102,14 @@ export function CreativeComposer({
     selectedModels: CreativeModelOption[];
     smartPlanning: boolean;
     creationMode: "agent" | CreativeGenerationMode;
+    /** 首页「生成 / Agent 画布」切换：限定可选的创作类型；只剩一项时不显示类型选择 */
+    modeOptions?: ReadonlyArray<"agent" | CreativeGenerationMode>;
+    /** 每次变化（自增）都会打开 Skill 选择器 */
+    openSkillPickerSignal?: number;
+    /** Skill 只在 Agent 下可用：首页「生成」时关闭（不显示标签、/ 不唤起选择器） */
+    allowSkills?: boolean;
+    /** 覆盖默认占位文案 */
+    placeholder?: string;
     generationPreferences: CreativeGenerationPreferences;
     referenceProfile?: CreativeModelCapabilityProfile;
     estimatedVideoCost?: number;
@@ -121,6 +134,19 @@ export function CreativeComposer({
 }) {
     const [ready, setReady] = useState(false);
     const [skillPickerOpen, setSkillPickerOpen] = useState(false);
+    const skillTagRef = useRef<HTMLSpanElement>(null);
+    const [skillHintTyped, setSkillHintTyped] = useState("");
+    const [skillTagWidth, setSkillTagWidth] = useState(0);
+    useLayoutEffect(() => {
+        setSkillTagWidth(skillTagRef.current?.offsetWidth || 0);
+    }, [selectedSkill?.id, compact]);
+    /* 外部（首页「更多 Skill」）请求打开 Skill 选择器 */
+    useEffect(() => {
+        if (openSkillPickerSignal) setSkillPickerOpen(true);
+    }, [openSkillPickerSignal]);
+    useEffect(() => {
+        if (!allowSkills) setSkillPickerOpen(false);
+    }, [allowSkills]);
     const [modePickerOpen, setModePickerOpen] = useState(false);
     const [mentionQuery, setMentionQuery] = useState<string | null>(null);
     const [mentionAnchor, setMentionAnchor] = useState<{ left: number; top: number } | null>(null);
@@ -134,6 +160,7 @@ export function CreativeComposer({
 
     const skillCategories = skillCategoryOptions(skills);
     const visibleSkills = skills.filter((skill) => matchesSkillCategory(skill, skillCategory));
+    const visibleModeOptions = modeOptions ? creativeModeOptions.filter((option) => modeOptions.includes(option.value)) : creativeModeOptions;
     const currentMode = creativeModeOptions.find((option) => option.value === creationMode) || creativeModeOptions[0];
     const videoPreference = generationPreferences.video;
     const frameMode = videoPreference?.referenceMode || "reference";
@@ -308,8 +335,50 @@ export function CreativeComposer({
             </span>
         );
 
+    const showSkillTag = Boolean(selectedSkill) && !compact && allowSkills;
+    const skillExample = showSkillTag && selectedSkill ? skillPresentation(selectedSkill) : null;
+    /* 选中 Skill 且输入为空时，引导语改成可点的提示：点一下填入该 Skill 的示例 */
+    const showSkillHint = Boolean(skillExample) && !value;
+    const inputHint = `${placeholder || "输入你的创作想法、脚本或画面要求"}，输入 @ 引用素材${allowSkills ? "，/ 调用 Skill" : ""}`;
     const composerInput = (compactMode: boolean) => (
-        <div ref={composerInputContainerRef} className="relative min-w-0 flex-1 overflow-hidden">
+        <div
+            ref={composerInputContainerRef}
+            className="relative min-w-0 flex-1 overflow-hidden"
+            /* 选中的 Skill 像 Seko 一样作为行内标签贴在第一行最前面：文本和 @ 高亮层都缩进同样宽度 */
+            style={showSkillTag && !compactMode ? ({ "--skill-indent": `${skillTagWidth + 8}px` } as CSSProperties) : undefined}
+        >
+            {showSkillTag && !compactMode && selectedSkill ? (
+                <span
+                    ref={skillTagRef}
+                    data-testid="creative-composer-skill-tag"
+                    className="group/skill absolute left-1 top-1 z-[3] inline-flex h-7 items-center gap-1 rounded-md bg-[var(--surface-inset)] pl-2 pr-1 text-[13px] font-medium text-[var(--ink-1)] sm:left-2"
+                >
+                    <Boxes className="size-3.5 text-[var(--ink-3)]" />
+                    {selectedSkill.name}
+                    <button type="button" aria-label="移除 Skill" onClick={onRemoveSkill} className="grid size-5 place-items-center rounded text-[var(--ink-3)] hover:bg-black/5 hover:text-[var(--ink-1)] dark:hover:bg-white/10">
+                        <X className="size-3" />
+                    </button>
+                </span>
+            ) : null}
+            {showSkillHint && !compactMode && skillExample ? (
+                <button
+                    type="button"
+                    data-testid="creative-composer-skill-example"
+                    title={skillExample.example ? "点击填入示例" : undefined}
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => {
+                        const text = skillExample.example || "";
+                        if (!text) return inputRef.current?.focus();
+                        updateComposerValue(text, text.length);
+                        focusComposerAt(text.length);
+                    }}
+                    className="absolute top-1 z-[3] max-w-[calc(100%-var(--skill-indent,0px)-16px)] truncate border-b border-dashed border-transparent text-left text-[15px] leading-7 text-[var(--ink-3)] transition-colors hover:border-[var(--ink-3)] hover:text-[var(--ink-2)]"
+                    style={{ left: `calc(var(--skill-indent, 0px) + 8px)`, color: "var(--ink-3)" }}
+                >
+                    <TypewriterText key={selectedSkill?.id} text={skillExample.placeholder} onDone={() => setSkillHintTyped(selectedSkill?.id || "")} />
+                    {skillExample.example && skillHintTyped === selectedSkill?.id ? <span className="ml-1.5 rounded bg-[var(--surface-inset)] px-1.5 py-0.5 text-[11px] text-[var(--ink-3)]">填入示例</span> : null}
+                </button>
+            ) : null}
             {hasMentionReferences ? <ComposerMentionPreview previewRef={mentionHighlightRef} scrollTop={inputRef.current?.resizableTextArea?.textArea?.scrollTop || 0} segments={mentionSegments} assetsById={referenceAssetsById} onMentionMouseDown={focusComposerAt} /> : null}
             {promptScrollProgress ? (
                 <div className="pointer-events-none absolute inset-y-2 right-1 z-[2] w-1 rounded-full bg-[#e5e9ed] dark:bg-[#3a4149]" aria-hidden="true">
@@ -332,8 +401,8 @@ export function CreativeComposer({
                 spellCheck={false}
                 autoSize={compactMode ? { minRows: 1, maxRows: 1 } : { minRows: centered ? 4 : 2, maxRows: 8 }}
                 variant="borderless"
-                className={cn("creative-composer-input relative z-[1] min-w-0 !border-0 !bg-transparent !py-1 !pl-1 !pr-3 !text-[15px] !leading-7 !shadow-none !outline-none sm:!pl-2", "caret-[#20242a] dark:caret-[#f3f5f7]")}
-                placeholder={compactMode ? "输入你的创作想法" : "输入你的创作想法、脚本或画面要求"}
+                className={cn("creative-composer-input relative z-[1] min-w-0 [text-indent:var(--skill-indent,0px)] !border-0 !bg-transparent !py-1 !pl-1 !pr-3 !text-[15px] !leading-7 !shadow-none !outline-none sm:!pl-2", "caret-[#20242a] dark:caret-[#f3f5f7]")}
+                placeholder={compactMode ? "输入你的创作想法" : showSkillHint ? "" : inputHint}
                 onFocus={() => {
                     if (mentionBlurTimeoutRef.current !== null) window.clearTimeout(mentionBlurTimeoutRef.current);
                     mentionBlurTimeoutRef.current = null;
@@ -347,7 +416,17 @@ export function CreativeComposer({
                     }, 120);
                 }}
                 onChange={(event) => {
-                    updateComposerValue(event.target.value, event.target.selectionStart, insertsAtSign(value, event.target.value));
+                    const next = event.target.value;
+                    const cursor = event.target.selectionStart;
+                    /* 「/」唤起 Skill：只在行首或空白后键入的单个 / 才触发，并把这个 / 吃掉 */
+                    if (allowSkills && next.length === value.length + 1 && next[cursor - 1] === "/" && (cursor === 1 || /\s/.test(next[cursor - 2]))) {
+                        const stripped = next.slice(0, cursor - 1) + next.slice(cursor);
+                        updateComposerValue(stripped, cursor - 1);
+                        focusComposerAt(cursor - 1);
+                        setSkillPickerOpen(true);
+                        return;
+                    }
+                    updateComposerValue(next, cursor, insertsAtSign(value, next));
                     window.requestAnimationFrame(() => syncPromptScrollProgress(event.target));
                 }}
                 onClick={() => closeMention()}
@@ -361,6 +440,11 @@ export function CreativeComposer({
                 onKeyDown={(event) => {
                     if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown"].includes(event.key) && mentionQuery !== null) {
                         closeMention();
+                    }
+                    if (event.key === "Backspace" && selectedSkill && !value && event.currentTarget.selectionStart === 0) {
+                        event.preventDefault();
+                        onRemoveSkill();
+                        return;
                     }
                     if (event.key === "Backspace" || event.key === "Delete") {
                         const deletion = creativeAssetMentionDeletionAtKey(value, event.currentTarget.selectionStart, event.currentTarget.selectionEnd, event.key, referenceAliases);
@@ -465,7 +549,6 @@ export function CreativeComposer({
                         <span>音频 {referenceCountLabel(referenceCounts.audio, referenceProfile.maxReferenceAudios)}</span>
                     </div>
                 ) : null}
-                {!compact && selectedSkill ? <div data-testid="creative-composer-skill-row" className="flex items-center gap-2 px-3 py-2 text-sm"><span>{selectedSkill.name}</span><Button type="text" size="small" aria-label="移除 Skill" onClick={onRemoveSkill} icon={<X className="size-3" />} /></div> : null}
                 {!compact && (showVideoFrames || mediaAttachments.length > 0) ? (
                     <div data-testid="creative-reference-media-row" aria-label="本轮参考素材" className="relative z-[3] mb-1 flex min-w-0 items-center gap-1.5 overflow-hidden bg-white px-1 dark:bg-[#181b20]">
                         {showVideoFrames ? (
@@ -549,7 +632,32 @@ export function CreativeComposer({
                         />
                     </Tooltip>
                     <div className="hide-scrollbar scroll-fade-x flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto">
+                        {visibleModeOptions.length === 2 && modeOptions && !modeOptions.includes("agent") ? (
+                            /* 首页「生成」只有图片 / 视频两种：直接给分段切换，少点一次弹窗 */
+                            <div role="radiogroup" aria-label="创作类型" data-testid="creative-mode-segmented" className="inline-flex h-8 shrink-0 items-center rounded-[10px] bg-[var(--surface-inset)] p-0.5">
+                                {visibleModeOptions.map((option) => {
+                                    const selected = option.value === creationMode;
+                                    return (
+                                        <button
+                                            key={option.value}
+                                            type="button"
+                                            role="radio"
+                                            aria-checked={selected}
+                                            onClick={() => onChangeCreationMode(option.value)}
+                                            className={cn(
+                                                "inline-flex h-7 items-center gap-1.5 rounded-[8px] px-2.5 text-[13px] font-medium transition-colors",
+                                                selected ? "bg-[var(--surface-panel)] text-[var(--ink-1)] shadow-[0_1px_3px_rgba(17,17,19,0.1)]" : "text-[var(--ink-3)] hover:text-[var(--ink-1)]",
+                                            )}
+                                        >
+                                            <CreativeModeIcon mode={option.value} />
+                                            {option.value === "image" ? "图片" : option.value === "video" ? "视频" : option.label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        ) : visibleModeOptions.length > 1 ? (
                         <Popover
+                            rootClassName="creative-popover"
                             trigger="click"
                             placement={composerPopoverPlacement}
                             autoAdjustOverflow={creativeComposerPopoverOverflow(composerPopoverPlacement)}
@@ -560,7 +668,7 @@ export function CreativeComposer({
                                 <div className="hide-scrollbar max-h-[calc(100vh-160px)] w-[calc(100vw-56px)] max-w-[300px] overflow-y-auto py-1 sm:w-72 sm:max-w-none">
                                     <p className="px-2 pb-2 text-sm font-semibold text-[#20242a] dark:text-[#f3f5f7]">创作类型</p>
                                     <div className="space-y-1">
-                                        {creativeModeOptions.map((option) => {
+                                        {visibleModeOptions.map((option) => {
                                             const selected = option.value === creationMode;
                                             return (
                                                 <button
@@ -607,6 +715,7 @@ export function CreativeComposer({
                                 <ChevronDown className="hidden size-3.5 sm:block" />
                             </Button>
                         </Popover>
+                        ) : null}
                         <CreativeGenerationControls
                             models={models}
                             selectedModels={selectedModels}
@@ -621,19 +730,8 @@ export function CreativeComposer({
                             onCapabilityChange={onChangeGenerationCapability}
                             onChangeGenerationPreference={onChangeGenerationPreference}
                         />
-                        <Tooltip title="引用当前对话资产">
-                            <Button
-                                type="text"
-                                className={creativeComposerToolButtonClass(mentionQuery !== null)}
-                                icon={<AtSign className="size-4" />}
-                                onMouseDown={(event) => event.preventDefault()}
-                                onClick={openAssetMention}
-                                aria-label="引用当前对话资产"
-                            >
-                                <span className="hidden text-[13px] font-medium sm:inline">引用</span>
-                            </Button>
-                        </Tooltip>
                         <Popover
+                            rootClassName="creative-popover"
                             trigger="click"
                             placement={composerPopoverPlacement}
                             autoAdjustOverflow={creativeComposerPopoverOverflow(composerPopoverPlacement)}
@@ -642,7 +740,12 @@ export function CreativeComposer({
                             onOpenChange={setSkillPickerOpen}
                             content={
                                 <div className="w-[calc(100vw-56px)] max-w-[300px] py-1 sm:w-80 sm:max-w-none">
-                                    <p className="px-2 pb-2 text-sm font-semibold text-[#20242a] dark:text-[#f3f5f7]">选择创作 Skill</p>
+                                    <div className="flex items-center justify-between px-2 pb-2">
+                                        <p className="text-sm font-semibold text-[var(--ink-1)]">选择创作 Skill</p>
+                                        <a href="/skills" className="text-[12px] hover:underline" style={{ color: "var(--brand-600)" }}>
+                                            Skill 广场 →
+                                        </a>
+                                    </div>
                                     {skillsLoading ? <p className="px-2 py-3 text-xs text-[#8b949f] dark:text-[#7f8996]">正在加载...</p> : null}
                                     {!skillsLoading && !skills.length ? <p className="px-2 py-3 text-xs text-[#8b949f] dark:text-[#7f8996]">暂无可用 Skill</p> : null}
                                     {skills.length ? (
@@ -711,9 +814,13 @@ export function CreativeComposer({
                                                             setSkillPickerOpen(false);
                                                         }}
                                                     >
-                                                        <span className={cn("mt-0.5 grid size-7 shrink-0 place-items-center rounded-lg", visual.surfaceClass)}>
-                                                            <Icon className={cn("size-3.5", visual.iconClass)} />
-                                                        </span>
+                                                        {skillPresentation(skill).cover ? (
+                                                            <img src={skillPresentation(skill).cover} alt="" className="mt-0.5 size-7 shrink-0 rounded-lg object-cover" />
+                                                        ) : (
+                                                            <span className={cn("mt-0.5 grid size-7 shrink-0 place-items-center rounded-lg", visual.surfaceClass)}>
+                                                                <Icon className={cn("size-3.5", visual.iconClass)} />
+                                                            </span>
+                                                        )}
                                                         <span className="min-w-0 flex-1">
                                                             <span className="block truncate text-xs font-medium">{skill.name}</span>
                                                             <span className="mt-0.5 line-clamp-2 block text-[11px] leading-4 text-[#8b949f] dark:text-[#7f8996]">{skill.description}</span>
@@ -727,9 +834,8 @@ export function CreativeComposer({
                                 </div>
                             }
                         >
-                            <Button type="text" className={creativeComposerToolButtonClass(skillPickerOpen)} icon={<Boxes className="size-4" />} aria-label="选择创作 Skill" aria-haspopup="menu" aria-expanded={skillPickerOpen}>
-                                <span className="hidden text-[13px] font-medium sm:inline">使用 Skill</span>
-                            </Button>
+                            {/* 不再显示「使用 Skill」按钮：用 / 或首页「更多 Skill」唤起，这里只留一个定位锚点 */}
+                            <span aria-hidden data-testid="creative-skill-picker-anchor" className="inline-block h-8 w-0 shrink-0" />
                         </Popover>
                         <Tooltip title="优化提示词">
                             <Button
@@ -745,6 +851,7 @@ export function CreativeComposer({
                             </Button>
                         </Tooltip>
                     </div>
+                    {!compact && value.trim() ? <span data-testid="composer-keyboard-hint" className="hidden shrink-0 text-[11px] text-[var(--ink-3)] lg:inline">↵ 发送 · ⇧↵ 换行</span> : null}
                     {estimatedCostSummary}
                     <Tooltip title={busy ? "停止生成" : "发送"}>
                         <Button
@@ -770,7 +877,7 @@ function ComposerMentionPreview({ segments, assetsById, previewRef, scrollTop, o
             ref={previewRef}
             data-testid="creative-composer-mention-preview"
             aria-hidden="true"
-            className="pointer-events-none absolute inset-0 z-[2] overflow-visible whitespace-pre-wrap break-words py-1 pl-1 pr-3 text-[15px] leading-7 tracking-normal text-transparent [font-family:inherit] sm:pl-2 dark:text-transparent"
+            className="pointer-events-none absolute inset-0 z-[2] overflow-visible whitespace-pre-wrap break-words py-1 pl-1 [text-indent:var(--skill-indent,0px)] pr-3 text-[15px] leading-7 tracking-normal text-transparent [font-family:inherit] sm:pl-2 dark:text-transparent"
             style={{ transform: `translate3d(0, -${scrollTop}px, 0)` }}
         >
             {segments.map((segment, index) => {
@@ -1046,4 +1153,37 @@ function skillOptionVisual(skill: SkillOption) {
     if (skill.workspaces?.includes("video")) return { icon: FileVideo, surfaceClass: "bg-emerald-50 dark:bg-emerald-400/10", iconClass: "text-emerald-600 dark:text-emerald-300" };
     if (skill.workspaces?.includes("image")) return { icon: ImageIcon, surfaceClass: "bg-sky-50 dark:bg-sky-400/10", iconClass: "text-sky-600 dark:text-sky-300" };
     return { icon: Boxes, surfaceClass: "bg-slate-100 dark:bg-slate-400/10", iconClass: "text-slate-600 dark:text-slate-300" };
+}
+
+/** 逐字打出文本（参照 Seko 选中快捷 Skill 后的引导语），末尾带闪烁光标；减少动态偏好时直接显示全文 */
+function TypewriterText({ text, speed = 38, onDone }: { text: string; speed?: number; onDone?: () => void }) {
+    const [count, setCount] = useState(0);
+    useEffect(() => {
+        if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+            setCount(text.length);
+            onDone?.();
+            return;
+        }
+        setCount(0);
+        const chars = Array.from(text).length;
+        let current = 0;
+        const timer = window.setInterval(() => {
+            current += 1;
+            setCount(current);
+            if (current >= chars) {
+                window.clearInterval(timer);
+                onDone?.();
+            }
+        }, speed);
+        return () => window.clearInterval(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- onDone 只在打完时调用一次
+    }, [speed, text]);
+    const chars = Array.from(text);
+    const done = count >= chars.length;
+    return (
+        <span aria-label={text}>
+            {chars.slice(0, count).join("")}
+            {done ? null : <span aria-hidden className="skill-hint-caret" />}
+        </span>
+    );
 }

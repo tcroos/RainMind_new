@@ -18,13 +18,13 @@ describe("workbench theme accent", () => {
         expect(surfaces).toContain("--brand-soft: rgba(226, 103, 31, 0.1);");
     });
 
-    it("uses the accent on the primary action and on skill icons only", async () => {
+    it("uses the accent on the primary action and on the skill fallbacks only", async () => {
         const sendStyles = await readFile(resolve(process.cwd(), "src/components/creative-composer-styles.ts"), "utf8");
         const page = await readFile(resolve(process.cwd(), "src/app/(user)/create/page.tsx"), "utf8");
 
         expect(sendStyles).toContain("linear-gradient(135deg,var(--brand-500),var(--brand-600))");
-        expect(page).toContain('iconClass: "text-[var(--brand-600)]"');
-        expect(page).toContain('surfaceClass: "bg-[var(--brand-soft)]"');
+        // 快捷 Skill 改为缩略图卡片；没有缩略图的 Skill 用品牌浅底 + 首字兜底
+        expect(page).toContain("bg-[var(--brand-soft)] text-[14px] text-[var(--brand-600)]");
     });
 
     it("keeps brand references out of the neutral surface ramp", async () => {
