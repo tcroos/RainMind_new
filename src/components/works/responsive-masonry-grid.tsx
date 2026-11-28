@@ -10,21 +10,28 @@ export function masonryRowSpan(contentHeight: number, rowHeight: number, rowGap:
     return Math.max(1, Math.ceil((contentHeight + rowGap) / (rowHeight + rowGap)));
 }
 
-export function masonryPlacements(rowSpans: number[], columnCount: number) {
+/** colSpans：可选，每项横跨几列（大卡）；列数不够时自动退回 1 列 */
+export function masonryPlacements(rowSpans: number[], columnCount: number, colSpans: number[] = []) {
     const columnEnds = Array.from({ length: Math.max(1, Math.floor(columnCount)) }, () => 0);
-    return rowSpans.map((value) => {
+    return rowSpans.map((value, itemIndex) => {
         const rowSpan = Math.max(1, Math.ceil(value));
+        const colSpan = Math.max(1, Math.min(columnEnds.length, Math.floor(colSpans[itemIndex] || 1)));
         let columnIndex = 0;
-        for (let index = 1; index < columnEnds.length; index += 1) {
-            if (columnEnds[index] < columnEnds[columnIndex]) columnIndex = index;
+        let best = Number.POSITIVE_INFINITY;
+        for (let index = 0; index + colSpan <= columnEnds.length; index += 1) {
+            const top = Math.max(...columnEnds.slice(index, index + colSpan));
+            if (top < best) {
+                best = top;
+                columnIndex = index;
+            }
         }
-        const rowStart = columnEnds[columnIndex] + 1;
-        columnEnds[columnIndex] += rowSpan;
-        return { column: columnIndex + 1, rowStart, rowSpan };
+        const rowStart = best + 1;
+        for (let index = columnIndex; index < columnIndex + colSpan; index += 1) columnEnds[index] = best + rowSpan;
+        return colSpan > 1 ? { column: columnIndex + 1, rowStart, rowSpan, colSpan } : { column: columnIndex + 1, rowStart, rowSpan };
     });
 }
 
-export function ResponsiveMasonryGrid({ children, className, ariaLabel }: { children: ReactNode; className: string; ariaLabel: string }) {
+export function ResponsiveMasonryGrid({ children, className, ariaLabel, colSpans }: { children: ReactNode; className: string; ariaLabel: string; colSpans?: number[] }) {
     const gridRef = useRef<HTMLDivElement>(null);
     const [measured, setMeasured] = useState(false);
 
@@ -36,15 +43,22 @@ export function ResponsiveMasonryGrid({ children, className, ariaLabel }: { chil
         const layout = () => {
             items.forEach((item) => {
                 item.style.removeProperty("grid-column-start");
+                item.style.removeProperty("grid-column-end");
                 item.style.removeProperty("grid-row-start");
                 item.style.removeProperty("grid-row-end");
             });
             const rowGap = Number.parseFloat(getComputedStyle(grid).rowGap) || 0;
             const columnCount = getComputedStyle(grid).gridTemplateColumns.trim().split(/\s+/).filter(Boolean).length;
-            const rowSpans = items.map((item) => masonryRowSpan((item.firstElementChild as HTMLElement | null)?.getBoundingClientRect().height || 0, MASONRY_ROW_HEIGHT, rowGap));
-            masonryPlacements(rowSpans, columnCount).forEach((placement, index) => {
+            /* 大卡只在 3 列及以上才横跨；先按跨列宽度量一次高度，避免按单列高度算行数 */
+            const spans = items.map((_, index) => (columnCount >= 3 ? colSpans?.[index] || 1 : 1));
+            items.forEach((item, index) => {
+                if (spans[index] > 1) item.style.gridColumnEnd = `span ${spans[index]}`;
+            });
+            const measuredSpans = items.map((item) => masonryRowSpan((item.firstElementChild as HTMLElement | null)?.getBoundingClientRect().height || 0, MASONRY_ROW_HEIGHT, rowGap));
+            masonryPlacements(measuredSpans, columnCount, spans).forEach((placement, index) => {
                 const item = items[index];
                 item.style.gridColumnStart = String(placement.column);
+                if (spans[index] > 1) item.style.gridColumnEnd = `span ${spans[index]}`;
                 item.style.gridRowStart = String(placement.rowStart);
                 item.style.gridRowEnd = `span ${placement.rowSpan}`;
             });
@@ -70,7 +84,7 @@ export function ResponsiveMasonryGrid({ children, className, ariaLabel }: { chil
             contentObserver.disconnect();
             gridObserver.disconnect();
         };
-    }, [children]);
+    }, [children, colSpans]);
 
     return (
         <div ref={gridRef} className={cn("grid min-w-0 items-start gap-x-2 gap-y-4 sm:gap-x-3 sm:gap-y-5", measured ? "auto-rows-[4px]" : "auto-rows-auto", className)} aria-label={ariaLabel}>
