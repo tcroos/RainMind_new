@@ -2,10 +2,11 @@
 
 import { Button, Popover } from "antd";
 import { Circle, CircleDot, Orbit } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { imageTierMatchesModel, normalizeImageTiers } from "@/lib/image-tier-config";
 import { useConfigStore } from "@/stores/use-config-store";
+import { useUserStore } from "@/stores/use-user-store";
 
 import type { CreativeGenerationMode, CreativeGenerationPreferences } from "@/lib/creative-runtime-contract";
 import { cn } from "@/lib/utils";
@@ -14,6 +15,8 @@ import { creativeComposerPopoverOverflow, type CreativeComposerPopoverPlacement 
 import { creativeComposerToolButtonClass } from "@/components/creative-composer-styles";
 import { CreativeGenerationPreferences as GenerationPreferencesControl, mediaCapabilityLabel, type MediaCapability } from "@/components/creative-generation-preferences";
 import { creativeSelectedModelProfile, type CreativeModelCapabilityOption } from "@/lib/creative-model-capabilities";
+
+export const OPEN_MODEL_PICKER_EVENT = "creative:open-model-picker";
 
 export type CreativeModelOption = CreativeModelCapabilityOption;
 
@@ -45,6 +48,13 @@ export function CreativeGenerationControls({
     onChangeGenerationPreference: (capability: MediaCapability, patch: Record<string, string | number | boolean>) => void;
 }) {
     const [modelPickerOpen, setModelPickerOpen] = useState(false);
+    const isAdmin = useUserStore((state) => state.user?.role === "admin");
+    /* 失败卡片上的「换个模型」会广播这个事件，直接把模型选择器打开 */
+    useEffect(() => {
+        const open = () => setModelPickerOpen(true);
+        window.addEventListener(OPEN_MODEL_PICKER_EVENT, open);
+        return () => window.removeEventListener(OPEN_MODEL_PICKER_EVENT, open);
+    }, []);
     const [preferredCapability, setPreferredCapability] = useState<MediaCapability>("image");
     const configImageTiers = useConfigStore((state) => state.config.imageTiers);
     const imageTiers = useMemo(() => normalizeImageTiers(configImageTiers), [configImageTiers]);
@@ -74,6 +84,7 @@ export function CreativeGenerationControls({
     return (
         <>
             <Popover
+                rootClassName="creative-popover"
                 trigger="click"
                 placement={placement}
                 autoAdjustOverflow={creativeComposerPopoverOverflow(placement)}
@@ -84,8 +95,8 @@ export function CreativeGenerationControls({
                     <div className="hide-scrollbar max-h-[calc(100vh-96px)] w-[calc(100vw-40px)] max-w-[360px] overflow-y-auto py-1">
                         <div className="flex items-center justify-between gap-3 px-1 pb-3">
                             <div className="min-w-0">
-                                <p className="text-sm font-semibold text-[#20242a] dark:text-[#f3f5f7]">选择模型</p>
-                                <p className="mt-0.5 truncate text-[11px] text-[#8b949f] dark:text-[#7f8996]">{selectedModels[0] ? `当前模型：${selectedModels[0].name}` : smartPlanning ? "默认由智能规划自动匹配" : "请选择一个模型"}</p>
+                                <p className="text-[15px] font-semibold text-[var(--ink-1)]">选择模型</p>
+                                <p className="mt-0.5 truncate text-[12px] text-[var(--ink-3)]">{selectedModels[0] ? `当前模型：${selectedModels[0].name}` : smartPlanning ? "默认由智能规划自动匹配" : "请选择一个模型"}</p>
                             </div>
                             <button
                                 type="button"
@@ -161,7 +172,7 @@ export function CreativeGenerationControls({
                             {!visibleModels.length ? (
                                 <p className="px-2 py-5 text-center text-xs text-[#8b949f] dark:text-[#7f8996]">
                                     {activeCapability === "image" && activeImageTierId
-                                        ? `「${imageTierLabels[activeImageTierId] || activeImageTierId}」暂无模型，可在后台 → 逻辑模型把图片模型挂到该档位`
+                                        ? `「${imageTierLabels[activeImageTierId] || activeImageTierId}」暂无可用模型${isAdmin ? "，可在后台 → 逻辑模型把图片模型挂到该档位" : "，换个档位试试"}`
                                         : `当前未配置可用的${mediaCapabilityLabel(activeCapability)}模型`}
                                 </p>
                             ) : null}

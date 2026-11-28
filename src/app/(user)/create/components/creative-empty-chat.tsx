@@ -2,7 +2,9 @@
 
 import { Sparkles } from "lucide-react";
 
+import { skillPresentation } from "@/lib/skill-presentation";
 import { cn } from "@/lib/utils";
+import type { AgentSkillSummary } from "@/services/api/agent-skills";
 
 /** 新对话的空状态：给几个具体到能直接出片的例子，避免整屏只剩一个输入框。 */
 const SUGGESTIONS = [
@@ -29,7 +31,7 @@ const PLACEMENTS = [
     "right-0 top-7 h-[112px] w-[84px] rotate-[14deg]",
 ] as const;
 
-export function CreativeEmptyChat({ siteTitle, onPick }: { siteTitle: string; onPick: (prompt: string) => void }) {
+export function CreativeEmptyChat({ siteTitle, onPick, skills = [], onPickSkill }: { siteTitle: string; onPick: (prompt: string) => void; skills?: AgentSkillSummary[]; onPickSkill?: (skill: AgentSkillSummary) => void }) {
     return (
         <div className="mx-auto flex w-full max-w-[760px] flex-col items-center px-4 pb-8 pt-10 sm:pt-[8vh]" data-testid="creative-empty-chat">
             <div className="relative h-[148px] w-[270px] shrink-0" aria-hidden="true">
@@ -64,6 +66,22 @@ export function CreativeEmptyChat({ siteTitle, onPick }: { siteTitle: string; on
                     </button>
                 ))}
             </div>
+            {skills.length && onPickSkill ? (
+                <div className="mt-8 w-full" data-testid="creative-empty-skills">
+                    <p className="text-center text-[12px] text-[var(--ink-3)]">或者用一个 Skill 开始</p>
+                    <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                        {skills.map((skill) => {
+                            const cover = skillPresentation(skill).cover;
+                            return (
+                                <button key={skill.id} type="button" onClick={() => onPickSkill(skill)} className="group overflow-hidden rounded-xl bg-[var(--surface-panel)] text-left shadow-[inset_0_0_0_1px_var(--hairline)] transition hover:shadow-[inset_0_0_0_1px_var(--hairline),0_10px_24px_-14px_rgba(17,17,19,0.3)]">
+                                    <span className="block aspect-[16/10] overflow-hidden bg-[var(--surface-inset)]">{cover ? <img src={cover} alt="" className="size-full object-cover transition-transform duration-500 group-hover:scale-105" /> : null}</span>
+                                    <span className="block truncate px-3 py-2 text-[13px] font-medium text-[var(--ink-1)]">{skill.name}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            ) : null}
         </div>
     );
 }
