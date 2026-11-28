@@ -4,6 +4,7 @@ import { App, Dropdown, Input, Modal } from "antd";
 import { Ellipsis, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
 import { useCallback, useEffect, useState } from "react";
 
 import type { CanvasProjectSummary } from "@/lib/canvas-project-contract";
@@ -12,7 +13,7 @@ import { createCanvasProject, deleteCanvasProjects, listCanvasProjectSummaries, 
 
 /* 侧栏新建的画布项目会被画布页自己改标题 / 删除，靠一个轻量事件让最近项目列表重拉，
  * 不往画布域里塞全局 store 依赖。 */
-const PROJECTS_CHANGED_EVENT = "vozeb:canvas-projects-changed";
+export const PROJECTS_CHANGED_EVENT = "vozeb:canvas-projects-changed";
 const MAX_RECENT_PROJECTS = 8;
 
 /** 顶部「+ 新建项目」：直接创建一张画布并进入，不再先跳到列表页再二次跳转。 */
@@ -42,14 +43,17 @@ export function SidebarNewProject({ expanded }: { expanded: boolean }) {
             onClick={() => void create()}
             aria-label="新建项目"
             title="新建项目"
-            className={
-                expanded
-                    ? "sidebar-new-project flex h-10 w-full items-center gap-2 rounded-xl px-3 text-[13.5px] font-medium shadow-[0_1px_2px_rgba(17,17,19,0.04)] transition-colors disabled:cursor-progress"
-                    : "sidebar-new-project mx-auto flex size-10 items-center justify-center rounded-xl shadow-[0_1px_2px_rgba(17,17,19,0.04)] transition-colors disabled:cursor-progress"
-            }
+            /* 收起/展开同一套几何：左边缘固定在 16px，图标左内边距 11px（中心 x≈36），
+             * 只有宽度在 40px 与整行之间过渡，文字淡入淡出 —— 动画时「+」不左右跳。 */
+            className={cn(
+                "sidebar-new-project flex h-10 items-center gap-2 overflow-hidden whitespace-nowrap rounded-xl pl-[11px] text-[13.5px] font-medium shadow-[0_1px_2px_rgba(17,17,19,0.04)] transition-[width,background-color] duration-300 ease-[cubic-bezier(0.2,0,0,1)] disabled:cursor-progress",
+                expanded ? "w-full pr-3" : "w-10",
+            )}
         >
             {creating ? <Loader2 className="size-[17px] shrink-0 animate-spin" /> : <Plus className="size-[17px] shrink-0" />}
-            {expanded ? <span>新建项目</span> : null}
+            <span aria-hidden={!expanded || undefined} className={cn("transition-opacity duration-200", !expanded && "opacity-0")}>
+                新建项目
+            </span>
         </button>
     );
 }
