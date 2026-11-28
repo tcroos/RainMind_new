@@ -11,9 +11,11 @@ type BillingPlanGridProps = {
     products: BillingProduct[];
     onSelect: (product: BillingProduct) => void;
     variant?: "modal" | "page";
+    /** 嵌入页面时铺满容器（不居中、不限宽） */
+    fill?: boolean;
 };
 
-export function BillingPlanGrid({ products, onSelect, variant = "page" }: BillingPlanGridProps) {
+export function BillingPlanGrid({ products, onSelect, variant = "page", fill = false }: BillingPlanGridProps) {
     const recommendedId = products.find((product) => productMetadata(product).recommended)?.id || products[Math.min(1, products.length - 1)]?.id;
     const [activeProductId, setActiveProductId] = useState(recommendedId);
 
@@ -72,7 +74,7 @@ export function BillingPlanGrid({ products, onSelect, variant = "page" }: Billin
                 {activeProduct ? <PlanCard product={activeProduct} index={products.findIndex((item) => item.id === activeProduct.id)} recommended={activeProduct.id === recommendedId} variant={variant} onSelect={onSelect} /> : null}
             </div>
 
-            <div className={`hidden sm:grid ${gridClass(products.length, variant)}`} data-billing-plan-layout={variant}>
+            <div className={`hidden sm:grid ${fill ? fillGridClass(products.length) : gridClass(products.length, variant)}`} data-billing-plan-layout={variant}>
                 {products.map((product, index) => {
                     return <PlanCard key={product.id} product={product} index={index} recommended={product.id === recommendedId} variant={variant} onSelect={onSelect} />;
                 })}
@@ -218,6 +220,13 @@ function CompactPlanCard({ product, recommended, onSelect }: { product: BillingP
             </Button>
         </article>
     );
+}
+
+/** 嵌在页面里（钱包概览）时铺满容器、靠左对齐，不居中留白 */
+function fillGridClass(count: number) {
+    if (count <= 1) return "w-full items-stretch gap-3 sm:grid-cols-2";
+    if (count === 2) return "w-full items-stretch gap-3 sm:grid-cols-2";
+    return "w-full items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-3";
 }
 
 function gridClass(count: number, variant: "modal" | "page") {

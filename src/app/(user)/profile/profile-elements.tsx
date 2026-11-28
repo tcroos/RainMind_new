@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { Button, Input, Pagination, Select, Spin, Tag } from "antd";
-import { CircleHelp, CreditCard, History, ReceiptText, RefreshCw, Save, ShieldCheck, TicketPercent, UserCircle, UserPlus, Wallet, WalletCards } from "lucide-react";
+import { AudioLines, Bot, CircleHelp, Clapperboard, CreditCard, History, ImageIcon, Plus, ReceiptText, RefreshCw, Save, ShieldCheck, SlidersHorizontal, TicketPercent, Undo2, UserCircle, UserPlus, Wallet, WalletCards } from "lucide-react";
 
 import { CreditSymbol, formatCreditAmount } from "@/constant/credits";
 import { CompactEmptyState } from "@/components/compact-empty-state";
@@ -41,17 +41,57 @@ export const profileSections: Array<{ key: ProfileSectionKey; label: string; des
     { key: "referrals", label: "邀请有礼", description: "复制邀请码和邀请链接，查看注册、首单与奖励进度。", shortDescription: "拉新与奖励", icon: <UserPlus className="size-4" /> },
 ];
 
+/* 钱包导航只留三项：优惠券并进概览的小窗；订单 / 积分 / 消费是同一本账的三个视角，
+ * 合成「账单明细」一页，用页内分段切换。旧的 ?section=coupons|points|consume 仍然能落地。 */
+const WALLET_NAV_KEYS: ProfileSectionKey[] = ["wallet", "orders", "referrals"];
+const WALLET_NAV_LABELS: Partial<Record<ProfileSectionKey, string>> = { orders: "账单明细" };
+
 export function sectionsForScope(scope: AccountScope) {
-    return profileSections.filter((section) => ACCOUNT_SCOPE_BY_SECTION[section.key] === scope);
+    const sections = profileSections.filter((section) => ACCOUNT_SCOPE_BY_SECTION[section.key] === scope);
+    if (scope !== "wallet") return sections;
+    return sections.filter((section) => WALLET_NAV_KEYS.includes(section.key)).map((section) => ({ ...section, label: WALLET_NAV_LABELS[section.key] || section.label }));
+}
+
+/** 被合并的分区在导航里高亮它所属的那一项 */
+export function navKeyForSection(key: ProfileSectionKey): ProfileSectionKey {
+    if (key === "points" || key === "consume") return "orders";
+    if (key === "coupons" || key === "billing") return "wallet";
+    return key;
 }
 
 export const profilePrimaryButtonClass = "profile-primary-button";
 export const profileSecondaryButtonClass = "profile-secondary-button";
 export const profileDangerButtonClass = "profile-danger-button";
 
-export function ProfileSectionNav({ activeKey, onChange, mode, scope }: { activeKey: ProfileSectionKey; onChange: (key: ProfileSectionKey) => void; mode: "mobile" | "desktop"; scope: AccountScope }) {
+export function ProfileSectionNav({ activeKey: requestedKey, onChange, mode, scope }: { activeKey: ProfileSectionKey; onChange: (key: ProfileSectionKey) => void; mode: "mobile" | "desktop" | "tabs"; scope: AccountScope }) {
     const sections = sectionsForScope(scope);
+    const activeKey = navKeyForSection(requestedKey);
     const navLabel = scope === "wallet" ? "钱包分区" : "个人中心分区";
+    if (mode === "tabs") {
+        return (
+            <nav className="hide-scrollbar -mx-2 flex items-center gap-1 overflow-x-auto px-2" role="tablist" aria-label={navLabel}>
+                {sections.map((section) => {
+                    const active = section.key === activeKey;
+                    return (
+                        <button
+                            key={section.key}
+                            type="button"
+                            role="tab"
+                            aria-selected={active}
+                            onClick={() => onChange(section.key)}
+                            className={cn(
+                                "relative inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-4 text-[13px] font-medium transition-colors",
+                                active ? "!bg-[#18181b] !text-white dark:!bg-white dark:!text-[#18181b]" : "text-[var(--ink-2)] hover:bg-[var(--surface-inset)] hover:text-[var(--ink-1)]",
+                            )}
+                        >
+                            <span className={cn("[&_svg]:size-3.5", active ? "opacity-90" : "opacity-60")}>{section.icon}</span>
+                            {section.label}
+                        </button>
+                    );
+                })}
+            </nav>
+        );
+    }
     if (mode === "mobile") {
         return (
             <nav className="flex h-9 items-center gap-2 rounded-lg border border-border bg-card px-2 text-card-foreground" aria-label={navLabel}>
@@ -248,27 +288,68 @@ export function LoadingBlock() {
     );
 }
 
+/* 账单行图标：按类型，模型消费再按描述里的媒介细分 */
+function recordIcon(record: PointRecord) {
+    if (record.type === "credit") return <Plus className="size-4" />;
+    if (record.type === "refund") return <Undo2 className="size-4" />;
+    if (record.type !== "consume") return <SlidersHorizontal className="size-4" />;
+    const text = record.description || "";
+    if (/视频|video/i.test(text)) return <Clapperboard className="size-4" />;
+    if (/音频|语音|配音|音乐|audio|speech/i.test(text)) return <AudioLines className="size-4" />;
+    if (/图|image/i.test(text)) return <ImageIcon className="size-4" />;
+    return <Bot className="size-4" />;
+}
+
+function recordDayLabel(value: string) {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "更早";
+    const today = new Date();
+    const startOf = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    const diff = Math.round((startOf(today) - startOf(date)) / 86_400_000);
+    if (diff === 0) return "今天";
+    if (diff === 1) return "昨天";
+    return date.toLocaleDateString("zh-CN", { month: "long", day: "numeric", ...(date.getFullYear() === today.getFullYear() ? {} : { year: "numeric" }) });
+}
+
+/** 账单式流水：按日期分组（今天 / 昨天 / 日期），左类型图标，金额右对齐等宽数字 */
 export function RecordList({ records }: { records: PointRecord[] }) {
+    const groups: Array<{ label: string; items: PointRecord[] }> = [];
+    for (const record of records) {
+        const label = recordDayLabel(record.createdAt);
+        const last = groups.at(-1);
+        if (last && last.label === label) last.items.push(record);
+        else groups.push({ label, items: [record] });
+    }
     return (
-        <div className="divide-y divide-stone-200 dark:divide-stone-800">
-            {records.map((record) => {
-                const positive = record.amount >= 0;
-                return (
-                    <div key={record.id} className="py-1.5 first:pt-0 last:pb-0 sm:px-1 sm:py-3">
-                        <div className="flex min-w-0 items-start justify-between gap-3">
-                            <div className="min-w-0">
-                                <div className="break-words text-sm font-semibold text-stone-900 dark:text-stone-100">{record.description || pointRecordTypeLabel(record.type)}</div>
-                                <div className="mt-1 text-xs text-stone-500 dark:text-stone-400">{formatTime(record.createdAt)}</div>
-                            </div>
-                            <Tag color={positive ? "green" : "red"} className="m-0 shrink-0">
-                                {positive ? "+" : ""}
-                                {formatCreditAmount(record.amount)}
-                            </Tag>
-                        </div>
-                        <div className="mt-0.5 text-[11px] text-stone-500 dark:text-stone-400">余额 {formatCreditAmount(record.balanceAfter)}</div>
+        <div className="space-y-4" data-testid="wallet-record-list">
+            {groups.map((group) => (
+                <div key={group.label}>
+                    <div className="mb-1 px-1 text-[11.5px] font-medium text-[var(--ink-3)]">{group.label}</div>
+                    <div className="divide-y divide-[var(--hairline)]">
+                        {group.items.map((record) => {
+                            const positive = record.amount >= 0;
+                            return (
+                                <div key={record.id} className="flex min-w-0 items-center gap-3 px-1 py-2.5">
+                                    <span className={cn("grid size-8 shrink-0 place-items-center rounded-lg", positive ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-[var(--surface-inset)] text-[var(--ink-3)]")}>{recordIcon(record)}</span>
+                                    <div className="min-w-0 flex-1">
+                                        <div className="flex min-w-0 items-center gap-1.5">
+                                            <span className="truncate text-[13px] font-medium text-[var(--ink-1)]">{record.description || pointRecordTypeLabel(record.type)}</span>
+                                            {record.type === "refund" ? <span className="shrink-0 rounded bg-emerald-500/10 px-1.5 text-[10.5px] font-medium text-emerald-600 dark:text-emerald-400">已退回</span> : null}
+                                        </div>
+                                        <div className="mt-0.5 text-[11px] text-[var(--ink-3)]">
+                                            {new Date(record.createdAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })} · 余额 {formatCreditAmount(record.balanceAfter)}
+                                        </div>
+                                    </div>
+                                    <span className={cn("min-w-[72px] shrink-0 text-right text-[14px] font-semibold tabular-nums", positive ? "text-emerald-600 dark:text-emerald-400" : "text-[var(--ink-1)]")}>
+                                        {positive ? "+" : "−"}
+                                        {formatCreditAmount(Math.abs(record.amount))}
+                                    </span>
+                                </div>
+                            );
+                        })}
                     </div>
-                );
-            })}
+                </div>
+            ))}
         </div>
     );
 }

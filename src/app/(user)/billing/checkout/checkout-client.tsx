@@ -18,7 +18,7 @@ const providers = [
     { label: "人工确认", value: "manual", icon: FileText, description: "线下转账或人工开通" },
 ] as const;
 
-export function BillingCheckoutPage({ productId }: { productId: string }) {
+export function BillingCheckoutPage({ productId, returnTo = "" }: { productId: string; returnTo?: string }) {
     const { message } = App.useApp();
     const copyText = useCopyText();
     const [product, setProduct] = useState<BillingProduct | null>(null);
@@ -384,8 +384,13 @@ export function BillingCheckoutPage({ productId }: { productId: string }) {
                                         {checkout.kind === "manual" ? "查看订单说明" : "前往支付"}
                                     </Button>
                                 </div>
-                                <Link href="/wallet?section=orders" className="mt-5 text-sm font-medium text-stone-500 hover:text-stone-950 dark:text-stone-400 dark:hover:text-white">
-                                    返回个人中心查看订单
+                                {returnTo ? (
+                                    <Link href={returnTo} className="mt-5 text-sm font-semibold text-[#e2671f] hover:underline">
+                                        支付完成后，返回刚才的创作
+                                    </Link>
+                                ) : null}
+                                <Link href="/wallet?section=orders" className={`${returnTo ? "mt-2" : "mt-5"} text-sm font-medium text-stone-500 hover:text-stone-950 dark:text-stone-400 dark:hover:text-white`}>
+                                    返回钱包查看订单
                                 </Link>
                             </div>
                         )}

@@ -2,15 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { App, Button, Input, Pagination } from "antd";
+import { App, Button, Input, Modal, Pagination } from "antd";
 import { saveAs } from "file-saver";
-import { ArrowRight, ArrowUpRight, BookOpenText, CreditCard, Download, History, ReceiptText, RefreshCw, ShieldCheck, Sparkles, TicketPercent, Wallet, WalletCards } from "lucide-react";
+import { ArrowRight, ArrowUpRight, BookOpenText, CreditCard, Download, History, ReceiptText, RefreshCw, ShieldCheck, Wallet, WalletCards } from "lucide-react";
 
 import { CreditSymbol, formatCreditAmount } from "@/constant/credits";
 import { CompactEmptyState } from "@/components/compact-empty-state";
 import { resetClientSessionState } from "@/lib/client-session-reset";
 import { downloadUserDataExport } from "@/services/api/user-data-export";
-import { BillingPlansModal } from "@/components/billing/billing-plans-modal";
 import { cn } from "@/lib/utils";
 import { useUserStore, type LocalUser } from "@/stores/use-user-store";
 
@@ -20,6 +19,8 @@ import { AdminMfaPanel } from "./admin-mfa-panel";
 import { LoginSecurityPanel } from "./login-security-panel";
 import { CouponWalletSection } from "./profile-coupon-wallet";
 import { ProfileReferralCenter } from "./profile-referral-center";
+import { ConsumptionSparkline, WalletCouponCard, WalletFaqCard, WalletPurchaseSection, WalletReferralCard, dailyExpiryText, equivalentText, useCreditEquivalents, type PurchaseMode } from "./wallet-overview-blocks";
+import { WalletMemberCard } from "./wallet-member-card";
 
 import {
     ProfileSectionKey,
@@ -41,7 +42,7 @@ import { useProfileData } from "./use-profile-data";
 const SCOPE_COPY: Record<AccountScope, { title: string; description: string }> = {
     wallet: {
         title: "钱包",
-        description: "积分余额、套餐充值和账单都在这里，选套餐与支付在一屏内完成。",
+        description: "余额、套餐、充值和账单都在这一页。",
     },
     profile: {
         title: "个人中心",
@@ -75,9 +76,10 @@ export function AccountCenter({ scope }: { scope: AccountScope }) {
     const [sendingCode, setSendingCode] = useState(false);
     const [savingPassword, setSavingPassword] = useState(false);
     const [exportingData, setExportingData] = useState(false);
-    const [billTab, setBillTab] = useState<"orders" | "points">("orders");
-    const [plansOpen, setPlansOpen] = useState(false);
-    const { coupons, orders, points, consumption, loading: accountLoading, refresh: refreshAccount } = useProfileData(activeSection);
+    const [billTab, setBillTab] = useState<"orders" | "points" | "consume">("orders");
+    const [couponsOpen, setCouponsOpen] = useState(false);
+    const [purchaseMode, setPurchaseMode] = useState<PurchaseMode>("points");
+    const { products, coupons, orders, points, consumption, loading: accountLoading, refresh: refreshAccount } = useProfileData(activeSection);
 
     const boundEmail = user?.email || "";
     const emailChanged = email.trim().toLowerCase() !== boundEmail.toLowerCase();
@@ -99,15 +101,30 @@ export function AccountCenter({ scope }: { scope: AccountScope }) {
         router.replace(accountSectionHref(key, scope), { scroll: false });
     };
 
-    /* 充值走和官网一致的套餐弹窗：不把套餐卡铺进钱包页面。
-     * 老链接 /wallet?section=billing 与账户面板的「续费套餐」都用这个参数，
-     * 落进来就把弹窗打开，再把地址清成 /wallet。 */
+    /* 套餐与充值金额直接铺在钱包概览里。老链接 /wallet?section=billing 与「续费套餐」
+     * 落进来就滚到套餐区，再把地址清成 /wallet。 */
     const wantsRecharge = scope === "wallet" && requestedSection === "billing";
+    /* 优惠券不再单独成页：老链接 ?section=coupons 落到概览并打开优惠券小窗 */
+    const wantsCoupons = scope === "wallet" && requestedSection === "coupons";
+    useEffect(() => {
+        if (!wantsCoupons) return;
+        setActiveSection("wallet");
+        setCouponsOpen(true);
+        router.replace("/wallet", { scroll: false });
+    }, [router, wantsCoupons]);
+
+    const goCheckout = (product: { id: string }) => router.push(`/billing/checkout?product=${encodeURIComponent(product.id)}`);
+    const scrollToPurchase = (mode: PurchaseMode) => {
+        setPurchaseMode(mode);
+        window.requestAnimationFrame(() => document.getElementById("wallet-purchase")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+    };
+
     useEffect(() => {
         if (!wantsRecharge) return;
         setActiveSection("wallet");
-        setPlansOpen(true);
         router.replace("/wallet", { scroll: false });
+        setPurchaseMode("plan");
+        window.setTimeout(() => document.getElementById("wallet-purchase")?.scrollIntoView({ behavior: "smooth", block: "start" }), 400);
     }, [router, wantsRecharge]);
 
     const saveProfile = async () => {
@@ -208,6 +225,87 @@ export function AccountCenter({ scope }: { scope: AccountScope }) {
 
     const permanentPoints = user?.permanentPointsBalance ?? user?.pointsBalance ?? 0;
     const planLabel = user?.planName || user?.planId || "未开通套餐";
+    const creditCosts = useCreditEquivalents();
+    const balance = user?.pointsBalance || 0;
+    const balanceEquivalent = equivalentText(balance, creditCosts);
+    const dailyExpiry = (user?.dailyPointsBalance || 0) > 0 ? dailyExpiryText(user?.dailyPointsExpiresAt) : "";
+    /* 余额连一条默认视频都不够时提醒（拿不到视频价格就退回到「不够一张图」） */
+    const lowBalance = creditCosts.video > 0 ? balance < creditCosts.video : creditCosts.image > 0 && balance < creditCosts.image;
+
+    const BILL_TABS = [
+        { key: "orders" as const, label: "充值订单" },
+        { key: "points" as const, label: "积分变动" },
+        { key: "consume" as const, label: "消费明细" },
+    ];
+    const BILL_EMPTY = {
+        orders: { title: "暂无订单", description: "开通套餐或充值后会显示在这里。" },
+        points: { title: "暂无积分记录", description: "每日积分、充值赠送、管理员调整和失败退回都会出现在这里。" },
+        consume: { title: "暂无消费记录", description: "产生模型调用或生成任务后会显示在这里。" },
+    } as const;
+
+    /* compact=概览里的最近 6 条（切换只换本地 tab）；完整页切换会改地址，各自分页 */
+    const renderBills = (view: "orders" | "points" | "consume", compact: boolean) => {
+        const records = view === "points" ? points : consumption;
+        return (
+            <section className="overflow-hidden rounded-2xl border border-[var(--hairline)] bg-card" data-testid={compact ? "wallet-bills" : "wallet-bill-detail"}>
+                <div className="flex flex-wrap items-center justify-between gap-2 px-4 pt-4 sm:px-6 sm:pt-5">
+                    <div className="min-w-0">
+                        <h2 className="text-[15px] font-semibold leading-6 text-[var(--ink-1)]">{compact ? "最近账单" : "账单明细"}</h2>
+                        <p className="mt-0.5 text-[12px] leading-5 text-[var(--ink-3)]">充值订单、积分变动与模型消费，都是同一本账。</p>
+                    </div>
+                    <div className="flex items-center gap-0.5 rounded-lg bg-[var(--surface-inset)] p-0.5" role="tablist" aria-label="账单类型">
+                        {BILL_TABS.map((tab) => {
+                            const active = view === tab.key;
+                            return (
+                                <button
+                                    key={tab.key}
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={active}
+                                    onClick={() => (compact ? setBillTab(tab.key) : switchSection(tab.key))}
+                                    className={cn(
+                                        "h-7 rounded-md px-3 text-[12px] font-medium transition-colors",
+                                        active ? "bg-card text-[var(--ink-1)] shadow-[0_1px_3px_rgba(32,36,42,0.08)] dark:bg-[#2f343b]" : "text-[var(--ink-3)] hover:text-[var(--ink-1)]",
+                                    )}
+                                >
+                                    {tab.label}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+                <div className="px-4 pb-3 pt-3 sm:px-6 sm:pb-4">
+                    {view === "orders" && compact && !orders.loading && !orders.items.length ? (
+                        <p className="rounded-xl bg-[var(--surface-soft)] px-4 py-3 text-center text-[12px] text-[var(--ink-3)]">{BILL_EMPTY.orders.title}，{BILL_EMPTY.orders.description}</p>
+                    ) : view === "orders" ? (
+                        <OrderList loading={orders.loading} orders={compact ? orders.items.slice(0, 6) : orders.items} total={orders.total} page={orders.page} onPageChange={orders.setPage} compact={compact} />
+                    ) : records.loading ? (
+                        <LoadingBlock />
+                    ) : records.items.length ? (
+                        <>
+                            {view === "consume" ? <ConsumptionSparkline records={records.items} /> : null}
+                            <RecordList records={compact ? records.items.slice(0, 6) : records.items} />
+                            {!compact && records.total > RECORD_PAGE_SIZE ? <Pagination size="small" current={records.page} pageSize={RECORD_PAGE_SIZE} total={records.total} showSizeChanger={false} onChange={records.setPage} /> : null}
+                        </>
+                    ) : compact ? (
+                        <p className="rounded-xl bg-[var(--surface-soft)] px-4 py-3 text-center text-[12px] text-[var(--ink-3)]">{BILL_EMPTY[view].title}，{BILL_EMPTY[view].description}</p>
+                    ) : (
+                        <CompactEmptyState title={BILL_EMPTY[view].title} description={BILL_EMPTY[view].description} />
+                    )}
+                </div>
+                {compact ? (
+                    <button
+                        type="button"
+                        onClick={() => switchSection(view)}
+                        className="flex w-full items-center justify-center gap-1 border-t border-[var(--hairline)] py-2.5 text-[12px] font-medium text-[var(--ink-2)] transition-colors hover:bg-[var(--surface-soft)] hover:text-[var(--ink-1)]"
+                    >
+                        查看全部账单
+                        <ArrowRight className="size-3.5" />
+                    </button>
+                ) : null}
+            </section>
+        );
+    };
 
     return (
         <main className="profile-page-scroll h-full min-h-0 overflow-x-hidden overflow-y-auto px-2 py-2 text-foreground sm:px-6 sm:py-6" style={{ backgroundColor: "var(--background)" }} data-testid={`account-center-${scope}`}>
@@ -231,136 +329,65 @@ export function AccountCenter({ scope }: { scope: AccountScope }) {
                     </div>
                 </div>
 
-                <div className="mb-1.5 xl:hidden sm:mb-5">
-                    <ProfileSectionNav activeKey={activeSection} onChange={switchSection} mode="mobile" scope={scope} />
-                </div>
+                {scope === "wallet" ? (
+                    /* 钱包只剩三个分区：不要 210px 的左侧导航，改成标题下的分段标签，内容区铺满 */
+                    <div className="mb-4 sm:mb-6">
+                        <ProfileSectionNav activeKey={activeSection} onChange={switchSection} mode="tabs" scope={scope} />
+                    </div>
+                ) : (
+                    <div className="mb-1.5 xl:hidden sm:mb-5">
+                        <ProfileSectionNav activeKey={activeSection} onChange={switchSection} mode="mobile" scope={scope} />
+                    </div>
+                )}
 
                 {scope === "wallet" && activeSection === "wallet" ? (
-                    /* 钱包首屏：一张「卡」讲清余额，下面一条四格入口，
-                     * 再往下直接就是套餐——把最重要的两个动作放在同一屏。 */
-                    <section data-testid="wallet-balance-card" className="relative mb-2 overflow-hidden rounded-2xl border border-[var(--hairline)] bg-card sm:mb-5">
-                        <div aria-hidden className="pointer-events-none absolute -right-24 -top-28 size-72 rounded-full" style={{ background: "radial-gradient(circle, rgba(226,103,31,0.16), transparent 68%)" }} />
-                        <div className="relative flex flex-col gap-4 p-4 sm:flex-row sm:items-end sm:justify-between sm:p-6">
-                            <div className="min-w-0">
-                                <div className="flex items-center gap-1.5 text-[12px] leading-5 text-[var(--ink-3)]">
-                                    <CreditSymbol className="text-[var(--brand-600)]" />
-                                    可用积分
-                                </div>
-                                <div className="mt-1.5 flex flex-wrap items-end gap-x-2 gap-y-1">
-                                    <span className="text-[38px] font-semibold leading-none tabular-nums text-[var(--ink-1)] sm:text-[44px]">{formatCreditAmount(user?.pointsBalance || 0)}</span>
-                                    <span className="pb-1 text-[12px] text-[var(--ink-3)]">积分</span>
-                                    <span className="mb-1.5 inline-flex h-6 items-center gap-1 rounded-full bg-[var(--brand-soft)] px-2.5 text-[11px] font-medium text-[var(--brand-600)]">
-                                        <Sparkles className="size-3" />
-                                        {planLabel}
-                                    </span>
-                                </div>
-                                <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12px] text-[var(--ink-3)]">
-                                    <span>
-                                        今日可用 <span className="font-semibold tabular-nums text-[var(--ink-1)]">{formatCreditAmount(user?.dailyPointsBalance || 0)}</span>
-                                    </span>
-                                    <span aria-hidden className="h-3 w-px bg-[var(--hairline)]" />
-                                    <span>
-                                        永久 <span className="font-semibold tabular-nums text-[var(--ink-1)]">{formatCreditAmount(permanentPoints)}</span>
-                                    </span>
-                                </div>
-                            </div>
-                            <div className="flex shrink-0 flex-wrap items-center gap-2">
-                                <Button type="primary" className={profilePrimaryButtonClass} icon={<CreditCard className="size-4" />} onClick={() => setPlansOpen(true)}>
-                                    立即充值
-                                </Button>
-                                <Button className={profileSecondaryButtonClass} icon={<TicketPercent className="size-4" />} onClick={() => switchSection("coupons")}>
-                                    优惠券
-                                </Button>
-                            </div>
-                        </div>
-
-                        <div className="relative grid grid-cols-2 gap-px bg-[var(--hairline)] sm:grid-cols-4">
-                            {[
-                                { key: "orders" as ProfileSectionKey, label: "订单记录", value: `${orders.total} 笔`, icon: ReceiptText },
-                                { key: "points" as ProfileSectionKey, label: "积分流水", value: `${points.total} 条`, icon: CreditSymbol },
-                                { key: "consume" as ProfileSectionKey, label: "消费记录", value: `${consumption.total} 条`, icon: History },
-                                { key: "referrals" as ProfileSectionKey, label: "邀请有礼", value: "赚积分", icon: ArrowUpRight },
-                            ].map((item) => {
-                                const Icon = item.icon;
-                                return (
-                                    <button
-                                        key={item.key}
-                                        type="button"
-                                        onClick={() => switchSection(item.key)}
-                                        className="group flex min-w-0 items-center gap-2.5 bg-card px-4 py-3 text-left transition-colors hover:bg-[var(--surface-soft)]"
-                                    >
-                                        <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-[var(--surface-inset)] text-[var(--ink-3)] transition-colors group-hover:text-[var(--ink-1)]">
-                                            <Icon className="size-4" />
-                                        </span>
-                                        <span className="min-w-0 flex-1">
-                                            <span className="block truncate text-[13px] font-semibold leading-5 tabular-nums text-[var(--ink-1)]">{item.value}</span>
-                                            <span className="block truncate text-[11px] leading-4 text-[var(--ink-3)]">{item.label}</span>
-                                        </span>
-                                        <ArrowRight className="size-3.5 shrink-0 text-transparent transition-colors group-hover:text-[var(--ink-3)]" />
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </section>
+                    <WalletMemberCard
+                        balance={balance}
+                        dailyBalance={user?.dailyPointsBalance || 0}
+                        permanentBalance={permanentPoints}
+                        dailyExpiry={dailyExpiry}
+                        planLabel={user?.hasActivePlan ? planLabel : "免费版"}
+                        hasActivePlan={Boolean(user?.hasActivePlan)}
+                        equivalent={balanceEquivalent}
+                        lowBalanceText={lowBalance ? `余额不够生成${creditCosts.video > 0 ? "一条视频" : "一张图片"}，充值后再继续` : ""}
+                        ordersTotal={orders.total}
+                        onRecharge={() => scrollToPurchase(user?.hasActivePlan ? "points" : purchaseMode)}
+                        onCoupons={() => setCouponsOpen(true)}
+                        onBills={() => switchSection("orders")}
+                    />
                 ) : null}
 
-                <div className="grid min-w-0 gap-1.5 sm:gap-5 xl:grid-cols-[210px_minmax(0,1fr)]">
-                    <div className="hidden xl:block">
-                        <ProfileSectionNav activeKey={activeSection} onChange={switchSection} mode="desktop" scope={scope} />
-                    </div>
+                <div className={cn("grid min-w-0 gap-1.5 sm:gap-5", scope === "profile" && "xl:grid-cols-[210px_minmax(0,1fr)]")}>
+                    {scope === "profile" ? (
+                        <div className="hidden xl:block">
+                            <ProfileSectionNav activeKey={activeSection} onChange={switchSection} mode="desktop" scope={scope} />
+                        </div>
+                    ) : null}
                     <div className="min-w-0 space-y-1.5 sm:space-y-5">
-                        {/* 钱包概览：只有一张账单卡，充值是弹窗，不占页面 */}
+                        {/* 钱包概览：套餐 → 充值金额 → 最近账单；优惠券与邀请是右侧小窗 */}
                         {activeSection === "wallet" ? (
-                            <section className="overflow-hidden rounded-2xl border border-[var(--hairline)] bg-card" data-testid="wallet-bills">
-                                <div className="flex flex-wrap items-center justify-between gap-2 px-4 pt-4 sm:px-6 sm:pt-5">
-                                    <div className="min-w-0">
-                                        <h2 className="text-[15px] font-semibold leading-6 text-[var(--ink-1)]">账单</h2>
-                                        <p className="mt-0.5 text-[12px] leading-5 text-[var(--ink-3)]">最近的充值订单与积分变动。</p>
+                            <div className="space-y-4 sm:space-y-5">
+                                <div className="grid min-w-0 gap-4 sm:gap-5 2xl:grid-cols-[minmax(0,1fr)_320px] lg:grid-cols-[minmax(0,1fr)_300px]">
+                                    <div className="min-w-0 space-y-4 sm:space-y-5">
+                                        <WalletPurchaseSection
+                                            products={products.items}
+                                            loading={products.loading}
+                                            mode={purchaseMode}
+                                            onModeChange={setPurchaseMode}
+                                            hasActivePlan={Boolean(user?.hasActivePlan)}
+                                            activePlanId={user?.hasActivePlan ? user?.planId : undefined}
+                                            onCheckout={goCheckout}
+                                        />
+                                        {renderBills(billTab, true)}
                                     </div>
-                                    <div className="flex items-center gap-0.5 rounded-lg bg-[var(--surface-inset)] p-0.5" role="tablist" aria-label="账单类型">
-                                        {[
-                                            { key: "orders" as const, label: "订单" },
-                                            { key: "points" as const, label: "积分" },
-                                        ].map((tab) => {
-                                            const active = billTab === tab.key;
-                                            return (
-                                                <button
-                                                    key={tab.key}
-                                                    type="button"
-                                                    role="tab"
-                                                    aria-selected={active}
-                                                    onClick={() => setBillTab(tab.key)}
-                                                    className={cn(
-                                                        "h-7 rounded-md px-3 text-[12px] font-medium transition-colors",
-                                                        active ? "bg-card text-[var(--ink-1)] shadow-[0_1px_3px_rgba(32,36,42,0.08)] dark:bg-[#2f343b]" : "text-[var(--ink-3)] hover:text-[var(--ink-1)]",
-                                                    )}
-                                                >
-                                                    {tab.label}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
+                                    {/* 右栏：优惠券 → 邀请 → 常见问题，整列吸顶 */}
+                                    <aside className="min-w-0 space-y-4 self-start lg:sticky lg:top-4">
+                                        <WalletCouponCard coupons={coupons.items} loading={coupons.loading} onClaimed={coupons.refreshAfterClaim} onOpenAll={() => setCouponsOpen(true)} />
+                                        <WalletReferralCard onOpen={() => switchSection("referrals")} />
+                                        <WalletFaqCard />
+                                    </aside>
                                 </div>
-                                <div className="px-4 pb-3 pt-3 sm:px-6 sm:pb-4">
-                                    {billTab === "orders" ? (
-                                        <OrderList loading={orders.loading} orders={orders.items.slice(0, 6)} total={orders.total} page={orders.page} onPageChange={orders.setPage} compact />
-                                    ) : points.loading ? (
-                                        <LoadingBlock />
-                                    ) : points.items.length ? (
-                                        <RecordList records={points.items.slice(0, 6)} />
-                                    ) : (
-                                        <CompactEmptyState title="暂无积分记录" description="每日积分、充值和模型消费记录会显示在这里。" />
-                                    )}
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={() => switchSection(billTab)}
-                                    className="flex w-full items-center justify-center gap-1 border-t border-[var(--hairline)] py-2.5 text-[12px] font-medium text-[var(--ink-2)] transition-colors hover:bg-[var(--surface-soft)] hover:text-[var(--ink-1)]"
-                                >
-                                    查看全部{billTab === "orders" ? "订单" : "积分记录"}
-                                    <ArrowRight className="size-3.5" />
-                                </button>
-                            </section>
+                            </div>
                         ) : null}
 
                         {/* 个人中心概览：只讲账号，不摆账本 */}
@@ -437,59 +464,10 @@ export function AccountCenter({ scope }: { scope: AccountScope }) {
                             </AccountPanel>
                         ) : null}
 
-                        {activeSection === "coupons" ? (
-                            <CouponWalletSection
-                                coupons={coupons.items}
-                                templates={coupons.templates}
-                                templatesTotal={coupons.templatesTotal}
-                                templatePage={coupons.templatePage}
-                                total={coupons.total}
-                                page={coupons.page}
-                                loading={coupons.loading}
-                                onRefresh={coupons.refresh}
-                                onTemplatePageChange={coupons.setTemplatePage}
-                                onPageChange={coupons.setPage}
-                                onClaimed={coupons.refreshAfterClaim}
-                            />
-                        ) : null}
-
                         {activeSection === "referrals" ? <ProfileReferralCenter /> : null}
 
-                        {activeSection === "orders" ? (
-                            <AccountPanel title="订单记录" description="查看充值订单、支付渠道、订单状态和套餐开通结果。">
-                                <OrderList loading={orders.loading} orders={orders.items} total={orders.total} page={orders.page} onPageChange={orders.setPage} />
-                            </AccountPanel>
-                        ) : null}
-
-                        {activeSection === "consume" ? (
-                            <AccountPanel title="消费记录" description="展示最近扣除积分的模型调用、生成任务和接口消费。">
-                                {consumption.loading ? (
-                                    <LoadingBlock />
-                                ) : consumption.items.length ? (
-                                    <>
-                                        <RecordList records={consumption.items} />
-                                        {consumption.total > RECORD_PAGE_SIZE ? <Pagination size="small" current={consumption.page} pageSize={RECORD_PAGE_SIZE} total={consumption.total} showSizeChanger={false} onChange={consumption.setPage} /> : null}
-                                    </>
-                                ) : (
-                                    <CompactEmptyState title="暂无消费记录" description="产生模型调用或生成任务后会显示在这里。" />
-                                )}
-                            </AccountPanel>
-                        ) : null}
-
-                        {activeSection === "points" ? (
-                            <AccountPanel title="积分记录" description="每日积分、充值赠送、管理员调整和失败退回都会出现在这里。">
-                                {points.loading ? (
-                                    <LoadingBlock />
-                                ) : points.items.length ? (
-                                    <>
-                                        <RecordList records={points.items} />
-                                        {points.total > RECORD_PAGE_SIZE ? <Pagination size="small" current={points.page} pageSize={RECORD_PAGE_SIZE} total={points.total} showSizeChanger={false} onChange={points.setPage} /> : null}
-                                    </>
-                                ) : (
-                                    <CompactEmptyState title="暂无积分记录" description="积分变化会按时间记录在这里。" />
-                                )}
-                            </AccountPanel>
-                        ) : null}
+                        {/* 订单 / 积分 / 消费合成一张「账单明细」，页内分段切换，各自保留分页 */}
+                        {activeSection === "orders" || activeSection === "points" || activeSection === "consume" ? renderBills(activeSection, false) : null}
 
                         {activeSection === "help" ? (
                             <AccountPanel title="帮助中心" description="先看这几篇能解决大部分问题，需要更多内容可以打开完整帮助中心。">
@@ -583,14 +561,30 @@ export function AccountCenter({ scope }: { scope: AccountScope }) {
                     </div>
                 </div>
             </div>
-            <BillingPlansModal
-                open={plansOpen}
-                onClose={() => setPlansOpen(false)}
-                onSelect={(product) => {
-                    setPlansOpen(false);
-                    router.push(`/billing/checkout?product=${encodeURIComponent(product.id)}`);
-                }}
-            />
+            <Modal
+                rootClassName="profile-page-scroll"
+                title={null}
+                open={couponsOpen}
+                onCancel={() => setCouponsOpen(false)}
+                footer={null}
+                width="min(94vw, 880px)"
+                centered
+                styles={{ body: { maxHeight: "calc(100dvh - 64px)", overflowY: "auto" } }}
+            >
+                <CouponWalletSection
+                    coupons={coupons.items}
+                    templates={coupons.templates}
+                    templatesTotal={coupons.templatesTotal}
+                    templatePage={coupons.templatePage}
+                    total={coupons.total}
+                    page={coupons.page}
+                    loading={coupons.loading}
+                    onRefresh={coupons.refresh}
+                    onTemplatePageChange={coupons.setTemplatePage}
+                    onPageChange={coupons.setPage}
+                    onClaimed={coupons.refreshAfterClaim}
+                />
+            </Modal>
         </main>
     );
 }
